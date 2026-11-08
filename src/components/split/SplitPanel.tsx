@@ -70,7 +70,12 @@ export function SplitPanel({
           </p>
         ) : (
           rows.map((row) => (
-            <SplitGuestRow key={row.guestId} row={row} actions={rowActions[row.guestId]} />
+            <SplitGuestRow
+              key={row.guestId}
+              row={row}
+              eventTitle={view.eventTitle}
+              actions={rowActions[row.guestId]}
+            />
           ))
         )}
       </Card>

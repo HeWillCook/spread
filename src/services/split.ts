@@ -22,6 +22,8 @@ export interface SplitRow {
 }
 
 export interface SplitView {
+  /** Used in the message the host sends with each guest's Venmo link. */
+  eventTitle: string;
   rows: SplitRow[];
   totalCents: number;
   hostCoveredCents: number;
@@ -99,6 +101,7 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
   });
 
   return {
+    eventTitle: event.title,
     rows,
     totalCents: plan.totalCents,
     hostCoveredCents: split.hostCoveredCents,
@@ -139,7 +142,7 @@ export function setPaid(db: Db, hostId: string, eventId: string, guestId: string
   return updateGuest(db, hostId, eventId, guestId, { paid: v });
 }
 
-/** Records that the host opened this guest's Venmo link. */
+/** Records that the host shared this guest's Venmo link (the share or copy succeeded). */
 export function markLinkSent(db: Db, hostId: string, eventId: string, guestId: string) {
   return updateGuest(db, hostId, eventId, guestId, { linkSentAt: new Date() });
 }

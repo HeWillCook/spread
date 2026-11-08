@@ -60,4 +60,8 @@ The first time, install the browser with `npm run e2e:install`. `npm run e2e` bu
 
 ## Venmo links
 
-Venmo has no public API, so Cookout can only open prefilled Venmo pay links (`https://venmo.com/<username>?txn=pay&audience=private&amount=...&note=...`); it never sees or confirms a payment, and the host ticks "Paid" by hand. Venmo may change how it handles these links, so before the first real party tap "Send Venmo link" on a phone with the Venmo app installed and confirm that the username, amount, and note come through correctly.
+Venmo has no public API, so Cookout can only build prefilled Venmo pay links (`https://venmo.com/<username>?txn=pay&audience=private&amount=...&note=...`); it never sees or confirms a payment, and the host ticks "Paid" by hand.
+
+"Send Venmo link" does not open Venmo on the host's phone. It shares (or, where the browser has no share sheet, copies) a short message such as "Hi Pat, your share of Burger Night is $12.50: <link>" so the host can send it to the guest, and only marks the guest "link sent" once the share or copy actually succeeded. A cancelled share sheet marks nothing. The small "Open link" next to it just opens the link for testing and never marks anything sent.
+
+Venmo may change how it handles these links, so before the first real party, send the link to a second phone that has the Venmo app installed and tap it there. Confirm it opens a prefilled payment screen for the host as the payee, with the right amount and note.
