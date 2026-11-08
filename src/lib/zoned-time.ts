@@ -54,7 +54,10 @@ export function dateToZonedLocal(date: Date, timeZone: string): string {
 /**
  * Reads a `datetime-local` value ("2026-11-14T19:00") as the wall-clock time in
  * `timeZone` and returns the real instant. Independent of the server's own zone.
- * A wall time skipped by a DST jump lands just after the jump.
+ *
+ * DST edge cases (pinned by tests): a wall time skipped by spring-forward (02:30 on the
+ * US jump day) resolves to the instant one hour BEFORE the gap, i.e. 01:30 standard
+ * time. A wall time repeated by fall-back resolves to its first occurrence (daylight time).
  */
 export function zonedLocalToDate(local: string, timeZone: string): Date {
   assertTimeZone(timeZone);

@@ -35,10 +35,17 @@ function FormError({ message }: { message: string | null }) {
   );
 }
 
-/** "12 confirmed + about 3 from maybes = plan for ~15 (range 12–17)" */
+/**
+ * "12 confirmed + about 3 from maybes = plan for ~15 (range 12–17)". With no maybes
+ * to add it drops those parts: "12 confirmed = plan for ~12"; the range is only shown
+ * when it isn't a single number.
+ */
 export function breakdownLine(headcount: GuestsOverview["headcount"]): string {
-  const fromMaybes = headcount.planFor - headcount.confirmed;
-  return `${headcount.confirmed} confirmed + about ${fromMaybes} from maybes = plan for ~${headcount.planFor} (range ${headcount.low}–${headcount.high})`;
+  const { confirmed, planFor, low, high } = headcount;
+  const fromMaybes = planFor - confirmed;
+  const head = fromMaybes > 0 ? `${confirmed} confirmed + about ${fromMaybes} from maybes` : `${confirmed} confirmed`;
+  const range = low === high ? "" : ` (range ${low}–${high})`;
+  return `${head} = plan for ~${planFor}${range}`;
 }
 
 function MaybePercentForm({ action, percent }: { action: GuestsFormAction; percent: number }) {

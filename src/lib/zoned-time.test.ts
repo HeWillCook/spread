@@ -54,6 +54,42 @@ describe("zonedLocalToDate", () => {
     }
   });
 
+  it("a wall time skipped by spring-forward resolves to the instant one hour before the gap", () => {
+    // 2026-03-08: New York jumps from 02:00 EST straight to 03:00 EDT, so 02:30 never exists.
+    // It resolves to 06:30Z, which is 01:30 EST (just before the gap), not 03:30 EDT.
+    const skipped = zonedLocalToDate("2026-03-08T02:30", "America/New_York");
+    expect(skipped.toISOString()).toBe("2026-03-08T06:30:00.000Z");
+    expect(dateToZonedLocal(skipped, "America/New_York")).toBe("2026-03-08T01:30");
+    // Same in Chicago (the jump is at 02:00 CST).
+    expect(zonedLocalToDate("2026-03-08T02:30", "America/Chicago").toISOString()).toBe(
+      "2026-03-08T07:30:00.000Z",
+    );
+    // Times either side of the gap are unaffected.
+    expect(zonedLocalToDate("2026-03-08T01:30", "America/New_York").toISOString()).toBe(
+      "2026-03-08T06:30:00.000Z",
+    );
+    expect(zonedLocalToDate("2026-03-08T03:30", "America/New_York").toISOString()).toBe(
+      "2026-03-08T07:30:00.000Z",
+    );
+  });
+
+  it("a wall time repeated by fall-back resolves to the first (daylight time) occurrence", () => {
+    // 2026-11-01: New York repeats 01:00-02:00 (EDT, then EST). 01:30 resolves to 05:30Z = 01:30 EDT.
+    expect(zonedLocalToDate("2026-11-01T01:30", "America/New_York").toISOString()).toBe(
+      "2026-11-01T05:30:00.000Z",
+    );
+    expect(zonedLocalToDate("2026-11-01T01:30", "America/Chicago").toISOString()).toBe(
+      "2026-11-01T06:30:00.000Z",
+    );
+    // Times either side of the overlap are unaffected.
+    expect(zonedLocalToDate("2026-11-01T00:30", "America/New_York").toISOString()).toBe(
+      "2026-11-01T04:30:00.000Z",
+    );
+    expect(zonedLocalToDate("2026-11-01T02:30", "America/New_York").toISOString()).toBe(
+      "2026-11-01T07:30:00.000Z",
+    );
+  });
+
   it("accepts seconds", () => {
     expect(zonedLocalToDate("2026-11-14T19:00:30", "UTC").toISOString()).toBe("2026-11-14T19:00:30.000Z");
   });

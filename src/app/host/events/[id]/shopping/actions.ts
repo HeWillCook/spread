@@ -9,8 +9,10 @@ import { requireHost } from "@/server/auth";
 import { NotFoundError, ValidationError } from "@/services/errors";
 import { addExtraCost, removeExtraCost, setActualCost, setChecked } from "@/services/shopping";
 
-// Every action here takes the host from the session and the event/ingredient/extra ids
-// from server-side `bind`; only the typed values come from the form.
+// Every action here takes the host from the session. The event/ingredient/extra ids arrive
+// through `bind`, but in Next 16 bound arguments are sent to the browser and can be altered,
+// so they are NOT protected: these actions are safe only because every service re-checks
+// that the event (and its child rows) belong to the signed-in host.
 
 /** Re-renders the tabs that depend on the shopping total (Split reads it too). */
 function refresh(eventId: string) {

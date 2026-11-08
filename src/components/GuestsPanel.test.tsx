@@ -46,6 +46,19 @@ describe("GuestsPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("drops the maybes part and a one-number range when there are no maybes to plan for", () => {
+    expect(
+      breakdownLine({ confirmed: 12, maybeHeads: 0, expectedFromMaybes: 0, planFor: 12, low: 12, high: 12 }),
+    ).toBe("12 confirmed = plan for ~12");
+    // Maybes exist but the host plans for none of them: nothing to add, yet the range is real.
+    expect(
+      breakdownLine({ confirmed: 12, maybeHeads: 4, expectedFromMaybes: 0, planFor: 12, low: 12, high: 16 }),
+    ).toBe("12 confirmed = plan for ~12 (range 12–16)");
+    expect(
+      breakdownLine({ confirmed: 0, maybeHeads: 0, expectedFromMaybes: 0, planFor: 0, low: 0, high: 0 }),
+    ).toBe("0 confirmed = plan for ~0");
+  });
+
   it("shows yes / maybe / no counts", () => {
     renderPanel();
     expect(screen.getByText("8 yes")).toBeInTheDocument();

@@ -17,8 +17,10 @@ import {
   updateDish,
 } from "@/services/menu";
 
-// Every action here takes the host from the session and the event/dish ids from
-// server-side `bind`; only the recipe to add and the typed values come from the form.
+// Every action here takes the host from the session. The event/dish ids arrive through
+// `bind`, but in Next 16 bound arguments are sent to the browser and can be altered, so
+// they are NOT protected: these actions are safe only because every service re-checks
+// that the event (and dish) belong to the signed-in host.
 
 /** Re-renders the tabs that depend on the menu (it also feeds Shopping and Split). */
 function refresh(eventId: string) {
