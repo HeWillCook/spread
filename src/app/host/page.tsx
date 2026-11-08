@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { SignOutButton } from "@/components/SignOutButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Wordmark } from "@/components/ui/Wordmark";
@@ -24,7 +25,10 @@ export default async function HostDashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-5 p-5">
-      <Wordmark />
+      <div className="flex items-center justify-between gap-3">
+        <Wordmark />
+        <SignOutButton />
+      </div>
       <header className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold leading-tight text-ink">Your cookouts</h1>
         <p className="text-sm text-ink/80">Hi, {host.name}.</p>
