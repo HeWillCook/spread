@@ -8,6 +8,13 @@
       "when": 1794168701325,
       "tag": "0000_curly_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794169413272,
+      "tag": "0001_boring_zuras",
+      "breakpoints": true
     }
   ]
 }
