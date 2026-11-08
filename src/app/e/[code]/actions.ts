@@ -45,6 +45,12 @@ export async function submitGuestRsvp(
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
+  await rememberGuest(code, editToken);
+  redirect(guestPath(code, editToken));
+}
+
+/** Remembers the guest in an httpOnly cookie so reopening the event link finds their answer. */
+async function rememberGuest(code: string, editToken: string): Promise<void> {
   (await cookies()).set(guestCookieName(code), editToken, {
     httpOnly: true,
     sameSite: "lax",
@@ -52,7 +58,6 @@ export async function submitGuestRsvp(
     maxAge: GUEST_COOKIE_MAX_AGE,
     secure: process.env.NODE_ENV === "production",
   });
-  redirect(guestPath(code, editToken));
 }
 
 /** Changes an existing answer via the guest's edit token. */
@@ -69,5 +74,7 @@ export async function updateGuestRsvp(
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
+  // Someone who opened their personal link on a new device is remembered from now on.
+  await rememberGuest(code, token);
   redirect(guestPath(code, token));
 }

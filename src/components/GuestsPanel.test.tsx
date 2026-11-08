@@ -18,7 +18,11 @@ const ok: GuestsFormAction = async () => ({ error: null });
 
 function renderPanel(
   over: Partial<GuestsOverview> = {},
-  actions: { percent?: GuestsFormAction; invitees?: GuestsFormAction } = {},
+  actions: {
+    percent?: GuestsFormAction;
+    invitees?: GuestsFormAction;
+    remove?: GuestsFormAction;
+  } = {},
 ) {
   return render(
     <GuestsPanel
@@ -26,6 +30,7 @@ function renderPanel(
       maybePercent={50}
       setMaybePercentAction={actions.percent ?? ok}
       addInviteesAction={actions.invitees ?? ok}
+      removeGuestAction={actions.remove ?? ok}
     />,
   );
 }
@@ -101,5 +106,38 @@ describe("GuestsPanel", () => {
 
     await waitFor(() => expect(invitees).toHaveBeenCalled());
     expect(invitees.mock.calls[0][1].get("names")).toBe("Dana\nEli");
+  });
+
+  it("asks before removing a guest and only then calls the action with their id", async () => {
+    const remove = vi.fn<GuestsFormAction>().mockResolvedValue({ error: null });
+    renderPanel({}, { remove });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alex" }));
+    expect(screen.getByText("Really remove Alex?")).toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+
+    // "No" backs out without calling anything.
+    fireEvent.click(screen.getByRole("button", { name: "No, keep Alex" }));
+    expect(screen.queryByText("Really remove Alex?")).not.toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alex" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, remove Alex" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
+    expect(remove.mock.calls[0][1].get("guestId")).toBe("1");
+  });
+
+  it("flags guests with the same name as a possible duplicate", () => {
+    const { unmount } = renderPanel();
+    expect(screen.queryByText("possible duplicate")).not.toBeInTheDocument();
+    unmount();
+
+    renderPanel({
+      guests: [
+        ...overview.guests,
+        { id: "4", name: " alex ", status: "maybe", plusOneNames: [], foodNotes: null },
+      ],
+    });
+    expect(screen.getAllByText("possible duplicate")).toHaveLength(2);
   });
 });

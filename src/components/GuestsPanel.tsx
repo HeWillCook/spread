@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { duplicateGuestIds } from "@/lib/guest-names";
 import type { GuestsOverview, GuestRow } from "@/services/guestsOverview";
 import { Button } from "./ui/Button";
 import { Card, CardRow } from "./ui/Card";
@@ -92,17 +93,74 @@ function InviteeForm({ action }: { action: GuestsFormAction }) {
   );
 }
 
-function GuestItem({ guest }: { guest: GuestRow }) {
+/** "Remove" with an inline "Really remove Alex? Yes / No" step (no browser confirm). */
+function RemoveGuest({ guest, action }: { guest: GuestRow; action: GuestsFormAction }) {
+  const [state, formAction, pending] = useActionState(action, { error: null });
+  const [confirming, setConfirming] = useState(false);
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        aria-label={`Remove ${guest.name}`}
+        onClick={() => setConfirming(true)}
+        className="self-start text-sm font-bold text-ketchup underline"
+      >
+        Remove
+      </button>
+    );
+  }
+  return (
+    <form action={formAction} className="flex flex-col gap-2">
+      <input type="hidden" name="guestId" value={guest.id} />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-bold">Really remove {guest.name}?</span>
+        <Button
+          variant="red"
+          type="submit"
+          disabled={pending}
+          aria-label={`Yes, remove ${guest.name}`}
+          className="min-h-10 px-4 py-1 text-sm"
+        >
+          {pending ? "Removing..." : "Yes"}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={pending}
+          aria-label={`No, keep ${guest.name}`}
+          onClick={() => setConfirming(false)}
+          className="min-h-10 px-4 py-1 text-sm"
+        >
+          No
+        </Button>
+      </div>
+      <FormError message={state.error} />
+    </form>
+  );
+}
+
+function GuestItem({
+  guest,
+  duplicate,
+  removeAction,
+}: {
+  guest: GuestRow;
+  duplicate: boolean;
+  removeAction: GuestsFormAction;
+}) {
   return (
     <CardRow className="items-start">
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-bold">{guest.name}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-bold">{guest.name}</p>
+          {duplicate ? <Pill tone="cream">possible duplicate</Pill> : null}
+        </div>
         {guest.plusOneNames.length > 0 ? (
           <p className="text-sm text-ink/80">+ {guest.plusOneNames.join(", ")}</p>
         ) : null}
         {guest.foodNotes ? (
           <p className="text-sm text-ink/80">Food notes: {guest.foodNotes}</p>
         ) : null}
+        <RemoveGuest guest={guest} action={removeAction} />
       </div>
       <Pill tone={guest.status === "yes" ? "mustard" : "cream"}>{STATUS_LABEL[guest.status]}</Pill>
     </CardRow>
@@ -114,13 +172,17 @@ export function GuestsPanel({
   maybePercent,
   setMaybePercentAction,
   addInviteesAction,
+  removeGuestAction,
 }: {
   overview: GuestsOverview;
   maybePercent: number;
   setMaybePercentAction: GuestsFormAction;
   addInviteesAction: GuestsFormAction;
+  /** Removes the guest whose id is in the form's `guestId` field. */
+  removeGuestAction: GuestsFormAction;
 }) {
   const { headcount, counts, guests, noReply } = overview;
+  const duplicates = duplicateGuestIds(guests);
   return (
     <div className="flex flex-col gap-4">
       <Card className="flex flex-col gap-3">
@@ -142,7 +204,14 @@ export function GuestsPanel({
         {guests.length === 0 ? (
           <p className="text-sm text-ink/80">No answers yet. Share your link to get started.</p>
         ) : (
-          guests.map((g) => <GuestItem key={g.id} guest={g} />)
+          guests.map((g) => (
+            <GuestItem
+              key={g.id}
+              guest={g}
+              duplicate={duplicates.has(g.id)}
+              removeAction={removeGuestAction}
+            />
+          ))
         )}
       </Card>
 

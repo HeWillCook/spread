@@ -7,7 +7,13 @@ import { getDb } from "@/db/client";
 import { requireHost } from "@/server/auth";
 import { NotFoundError, ValidationError } from "@/services/errors";
 import { addInvitees } from "@/services/events";
+import { removeGuest } from "@/services/guestAdmin";
 import { setMaybePercent } from "@/services/guestsOverview";
+
+// Every action here takes the host from the session. The event id arrives through
+// `bind`, but in Next 16 bound arguments are sent to the browser and can be altered,
+// so they are NOT protected: these actions are safe only because every service
+// re-checks that the event belongs to the signed-in host.
 
 /** Re-renders the tab and the layout's "N coming" pill. */
 function refresh(eventId: string) {
@@ -51,6 +57,24 @@ export async function addInviteesAction(
     await addInvitees(await getDb(), host.id, eventId, names);
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message };
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+  refresh(eventId);
+  return { error: null };
+}
+
+/** Removes one guest (e.g. a duplicate RSVP) and their plus-ones. The guest id is the form's `guestId`. */
+export async function removeGuestAction(
+  eventId: string,
+  _prev: GuestsFormState,
+  formData: FormData,
+): Promise<GuestsFormState> {
+  const host = await requireHost();
+  const guestId = formData.get("guestId");
+  try {
+    await removeGuest(await getDb(), host.id, eventId, typeof guestId === "string" ? guestId : "");
+  } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
