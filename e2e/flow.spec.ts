@@ -19,8 +19,13 @@ async function signUp(page: Page, name: string): Promise<void> {
   // The button stays disabled until the page has hydrated.
   const submit = page.getByRole("button", { name: "Create account" });
   await expect(submit).toBeEnabled();
-  await submit.click();
-  await expect(page.getByRole("heading", { name: "Your cookouts" })).toBeVisible();
+  // Better Auth rate-limits sign-ups in production builds (about 3 per 10 seconds per
+  // client), and these tests sign several hosts up in a row. A limited attempt shows an
+  // error, so wait out the window and press the button again.
+  await expect(async () => {
+    await submit.click();
+    await expect(page.getByRole("heading", { name: "Your cookouts" })).toBeVisible({ timeout: 3000 });
+  }).toPass({ intervals: [4000], timeout: 60_000 });
 }
 
 /** Creates an event from the dashboard; returns its host URL and guest share link. */
@@ -166,4 +171,96 @@ test("guests never see other guests' names", async ({ page, browser }) => {
   }
 
   await Promise.all([alice.context.close(), bob.context.close(), stranger.close()]);
+});
+
+test("host removes a duplicate guest, charges a 'no' who came and a walk-in, then signs out", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(90_000); // sign-up may wait out the auth rate limit
+  await signUp(page, "Dana Host");
+  const { eventUrl, shareLink } = await createEvent(page, "Taco Night");
+
+  // The same person answered twice (two phones), and one guest said no.
+  const first = await rsvp(browser, shareLink, { name: "Dup Guest", status: "Yes!" });
+  const second = await rsvp(browser, shareLink, { name: "dup guest", status: "Maybe" });
+  const nay = await rsvp(browser, shareLink, { name: "Nay Sayer", status: "Can't" });
+
+  // Guests tab: both copies are flagged; removing one asks first, and leaves the other.
+  await page.goto(eventUrl);
+  await expect(page.getByText("possible duplicate")).toHaveCount(2);
+  // Names differ only by case, so match the lower-case copy exactly.
+  const remove = page.getByRole("button", { name: "Remove dup guest", exact: true });
+  await expect(async () => {
+    await remove.click();
+    await expect(page.getByText("Really remove dup guest?")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await page.getByRole("button", { name: "Yes, remove dup guest", exact: true }).click();
+  await expect(page.getByText("possible duplicate")).toHaveCount(0);
+  await expect(page.getByText("Dup Guest", { exact: true })).toBeVisible();
+  await expect(page.getByText("dup guest", { exact: true })).toHaveCount(0);
+
+  // Split tab: the "no" is collapsed under "Said no"; ticking them adds them to the split.
+  await page.getByRole("link", { name: "Split" }).click();
+  const saidNo = page.getByText("Said no (1)");
+  await expect(saidNo).toBeVisible();
+  await saidNo.click();
+  const nayCame = page.getByRole("checkbox", { name: "Nay Sayer came" });
+  await expect(async () => {
+    await nayCame.check();
+    await expect(page.getByText("Said no (1)")).toHaveCount(0, { timeout: 1000 });
+  }).toPass();
+  await expect(rowOf(page.getByText("Nay Sayer", { exact: true }))).toBeVisible();
+
+  // A walk-in who never RSVPed, with one extra person.
+  await page.getByLabel("Name", { exact: true }).fill("Walk In Wendy");
+  await page.getByLabel("Extra people they brought").fill("1");
+  await page.getByRole("button", { name: "Add to the split" }).click();
+  const wendy = rowOf(page.getByText("Walk In Wendy", { exact: true }));
+  await expect(wendy).toBeVisible();
+  await expect(wendy).toContainText("+1");
+  await expect(page.getByRole("checkbox", { name: "Walk In Wendy came" })).toBeChecked();
+
+  // Sign out from the dashboard; the host area is closed afterwards.
+  await page.goto("/host");
+  const signOut = page.getByRole("button", { name: "Sign out" });
+  await expect(async () => {
+    await signOut.click();
+    await expect(page).toHaveURL(/\/login$/, { timeout: 2000 });
+  }).toPass();
+  await page.goto("/host");
+  await expect(page).toHaveURL(/\/login$/);
+
+  await Promise.all([first.context.close(), second.context.close(), nay.context.close()]);
+});
+
+test("landing page offers sign-up and log-in, and a signed-in host goes to their events", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Host a cookout" })).toHaveAttribute("href", "/signup");
+  await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+  await page.getByRole("link", { name: "Host a cookout" }).click();
+  await expect(page).toHaveURL(/\/signup$/);
+
+  await signUp(page, "Lena Landing");
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Host a cookout" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Go to your events" }).click();
+  await expect(page).toHaveURL(/\/host$/);
+});
+
+test("a guest's personal link is private and 'not you' opens a blank form", async ({ page, browser }) => {
+  await signUp(page, "Priya Host");
+  const { shareLink } = await createEvent(page, "Chili Night");
+
+  const guest = await rsvp(browser, shareLink, { name: "Gus Guest", status: "Yes!" });
+  await expect(guest.page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(guest.page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
+  await expect(guest.page.getByText("This is your personal link")).toBeVisible();
+
+  // "Not you?" skips the remembered-guest redirect and shows an empty form.
+  await guest.page.getByRole("link", { name: "Not you? Answer as someone else" }).click();
+  await expect(guest.page).toHaveURL(/\?new=1$/);
+  await expect(guest.page.getByLabel("Your name")).toHaveValue("");
+  await expect(guest.page.getByRole("button", { name: "Count me in" })).toBeVisible();
+  await guest.context.close();
 });
