@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { authClient, friendlyAuthError } from "@/lib/auth-client";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
@@ -30,8 +30,20 @@ const COPY = {
   },
 } as const;
 
+const noopSubscribe = () => () => {};
+
+/** false while server-rendering / before hydration, true once React is live. */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const copy = COPY[mode];
+  const hydrated = useHydrated();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -74,7 +86,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       </header>
 
       <Card>
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        {/* method="post" + a disabled button until hydration: a native submit before
+            React is live must never put credentials in the URL query string. */}
+        <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4">
           {mode === "signup" ? (
             <Field
               label="Your name"
@@ -111,7 +125,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </p>
           ) : null}
 
-          <Button variant="mustard" type="submit" disabled={pending} className="text-lg">
+          <Button variant="mustard" type="submit" disabled={!hydrated || pending} className="text-lg">
             {pending ? copy.pending : copy.submit}
           </Button>
         </form>
