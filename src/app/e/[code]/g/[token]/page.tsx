@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RsvpForm } from "@/components/RsvpForm";
 import { getDb } from "@/db/client";
@@ -9,6 +11,12 @@ import { updateGuestRsvp } from "../../actions";
 
 // Reads the database, so it must never be prerendered.
 export const dynamic = "force-dynamic";
+
+// The URL is a personal secret: keep it out of search results and out of Referer headers.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  referrer: "no-referrer",
+};
 
 const CONFIRMATION: Record<RsvpStatus, string> = {
   yes: "You're in!",
@@ -44,14 +52,22 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
         initial={guest}
         action={updateGuestRsvp.bind(null, code, token)}
         notice={
-          <div
-            role="status"
-            className="rounded-xl border-2 border-ink bg-mustard px-4 py-3 text-base font-bold text-ink"
-          >
-            {CONFIRMATION[guest.status]}
-            <span className="block text-sm font-normal">
-              Need to change something? Update your answer below.
-            </span>
+          <div className="flex flex-col gap-2">
+            <div
+              role="status"
+              className="rounded-xl border-2 border-ink bg-mustard px-4 py-3 text-base font-bold text-ink"
+            >
+              {CONFIRMATION[guest.status]}
+              <span className="block text-sm font-normal">
+                Need to change something? Update your answer below.
+              </span>
+            </div>
+            <p className="text-xs text-ink/70">
+              This is your personal link — don&apos;t share it.{" "}
+              <Link href={`/e/${encodeURIComponent(code)}?new=1`} className="font-bold text-ketchup underline">
+                Not you? Answer as someone else
+              </Link>
+            </p>
           </div>
         }
       />
