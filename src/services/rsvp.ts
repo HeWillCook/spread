@@ -148,6 +148,8 @@ export async function getPublicEvent(
   title: string;
   startsAt: Date;
   location: string;
+  /** IANA zone the event time should be shown in. */
+  timezone: string;
   hostName: string;
   goingCount: number;
 }> {
@@ -168,6 +170,7 @@ export async function getPublicEvent(
     title: event.title,
     startsAt: event.startsAt,
     location: event.location,
+    timezone: event.timezone,
     hostName: event.hostName,
     goingCount: yesGuests + yesPlusOnes,
   };

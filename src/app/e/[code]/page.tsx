@@ -42,7 +42,7 @@ export default async function GuestPage({ params }: PageProps<"/e/[code]">) {
       <RsvpForm
         event={{
           title: event.title,
-          when: formatWhen(event.startsAt, event.location),
+          when: formatWhen(event.startsAt, event.location, event.timezone),
           hostName: event.hostName,
           goingCount: event.goingCount,
         }}

@@ -26,6 +26,8 @@ export const events = pgTable("events", {
   title: text("title").notNull(),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   location: text("location").notNull(),
+  // IANA zone the host picked the time in; used to show guests the same wall-clock time.
+  timezone: text("timezone").notNull().default("UTC"),
   shareCode: text("share_code").notNull().unique(),
   maybePercent: integer("maybe_percent").notNull().default(50),
   venmoUsername: text("venmo_username"),

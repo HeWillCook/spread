@@ -205,6 +205,7 @@ describe("getPublicEvent", () => {
       title: "Cookout",
       startsAt: new Date("2026-07-04T18:00:00Z"),
       location: "Backyard",
+      timezone: "UTC",
       hostName: "Will",
       goingCount: 4,
     });
