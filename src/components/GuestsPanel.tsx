@@ -1,0 +1,165 @@
+"use client";
+
+import { useActionState } from "react";
+import type { GuestsOverview, GuestRow } from "@/services/guestsOverview";
+import { Button } from "./ui/Button";
+import { Card, CardRow } from "./ui/Card";
+import { Field } from "./ui/Field";
+import { Pill } from "./ui/Pill";
+
+export interface GuestsFormState {
+  error: string | null;
+}
+
+export type GuestsFormAction = (
+  prev: GuestsFormState,
+  formData: FormData,
+) => Promise<GuestsFormState>;
+
+const STATUS_LABEL: Record<GuestRow["status"], string> = {
+  yes: "Going",
+  maybe: "Maybe",
+  no: "Can't",
+};
+
+function FormError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p
+      role="alert"
+      className="rounded-xl border-2 border-ink bg-ketchup px-4 py-3 text-sm font-bold text-cream"
+    >
+      {message}
+    </p>
+  );
+}
+
+/** "12 confirmed + about 3 from maybes = plan for ~15 (range 12–17)" */
+export function breakdownLine(headcount: GuestsOverview["headcount"]): string {
+  const fromMaybes = headcount.planFor - headcount.confirmed;
+  return `${headcount.confirmed} confirmed + about ${fromMaybes} from maybes = plan for ~${headcount.planFor} (range ${headcount.low}–${headcount.high})`;
+}
+
+function MaybePercentForm({ action, percent }: { action: GuestsFormAction; percent: number }) {
+  const [state, formAction, pending] = useActionState(action, { error: null });
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <Field
+        label="How many maybes will show up?"
+        hint="Percent of maybes to plan for. 50 means half."
+        name="percent"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={100}
+        step={1}
+        defaultValue={percent}
+        required
+      />
+      <FormError message={state.error} />
+      <Button variant="outline" type="submit" disabled={pending}>
+        {pending ? "Saving..." : "Save percent"}
+      </Button>
+    </form>
+  );
+}
+
+function InviteeForm({ action }: { action: GuestsFormAction }) {
+  const [state, formAction, pending] = useActionState(action, { error: null });
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <label htmlFor="invitee-names" className="text-sm font-bold text-ink">
+          Who did you invite? (optional)
+        </label>
+        <textarea
+          id="invitee-names"
+          name="names"
+          rows={4}
+          aria-describedby="invitee-names-hint"
+          placeholder={"Alex\nSam\nJordan"}
+          className="min-h-12 rounded-xl border-2 border-ink bg-white px-4 py-2 text-base text-ink placeholder:text-ink/40"
+        />
+        <p id="invitee-names-hint" className="text-xs text-ink/70">
+          Paste names, one per line, to see who hasn&apos;t replied yet.
+        </p>
+      </div>
+      <FormError message={state.error} />
+      <Button variant="outline" type="submit" disabled={pending}>
+        {pending ? "Adding..." : "Add names"}
+      </Button>
+    </form>
+  );
+}
+
+function GuestItem({ guest }: { guest: GuestRow }) {
+  return (
+    <CardRow className="items-start">
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="font-bold">{guest.name}</p>
+        {guest.plusOneNames.length > 0 ? (
+          <p className="text-sm text-ink/80">+ {guest.plusOneNames.join(", ")}</p>
+        ) : null}
+        {guest.foodNotes ? (
+          <p className="text-sm text-ink/80">Food notes: {guest.foodNotes}</p>
+        ) : null}
+      </div>
+      <Pill tone={guest.status === "yes" ? "mustard" : "cream"}>{STATUS_LABEL[guest.status]}</Pill>
+    </CardRow>
+  );
+}
+
+export function GuestsPanel({
+  overview,
+  maybePercent,
+  setMaybePercentAction,
+  addInviteesAction,
+}: {
+  overview: GuestsOverview;
+  maybePercent: number;
+  setMaybePercentAction: GuestsFormAction;
+  addInviteesAction: GuestsFormAction;
+}) {
+  const { headcount, counts, guests, noReply } = overview;
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-3">
+        <p className="text-lg font-bold leading-snug">{breakdownLine(headcount)}</p>
+        <div className="flex flex-wrap gap-2">
+          <Pill>{counts.yes} yes</Pill>
+          <Pill tone="cream">{counts.maybe} maybe</Pill>
+          <Pill tone="cream">{counts.no} no</Pill>
+          {noReply ? <Pill tone="cream">{noReply.length} no reply</Pill> : null}
+        </div>
+      </Card>
+
+      <Card>
+        <MaybePercentForm key={maybePercent} action={setMaybePercentAction} percent={maybePercent} />
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 text-lg font-bold">Guests</h2>
+        {guests.length === 0 ? (
+          <p className="text-sm text-ink/80">No answers yet. Share your link to get started.</p>
+        ) : (
+          guests.map((g) => <GuestItem key={g.id} guest={g} />)
+        )}
+      </Card>
+
+      {noReply && noReply.length > 0 ? (
+        <Card>
+          <h2 className="mb-3 text-lg font-bold">No reply yet</h2>
+          {noReply.map((name) => (
+            <CardRow key={name}>
+              <span className="font-bold">{name}</span>
+            </CardRow>
+          ))}
+        </Card>
+      ) : null}
+
+      <Card>
+        <InviteeForm action={addInviteesAction} />
+      </Card>
+    </div>
+  );
+}
