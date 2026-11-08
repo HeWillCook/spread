@@ -1,0 +1,439 @@
+// @vitest-environment node
+import { and, asc, eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { Db } from "@/db/client";
+import { eventDishes, recipeItems, recipes, shoppingState } from "@/db/schema";
+import { seedStarterRecipes } from "@/db/seed";
+import { createTestDb } from "@/db/test-db";
+import { STARTER_RECIPES, type RecipeItem } from "@/domain/recipes";
+import { NotFoundError, ValidationError } from "./errors";
+import { createEvent } from "./events";
+import {
+  addDishToEvent,
+  createCustomRecipe,
+  getMenu,
+  listRecipesForHost,
+  removeDish,
+  updateDish,
+} from "./menu";
+
+const BURGERS = "starter-burgers";
+const STARTER_BEEF = "starter-burgers-beef";
+
+let db: Db;
+let eventId: string;
+
+beforeEach(async () => {
+  db = await createTestDb();
+  await seedStarterRecipes(db);
+  ({ id: eventId } = await createEvent(db, "host-1", {
+    title: "Cookout",
+    startsAt: new Date("2026-07-04T18:00:00Z"),
+    location: "Backyard",
+    hostName: "Will",
+  }));
+});
+
+type NewItem = Omit<RecipeItem, "id">;
+const slaw: NewItem = {
+  name: "Cabbage",
+  emoji: "🥬",
+  perServing: 0.25,
+  unit: "head",
+  buyUnit: "head",
+  unitsPerBuy: 1,
+  priceCents: 300,
+};
+const dressing: NewItem = {
+  name: "Dressing",
+  emoji: "🥣",
+  perServing: 2,
+  unit: "tbsp",
+  buyUnit: "bottle",
+  unitsPerBuy: 24,
+  priceCents: 450,
+};
+
+async function customRecipe(hostId = "host-1", name = "Coleslaw") {
+  return (
+    await createCustomRecipe(db, hostId, {
+      name,
+      emoji: "🥗",
+      defaultServingsPerPerson: 0.5,
+      items: [slaw, dressing],
+    })
+  ).recipeId;
+}
+
+async function dishRow(dishId: string) {
+  const [row] = await db.select().from(eventDishes).where(eq(eventDishes.id, dishId));
+  return row;
+}
+
+async function itemsOf(recipeId: string) {
+  return db
+    .select()
+    .from(recipeItems)
+    .where(eq(recipeItems.recipeId, recipeId))
+    .orderBy(asc(recipeItems.position));
+}
+
+const starterAmounts = (beef: number) => ({ [STARTER_BEEF]: beef });
+
+describe("listRecipesForHost", () => {
+  it("returns the starters plus this host's own recipes, never another host's", async () => {
+    const mine = await customRecipe("host-1", "Mine");
+    const theirs = await customRecipe("host-2", "Theirs");
+    const list = await listRecipesForHost(db, "host-1");
+    const ids = list.map((r) => r.id);
+    expect(ids).toContain(BURGERS);
+    expect(ids).toContain(mine);
+    expect(ids).not.toContain(theirs);
+    const burgers = list.find((r) => r.id === BURGERS);
+    expect(burgers?.items.map((i) => i.id)).toEqual(STARTER_RECIPES[0].items.map((i) => i.id));
+  });
+});
+
+describe("addDishToEvent", () => {
+  it("adds the starter burgers with the recipe's default 1.5 servings per person", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    expect(await dishRow(dishId)).toMatchObject({
+      eventId,
+      recipeId: BURGERS,
+      servingsPerPerson: 1.5,
+    });
+  });
+
+  it("adds the host's own recipe", async () => {
+    const recipeId = await customRecipe();
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, recipeId);
+    expect(await dishRow(dishId)).toMatchObject({ recipeId, servingsPerPerson: 0.5 });
+  });
+
+  it("rejects adding the same recipe to an event twice", async () => {
+    await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await expect(addDishToEvent(db, "host-1", eventId, BURGERS)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(await db.select().from(eventDishes)).toHaveLength(1);
+  });
+
+  it("throws NotFoundError for another host's event", async () => {
+    await expect(addDishToEvent(db, "host-2", eventId, BURGERS)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(await db.select().from(eventDishes)).toHaveLength(0);
+  });
+
+  it("throws NotFoundError for another host's recipe or an unknown recipe", async () => {
+    const theirs = await customRecipe("host-2");
+    await expect(addDishToEvent(db, "host-1", eventId, theirs)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(addDishToEvent(db, "host-1", eventId, "nope")).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(await db.select().from(eventDishes)).toHaveLength(0);
+  });
+});
+
+describe("updateDish", () => {
+  it("first edit of a starter clones it for the host and leaves the starter untouched", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 2,
+      itemAmounts: starterAmounts(0.5),
+    });
+
+    const dish = await dishRow(dishId);
+    expect(dish.recipeId).not.toBe(BURGERS);
+    expect(dish.servingsPerPerson).toBe(2);
+
+    const [copy] = await db.select().from(recipes).where(eq(recipes.id, dish.recipeId));
+    expect(copy).toMatchObject({ ownerId: "host-1", name: "Burgers", emoji: "🍔" });
+    const copyItems = await itemsOf(copy.id);
+    expect(copyItems.map((i) => i.name)).toEqual(STARTER_RECIPES[0].items.map((i) => i.name));
+    expect(copyItems[0].perServing).toBe(0.5);
+    // Everything else is copied as-is.
+    expect(copyItems[1]).toMatchObject({ name: "Burger buns", perServing: 1, unitsPerBuy: 8 });
+    expect(copyItems.every((i) => !i.id.startsWith("starter-"))).toBe(true);
+
+    const [starter] = await db.select().from(recipes).where(eq(recipes.id, BURGERS));
+    expect(starter.ownerId).toBeNull();
+    const starterItems = await itemsOf(BURGERS);
+    expect(starterItems).toHaveLength(5);
+    expect(starterItems[0].perServing).toBe(1 / 3);
+  });
+
+  it("a second edit updates the copy in place without cloning again", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 2,
+      itemAmounts: starterAmounts(0.5),
+    });
+    const { recipeId: copyId } = await dishRow(dishId);
+    const copyBeef = (await itemsOf(copyId))[0];
+
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1,
+      itemAmounts: { [copyBeef.id]: 0.25 },
+    });
+
+    expect((await dishRow(dishId)).recipeId).toBe(copyId);
+    expect((await dishRow(dishId)).servingsPerPerson).toBe(1);
+    expect((await itemsOf(copyId))[0].perServing).toBe(0.25);
+    expect(await db.select().from(recipes)).toHaveLength(2); // starter + one copy
+  });
+
+  it("re-keys shopping state from the starter items to the cloned items, preserving it", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: STARTER_BEEF, checked: true, actualCents: 5400 });
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: "starter-burgers-buns", checked: false, actualCents: 700 });
+
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1.5,
+      itemAmounts: starterAmounts(0.4),
+    });
+
+    const copyItems = await itemsOf((await dishRow(dishId)).recipeId);
+    const rows = await db.select().from(shoppingState).where(eq(shoppingState.eventId, eventId));
+    expect(rows).toHaveLength(2);
+    expect(rows.some((r) => r.recipeItemId.startsWith("starter-"))).toBe(false);
+    expect(rows.find((r) => r.recipeItemId === copyItems[0].id)).toMatchObject({
+      checked: true,
+      actualCents: 5400,
+    });
+    expect(rows.find((r) => r.recipeItemId === copyItems[1].id)).toMatchObject({
+      checked: false,
+      actualCents: 700,
+    });
+  });
+
+  it("leaves another event's shopping state on the starter items alone", async () => {
+    const { id: otherEvent } = await createEvent(db, "host-1", {
+      title: "Other",
+      startsAt: new Date("2026-08-04T18:00:00Z"),
+      location: "Park",
+      hostName: "Will",
+    });
+    await addDishToEvent(db, "host-1", otherEvent, BURGERS);
+    await db
+      .insert(shoppingState)
+      .values({ eventId: otherEvent, recipeItemId: STARTER_BEEF, checked: true, actualCents: 100 });
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1.5,
+      itemAmounts: starterAmounts(0.4),
+    });
+    const [row] = await db
+      .select()
+      .from(shoppingState)
+      .where(and(eq(shoppingState.eventId, otherEvent)));
+    expect(row.recipeItemId).toBe(STARTER_BEEF);
+  });
+
+  it("edits a host-owned custom recipe in place (no clone)", async () => {
+    const recipeId = await customRecipe();
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, recipeId);
+    const [cabbage] = await itemsOf(recipeId);
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1,
+      itemAmounts: { [cabbage.id]: 0.5 },
+    });
+    expect((await dishRow(dishId)).recipeId).toBe(recipeId);
+    expect((await itemsOf(recipeId))[0].perServing).toBe(0.5);
+  });
+
+  it("throws NotFoundError for another host, and for a dish on a different event", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    const input = { servingsPerPerson: 2, itemAmounts: starterAmounts(0.5) };
+    await expect(updateDish(db, "host-2", eventId, dishId, input)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    const { id: other } = await createEvent(db, "host-1", {
+      title: "Other",
+      startsAt: new Date("2026-08-04T18:00:00Z"),
+      location: "Park",
+      hostName: "Will",
+    });
+    await expect(updateDish(db, "host-1", other, dishId, input)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(updateDish(db, "host-1", eventId, "nope", input)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    // Nothing cloned, nothing changed.
+    expect((await dishRow(dishId)).recipeId).toBe(BURGERS);
+    expect(await db.select().from(recipes)).toHaveLength(1);
+  });
+
+  it("rejects perServing <= 0 or not finite, and changes nothing", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(
+        updateDish(db, "host-1", eventId, dishId, {
+          servingsPerPerson: 1,
+          itemAmounts: starterAmounts(bad),
+        }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect((await dishRow(dishId)).recipeId).toBe(BURGERS);
+    expect((await dishRow(dishId)).servingsPerPerson).toBe(1.5);
+    expect(await db.select().from(recipes)).toHaveLength(1);
+  });
+
+  it("rejects servingsPerPerson outside 0..20 (0 and 20 are allowed)", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    for (const bad of [-0.5, 20.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(
+        updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: bad, itemAmounts: {} }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    await updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: 0, itemAmounts: {} });
+    expect((await dishRow(dishId)).servingsPerPerson).toBe(0);
+    await updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: 20, itemAmounts: {} });
+    expect((await dishRow(dishId)).servingsPerPerson).toBe(20);
+  });
+
+  it("rejects an item id that is not in the dish's recipe", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await expect(
+      updateDish(db, "host-1", eventId, dishId, {
+        servingsPerPerson: 1,
+        itemAmounts: { "someone-elses-item": 1 },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(await db.select().from(recipes)).toHaveLength(1);
+  });
+});
+
+describe("createCustomRecipe", () => {
+  it("creates a host-owned recipe with ordered items", async () => {
+    const recipeId = await customRecipe("host-1", "  Coleslaw  ");
+    const [row] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
+    expect(row).toMatchObject({
+      ownerId: "host-1",
+      name: "Coleslaw",
+      emoji: "🥗",
+      defaultServingsPerPerson: 0.5,
+    });
+    const items = await itemsOf(recipeId);
+    expect(items.map((i) => [i.name, i.position])).toEqual([
+      ["Cabbage", 0],
+      ["Dressing", 1],
+    ]);
+  });
+
+  it("rejects bad names, emoji, servings and item counts", async () => {
+    const base = { name: "Slaw", emoji: "🥗", defaultServingsPerPerson: 1, items: [slaw] };
+    const bad = [
+      { ...base, name: "   " },
+      { ...base, name: "x".repeat(81) },
+      { ...base, emoji: " " },
+      { ...base, defaultServingsPerPerson: -1 },
+      { ...base, defaultServingsPerPerson: 21 },
+      { ...base, defaultServingsPerPerson: Number.NaN },
+      { ...base, items: [] },
+      { ...base, items: Array.from({ length: 31 }, () => slaw) },
+    ];
+    for (const input of bad) {
+      await expect(createCustomRecipe(db, "host-1", input)).rejects.toBeInstanceOf(ValidationError);
+    }
+    const ok = { ...base, items: Array.from({ length: 30 }, () => slaw) };
+    await expect(createCustomRecipe(db, "host-1", ok)).resolves.toBeDefined();
+  });
+
+  it("rejects bad item fields", async () => {
+    const base = { name: "Slaw", emoji: "🥗", defaultServingsPerPerson: 1 };
+    const badItems: Partial<NewItem>[] = [
+      { name: " " },
+      { name: "x".repeat(81) },
+      { emoji: "" },
+      { unit: " " },
+      { buyUnit: "" },
+      { perServing: 0 },
+      { perServing: -1 },
+      { perServing: Number.POSITIVE_INFINITY },
+      { unitsPerBuy: 0 },
+      { unitsPerBuy: Number.NaN },
+      { priceCents: 0 },
+      { priceCents: 299.5 },
+      { priceCents: Number.NaN },
+    ];
+    for (const patch of badItems) {
+      await expect(
+        createCustomRecipe(db, "host-1", { ...base, items: [{ ...slaw, ...patch }] }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect(await db.select().from(recipes)).toHaveLength(1); // only the starter
+  });
+});
+
+describe("removeDish", () => {
+  it("deletes the dish and its event shopping state but keeps the recipe and other dishes", async () => {
+    const recipeId = await customRecipe();
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, recipeId);
+    const burgers = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    const [cabbage] = await itemsOf(recipeId);
+    await db.insert(shoppingState).values([
+      { eventId, recipeItemId: cabbage.id, checked: true, actualCents: 250 },
+      { eventId, recipeItemId: STARTER_BEEF, checked: true, actualCents: 5000 },
+    ]);
+
+    await removeDish(db, "host-1", eventId, dishId);
+
+    expect(await dishRow(dishId)).toBeUndefined();
+    expect(await dishRow(burgers.dishId)).toBeDefined();
+    expect((await db.select().from(recipes).where(eq(recipes.id, recipeId))).length).toBe(1);
+    expect(await itemsOf(recipeId)).toHaveLength(2);
+    const state = await db.select().from(shoppingState);
+    expect(state.map((s) => s.recipeItemId)).toEqual([STARTER_BEEF]);
+  });
+
+  it("throws NotFoundError for another host and changes nothing", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await expect(removeDish(db, "host-2", eventId, dishId)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(removeDish(db, "host-1", eventId, "nope")).rejects.toBeInstanceOf(NotFoundError);
+    expect(await dishRow(dishId)).toBeDefined();
+  });
+});
+
+describe("getMenu", () => {
+  it("lists the event's dishes and the recipes still available to add", async () => {
+    const mine = await customRecipe();
+    await customRecipe("host-2", "Theirs");
+    let menu = await getMenu(db, "host-1", eventId);
+    expect(menu.dishes).toEqual([]);
+    expect(menu.available.map((r) => r.id).sort()).toEqual([BURGERS, mine].sort());
+
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    menu = await getMenu(db, "host-1", eventId);
+    expect(menu.available.map((r) => r.id)).toEqual([mine]);
+    expect(menu.dishes).toHaveLength(1);
+    expect(menu.dishes[0]).toMatchObject({
+      dishId,
+      servingsPerPerson: 1.5,
+      isStarter: true,
+      recipe: { id: BURGERS, name: "Burgers" },
+    });
+    expect(menu.dishes[0].recipe.items[0].id).toBe(STARTER_BEEF);
+
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1.5,
+      itemAmounts: starterAmounts(0.4),
+    });
+    menu = await getMenu(db, "host-1", eventId);
+    expect(menu.dishes[0].isStarter).toBe(false);
+    expect(menu.dishes[0].recipe.items[0].perServing).toBe(0.4);
+    // The starter is addable again once the event's dish points at the copy.
+    expect(menu.available.map((r) => r.id)).toContain(BURGERS);
+  });
+
+  it("throws NotFoundError for another host's event", async () => {
+    await expect(getMenu(db, "host-2", eventId)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
