@@ -56,7 +56,10 @@ async function init(): Promise<Db> {
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
   const { migrate } = await import("drizzle-orm/pglite/migrator");
-  const dataDir = path.join(process.cwd(), ".data", "pglite");
+  // PGLITE_DATA_DIR lets the e2e run use a throwaway database (see playwright.config.ts).
+  const dataDir = process.env.PGLITE_DATA_DIR
+    ? path.resolve(process.env.PGLITE_DATA_DIR)
+    : path.join(process.cwd(), ".data", "pglite");
   await mkdir(dataDir, { recursive: true });
   const db = drizzle(new PGlite(dataDir), { schema });
   await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
@@ -66,7 +69,7 @@ async function init(): Promise<Db> {
 
 /**
  * Singleton database handle (kept on globalThis so Next.js hot reload doesn't
- * reopen it). DATABASE_URL -> postgres-js; otherwise PGlite in .data/pglite.
+ * reopen it). DATABASE_URL -> postgres-js; otherwise PGlite in PGLITE_DATA_DIR (default .data/pglite).
  */
 export function getDb(): Promise<Db> {
   if (!globalForDb.__cookoutDb) {
