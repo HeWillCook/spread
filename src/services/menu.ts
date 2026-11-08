@@ -1,6 +1,7 @@
-import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { eventDishes, recipeItems, recipes, shoppingState } from "@/db/schema";
+import { formatCents } from "@/domain/money";
 import type { Recipe, RecipeItem } from "@/domain/recipes";
 import { NotFoundError, ValidationError } from "./errors";
 import { getHostEvent } from "./events";
@@ -102,12 +103,15 @@ function cleanItem(item: Omit<RecipeItem, "id">): Omit<RecipeItem, "id"> {
   const label = `"${name}"`;
   validAmount(item.perServing, `Amount for ${label}`);
   validAmount(item.unitsPerBuy, `Units per buy for ${label}`);
+  // Free is fine (ice, pantry staples).
   if (
     !Number.isInteger(item.priceCents) ||
-    item.priceCents <= 0 ||
+    item.priceCents < 0 ||
     item.priceCents > MAX_PRICE_CENTS
   ) {
-    throw new ValidationError(`Price for ${label} must be more than $0.00`);
+    throw new ValidationError(
+      `Price for ${label} must be between $0.00 and ${formatCents(MAX_PRICE_CENTS)}`,
+    );
   }
   return {
     name,
@@ -207,9 +211,14 @@ export async function addDishToEvent(
 }
 
 /**
- * Sets a dish's appetite and per-item amounts. The first edit of a global starter
- * recipe copies it for the host (the starter rows are never touched) and re-points
- * the dish, and any shopping state for this event, at the copy.
+ * Sets a dish's appetite and per-item amounts. A recipe that is global (a starter)
+ * or used by another event's dish is copied for the host first, so starters and past
+ * events never change: the copy takes over this event's dish and shopping state only.
+ * A host's own recipe used by this event alone is edited in place.
+ *
+ * The dish row (then the recipe row) is locked for the whole transaction, so two
+ * simultaneous edits serialize and the second sees the first's copy instead of cloning
+ * again and stranding the shopping state on a leftover copy.
  */
 export async function updateDish(
   db: Db,
@@ -227,13 +236,25 @@ export async function updateDish(
     const [dish] = await tx
       .select()
       .from(eventDishes)
-      .where(and(eq(eventDishes.id, dishId), eq(eventDishes.eventId, eventId)));
+      .where(and(eq(eventDishes.id, dishId), eq(eventDishes.eventId, eventId)))
+      .for("update");
     if (!dish) throw new NotFoundError("Dish not found");
 
+    // Read after the dish lock, so this is the recipe the dish points at right now.
     const [recipe] = await tx.select().from(recipes).where(eq(recipes.id, dish.recipeId));
     if (!recipe || (recipe.ownerId !== null && recipe.ownerId !== hostId)) {
       throw new NotFoundError("Dish not found");
     }
+    // Serialize edits of one host recipe shared by several events (never lock the global starters).
+    if (recipe.ownerId !== null) {
+      await tx.select({ id: recipes.id }).from(recipes).where(eq(recipes.id, recipe.id)).for("update");
+    }
+    const [usedElsewhere] = await tx
+      .select({ id: eventDishes.id })
+      .from(eventDishes)
+      .where(and(eq(eventDishes.recipeId, recipe.id), ne(eventDishes.eventId, eventId)))
+      .limit(1);
+    const needsCopy = recipe.ownerId === null || usedElsewhere !== undefined;
     const items = await loadItems(tx, [recipe.id]);
     const known = new Set(items.map((i) => i.id));
     if (entries.some(([itemId]) => !known.has(itemId))) {
@@ -242,7 +263,7 @@ export async function updateDish(
 
     let recipeId = recipe.id;
     let targetItems = items;
-    if (recipe.ownerId === null) {
+    if (needsCopy) {
       const [copy] = await tx
         .insert(recipes)
         .values({

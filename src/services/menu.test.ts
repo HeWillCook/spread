@@ -248,6 +248,128 @@ describe("updateDish", () => {
     expect((await itemsOf(recipeId))[0].perServing).toBe(0.5);
   });
 
+  async function secondEvent() {
+    return (
+      await createEvent(db, "host-1", {
+        title: "Second",
+        startsAt: new Date("2026-08-04T18:00:00Z"),
+        location: "Park",
+        hostName: "Will",
+      })
+    ).id;
+  }
+
+  it("two simultaneous first edits of a starter dish make exactly one copy and keep the shopping state", async () => {
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: STARTER_BEEF, checked: true, actualCents: 5400 });
+
+    // Both forms were built from the starter's item ids. The loser of the lock sees the
+    // dish already on the copy, so its stale item ids are rejected (friendly error in the UI).
+    const results = await Promise.allSettled([
+      updateDish(db, "host-1", eventId, dishId, {
+        servingsPerPerson: 2,
+        itemAmounts: starterAmounts(0.5),
+      }),
+      updateDish(db, "host-1", eventId, dishId, {
+        servingsPerPerson: 3,
+        itemAmounts: starterAmounts(0.6),
+      }),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    for (const r of results) {
+      if (r.status === "rejected") expect(r.reason).toBeInstanceOf(ValidationError);
+    }
+
+    const owned = await db.select().from(recipes).where(eq(recipes.ownerId, "host-1"));
+    expect(owned).toHaveLength(1);
+    const dish = await dishRow(dishId);
+    expect(dish.recipeId).toBe(owned[0].id);
+    const copyItems = await itemsOf(owned[0].id);
+    const rows = await db.select().from(shoppingState).where(eq(shoppingState.eventId, eventId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      recipeItemId: copyItems[0].id,
+      checked: true,
+      actualCents: 5400,
+    });
+    // Whichever edit ran last won; no leftover copies, starter untouched.
+    expect([2, 3]).toContain(dish.servingsPerPerson);
+    expect(await db.select().from(recipes)).toHaveLength(2);
+    expect((await itemsOf(BURGERS))[0].perServing).toBe(1 / 3);
+  });
+
+  it("copies a host recipe used by another event; the other event keeps the original", async () => {
+    const recipeId = await customRecipe();
+    const otherEvent = await secondEvent();
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, recipeId);
+    const other = await addDishToEvent(db, "host-1", otherEvent, recipeId);
+    const [cabbage] = await itemsOf(recipeId);
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: cabbage.id, checked: true, actualCents: 275 });
+    await db
+      .insert(shoppingState)
+      .values({ eventId: otherEvent, recipeItemId: cabbage.id, checked: true, actualCents: 111 });
+
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 2,
+      itemAmounts: { [cabbage.id]: 0.9 },
+    });
+
+    // This event: new copy with the new amount and re-keyed state.
+    const mine = await dishRow(dishId);
+    expect(mine.recipeId).not.toBe(recipeId);
+    expect(mine.servingsPerPerson).toBe(2);
+    const copyItems = await itemsOf(mine.recipeId);
+    expect(copyItems.map((i) => i.name)).toEqual(["Cabbage", "Dressing"]);
+    expect(copyItems[0].perServing).toBe(0.9);
+    const [copy] = await db.select().from(recipes).where(eq(recipes.id, mine.recipeId));
+    expect(copy.ownerId).toBe("host-1");
+    const myState = await db.select().from(shoppingState).where(eq(shoppingState.eventId, eventId));
+    expect(myState).toHaveLength(1);
+    expect(myState[0]).toMatchObject({
+      recipeItemId: copyItems[0].id,
+      checked: true,
+      actualCents: 275,
+    });
+
+    // The other event is untouched.
+    expect((await dishRow(other.dishId)).recipeId).toBe(recipeId);
+    expect((await dishRow(other.dishId)).servingsPerPerson).toBe(0.5);
+    expect((await itemsOf(recipeId))[0].perServing).toBe(0.25);
+    const theirState = await db
+      .select()
+      .from(shoppingState)
+      .where(eq(shoppingState.eventId, otherEvent));
+    expect(theirState).toEqual([
+      { eventId: otherEvent, recipeItemId: cabbage.id, checked: true, actualCents: 111 },
+    ]);
+  });
+
+  it("edits a host recipe in place when only this event uses it (no new recipe row)", async () => {
+    const recipeId = await customRecipe();
+    await secondEvent(); // exists, but does not use the recipe
+    const { dishId } = await addDishToEvent(db, "host-1", eventId, recipeId);
+    const [cabbage] = await itemsOf(recipeId);
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: cabbage.id, checked: true, actualCents: 275 });
+    const before = (await db.select().from(recipes)).length;
+
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1,
+      itemAmounts: { [cabbage.id]: 0.5 },
+    });
+
+    expect((await dishRow(dishId)).recipeId).toBe(recipeId);
+    expect((await db.select().from(recipes)).length).toBe(before);
+    expect((await itemsOf(recipeId))[0].perServing).toBe(0.5);
+    const [state] = await db.select().from(shoppingState);
+    expect(state.recipeItemId).toBe(cabbage.id);
+  });
+
   it("throws NotFoundError for another host, and for a dish on a different event", async () => {
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
     const input = { servingsPerPerson: 2, itemAmounts: starterAmounts(0.5) };
@@ -360,8 +482,10 @@ describe("createCustomRecipe", () => {
       { perServing: Number.POSITIVE_INFINITY },
       { unitsPerBuy: 0 },
       { unitsPerBuy: Number.NaN },
-      { priceCents: 0 },
+      { priceCents: -1 },
       { priceCents: 299.5 },
+      { priceCents: 1_000_001 },
+      { priceCents: Number.POSITIVE_INFINITY },
       { priceCents: Number.NaN },
     ];
     for (const patch of badItems) {
@@ -370,6 +494,16 @@ describe("createCustomRecipe", () => {
       ).rejects.toBeInstanceOf(ValidationError);
     }
     expect(await db.select().from(recipes)).toHaveLength(1); // only the starter
+  });
+
+  it("accepts a free item (priceCents 0) such as ice", async () => {
+    const { recipeId } = await createCustomRecipe(db, "host-1", {
+      name: "Drinks",
+      emoji: "🥤",
+      defaultServingsPerPerson: 1,
+      items: [{ ...slaw, name: "Ice", priceCents: 0 }],
+    });
+    expect((await itemsOf(recipeId))[0].priceCents).toBe(0);
   });
 });
 
