@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { PgDatabase } from "drizzle-orm/pg-core";
+import { seedStarterRecipes } from "./seed";
 import * as schema from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,24 +9,58 @@ export type Db = PgDatabase<any, typeof schema>;
 
 const globalForDb = globalThis as unknown as { __cookoutDb?: Promise<Db> };
 
+function isMissingTable(error: unknown): boolean {
+  for (let e = error as { code?: string; cause?: unknown } | undefined; e; ) {
+    if (e.code === "42P01") return true; // Postgres undefined_table
+    e = e.cause as typeof e;
+  }
+  return false;
+}
+
+/**
+ * Seeds starter recipes into an already-migrated database (idempotent).
+ * Throws an actionable error if the tables don't exist yet.
+ */
+export async function seedAfterConnect(db: Db): Promise<void> {
+  try {
+    await seedStarterRecipes(db);
+  } catch (error) {
+    if (isMissingTable(error)) {
+      throw new Error(
+        "Database tables are missing. Run `npm run db:migrate` before starting the app.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
 async function init(): Promise<Db> {
   const url = process.env.DATABASE_URL;
   if (url) {
-    // Migrations are applied separately via `npm run db:migrate`.
     const { default: postgres } = await import("postgres");
     const { drizzle } = await import("drizzle-orm/postgres-js");
-    return drizzle(postgres(url), { schema });
+    const client = postgres(url);
+    const db = drizzle(client, { schema });
+    // Migrations are NOT run here (`npm run db:migrate` does that), so the
+    // tables must already exist before we can seed the starter recipes.
+    try {
+      await seedAfterConnect(db);
+    } catch (error) {
+      await client.end({ timeout: 1 }).catch(() => {});
+      throw error;
+    }
+    return db;
   }
 
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
   const { migrate } = await import("drizzle-orm/pglite/migrator");
-  const { seedStarterRecipes } = await import("./seed");
   const dataDir = path.join(process.cwd(), ".data", "pglite");
   await mkdir(dataDir, { recursive: true });
   const db = drizzle(new PGlite(dataDir), { schema });
   await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
-  await seedStarterRecipes(db);
+  await seedAfterConnect(db);
   return db;
 }
 

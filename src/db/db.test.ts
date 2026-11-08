@@ -1,8 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/pglite";
+import { seedAfterConnect } from "./client";
 import { createTestDb } from "./test-db";
 import { seedStarterRecipes } from "./seed";
+import * as schema from "./schema";
 import { events, recipeItems, recipes } from "./schema";
 
 describe("database", () => {
@@ -34,5 +38,18 @@ describe("database", () => {
     expect(globals[0].ownerId).toBeNull();
     const items = await db.select().from(recipeItems);
     expect(items).toHaveLength(5);
+  });
+
+  it("seedAfterConnect (postgres-mode init step) seeds a migrated database", async () => {
+    const db = await createTestDb();
+    await seedAfterConnect(db);
+    await seedAfterConnect(db);
+    expect(await db.select().from(recipes)).toHaveLength(1);
+    expect(await db.select().from(recipeItems)).toHaveLength(5);
+  });
+
+  it("seedAfterConnect tells the operator to run db:migrate when tables are missing", async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await expect(seedAfterConnect(db)).rejects.toThrow(/npm run db:migrate/);
   });
 });
