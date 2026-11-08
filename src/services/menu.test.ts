@@ -118,6 +118,34 @@ describe("addDishToEvent", () => {
     expect(await db.select().from(eventDishes)).toHaveLength(1);
   });
 
+  it("two simultaneous adds of the same recipe leave exactly one dish", async () => {
+    const results = await Promise.allSettled([
+      addDishToEvent(db, "host-1", eventId, BURGERS),
+      addDishToEvent(db, "host-1", eventId, BURGERS),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toBeInstanceOf(ValidationError);
+    expect(await db.select().from(eventDishes)).toHaveLength(1);
+  });
+
+  it("the database itself refuses a second row for the same event and recipe", async () => {
+    await addDishToEvent(db, "host-1", eventId, BURGERS);
+    await expect(
+      db.insert(eventDishes).values({ eventId, recipeId: BURGERS, servingsPerPerson: 1 }),
+    ).rejects.toThrow();
+    expect(await db.select().from(eventDishes)).toHaveLength(1);
+    // The same recipe on a different event is fine.
+    const other = await createEvent(db, "host-1", {
+      title: "Other",
+      startsAt: new Date("2026-08-01T18:00:00Z"),
+      location: "Park",
+      hostName: "Will",
+    });
+    await expect(addDishToEvent(db, "host-1", other.id, BURGERS)).resolves.toBeDefined();
+  });
+
   it("throws NotFoundError for another host's event", async () => {
     await expect(addDishToEvent(db, "host-2", eventId, BURGERS)).rejects.toBeInstanceOf(
       NotFoundError,

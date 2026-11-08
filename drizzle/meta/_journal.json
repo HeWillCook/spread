@@ -22,6 +22,13 @@
       "when": 1794169864066,
       "tag": "0002_volatile_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794177072284,
+      "tag": "0003_condemned_dark_beast",
+      "breakpoints": true
     }
   ]
 }

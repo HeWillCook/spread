@@ -196,16 +196,13 @@ export async function addDishToEvent(
       );
     if (!recipe) throw new NotFoundError("Recipe not found");
 
-    const [already] = await tx
-      .select({ id: eventDishes.id })
-      .from(eventDishes)
-      .where(and(eq(eventDishes.eventId, eventId), eq(eventDishes.recipeId, recipeId)));
-    if (already) throw new ValidationError(`${recipe.name} is already on the menu`);
-
+    // The unique (event, recipe) index decides, so two racing adds still make one dish.
     const [dish] = await tx
       .insert(eventDishes)
       .values({ eventId, recipeId, servingsPerPerson: recipe.defaultServingsPerPerson })
+      .onConflictDoNothing({ target: [eventDishes.eventId, eventDishes.recipeId] })
       .returning({ id: eventDishes.id });
+    if (!dish) throw new ValidationError(`${recipe.name} is already on the menu`);
     return { dishId: dish.id };
   });
 }
@@ -292,6 +289,7 @@ export async function updateDish(
         .returning();
       // Match by position rather than trusting RETURNING order.
       targetItems = [...inserted].sort((a, b) => a.position - b.position);
+      // The copy is a brand-new recipe id, so this can't collide with the unique (event, recipe) index.
       await tx.update(eventDishes).set({ recipeId }).where(eq(eventDishes.id, dishId));
       // Keep ticks and entered prices: move this event's state from each starter item to its copy.
       for (const [i, item] of items.entries()) {

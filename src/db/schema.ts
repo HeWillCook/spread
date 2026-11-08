@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -58,16 +59,21 @@ export const recipeItems = pgTable("recipe_items", {
   position: integer("position").notNull().default(0),
 });
 
-export const eventDishes = pgTable("event_dishes", {
-  id: id(),
-  eventId: text("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
-  recipeId: text("recipe_id")
-    .notNull()
-    .references(() => recipes.id),
-  servingsPerPerson: doublePrecision("servings_per_person").notNull(),
-});
+export const eventDishes = pgTable(
+  "event_dishes",
+  {
+    id: id(),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    recipeId: text("recipe_id")
+      .notNull()
+      .references(() => recipes.id),
+    servingsPerPerson: doublePrecision("servings_per_person").notNull(),
+  },
+  // A recipe can be on an event's menu once; the database enforces it even for racing adds.
+  (t) => [uniqueIndex("event_dishes_event_recipe_unique").on(t.eventId, t.recipeId)],
+);
 
 export const guests = pgTable("guests", {
   id: id(),
