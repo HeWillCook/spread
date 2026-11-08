@@ -12,6 +12,7 @@ import {
   headcountForEvents,
   listHostEvents,
   noReplyNames,
+  updateEvent,
 } from "./events";
 import { getPublicEvent, submitRsvp } from "./rsvp";
 
@@ -166,6 +167,71 @@ describe("invitees", () => {
     await expect(addInvitees(db, "host-2", id, ["Alex"])).rejects.toBeInstanceOf(NotFoundError);
     await expect(noReplyNames(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
     expect(await noReplyNames(db, "host-1", id)).toEqual([]);
+  });
+});
+
+describe("updateEvent", () => {
+  const edit = {
+    title: "Burger Night",
+    startsAt: "2026-11-14T19:00",
+    location: "The patio",
+    timezone: "America/Chicago",
+  };
+
+  it("changes the details, reads the time in the given zone, and keeps the share code and RSVPs", async () => {
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await submitRsvp(db, { shareCode, name: "Pat", status: "yes", plusOneNames: ["Sam"] });
+
+    await updateEvent(db, "host-1", id, edit);
+
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event).toMatchObject({
+      title: "Burger Night",
+      location: "The patio",
+      timezone: "America/Chicago",
+      shareCode,
+      hostName: "Will",
+    });
+    expect(event.startsAt.toISOString()).toBe("2026-11-15T01:00:00.000Z");
+    expect((await headcountForEvents(db, [id])).get(id)?.confirmed).toBe(2);
+    expect((await getPublicEvent(db, shareCode)).title).toBe("Burger Night");
+  });
+
+  it("trims the title and location", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await updateEvent(db, "host-1", id, { ...edit, title: "  Spaced  ", location: " Here " });
+    expect(await getHostEvent(db, "host-1", id)).toMatchObject({ title: "Spaced", location: "Here" });
+  });
+
+  it("keeps the event's own time zone when none is given", async () => {
+    const { id } = await createEvent(db, "host-1", { ...input, timezone: "Asia/Kolkata" });
+    await updateEvent(db, "host-1", id, { title: "T", startsAt: "2026-11-14T19:00", location: "L" });
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event.timezone).toBe("Asia/Kolkata");
+    expect(event.startsAt.toISOString()).toBe("2026-11-14T13:30:00.000Z");
+  });
+
+  it("is a NotFoundError for another host and changes nothing", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await expect(updateEvent(db, "host-2", id, edit)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await getHostEvent(db, "host-1", id)).title).toBe("Fourth of July");
+  });
+
+  it("rejects a bad time zone, date, title or location with a ValidationError and changes nothing", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    for (const bad of [
+      { ...edit, timezone: "Mars/Olympus" },
+      { ...edit, startsAt: "someday" },
+      { ...edit, startsAt: "2026-02-31T10:00" },
+      { ...edit, title: "   " },
+      { ...edit, title: "x".repeat(101) },
+      { ...edit, location: "" },
+      { ...edit, location: "y".repeat(201) },
+    ]) {
+      await expect(updateEvent(db, "host-1", id, bad)).rejects.toBeInstanceOf(ValidationError);
+    }
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event).toMatchObject({ title: "Fourth of July", location: "Backyard" });
   });
 });
 

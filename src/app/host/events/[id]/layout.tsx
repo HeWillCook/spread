@@ -33,6 +33,12 @@ export default async function EventLayout({
           <p className="text-sm text-ink/80">
             {formatWhen(event.startsAt, event.location, event.timezone)}
           </p>
+          <Link
+            href={`/host/events/${encodeURIComponent(event.id)}/edit`}
+            className="self-start text-sm font-bold text-ketchup underline"
+          >
+            Edit details
+          </Link>
         </div>
       </header>
       <EventTabs eventId={event.id} />

@@ -35,6 +35,22 @@ function offsetMs(instantMs: number, timeZone: string): number {
   return wallAsUtc - Math.floor(instantMs / 1000) * 1000;
 }
 
+/** The inverse of zonedLocalToDate: an instant as a `datetime-local` value ("2026-11-14T19:00") in `timeZone`. */
+export function dateToZonedLocal(date: Date, timeZone: string): string {
+  assertTimeZone(timeZone);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
 /**
  * Reads a `datetime-local` value ("2026-11-14T19:00") as the wall-clock time in
  * `timeZone` and returns the real instant. Independent of the server's own zone.

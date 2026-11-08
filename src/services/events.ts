@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Db } from "@/db/client";
 import { events, guests, invitees, plusOnes } from "@/db/schema";
 import { computeHeadcount, type Headcount, type HeadcountGuest } from "@/domain/headcount";
-import { assertTimeZone } from "@/lib/zoned-time";
+import { assertTimeZone, zonedLocalToDate } from "@/lib/zoned-time";
 import { NotFoundError, ValidationError } from "./errors";
 
 export type EventRow = typeof events.$inferSelect;
@@ -36,9 +36,13 @@ const MAX_NAME = 80;
 const MAX_INVITEES_PER_CALL = 200;
 const SHARE_CODE_ATTEMPTS = 5;
 
-const createSchema = z.object({
+const detailsShape = {
   title: z.string().trim().min(1, "Give your cookout a name").max(MAX_TITLE),
   location: z.string().trim().min(1, "Where is it?").max(MAX_LOCATION),
+};
+
+const createSchema = z.object({
+  ...detailsShape,
   hostName: z.string().trim().min(1).max(MAX_NAME),
   startsAt: z.date().refine((d) => !Number.isNaN(d.getTime()), "Pick a valid date and time"),
   timezone: z.string().min(1).default("UTC"),
@@ -73,6 +77,38 @@ export async function createEvent(
     if (row) return { id: row.id, shareCode };
   }
   throw new Error("Could not generate a unique share code");
+}
+
+export interface UpdateEventInput {
+  title: string;
+  /** Wall-clock `datetime-local` value ("2026-11-14T19:00") in `timezone`. */
+  startsAt: string;
+  location: string;
+  /** IANA zone the time was typed in. Defaults to the event's current zone. */
+  timezone?: string;
+}
+
+/**
+ * Edits an event's title, time and place with the same validation as createEvent.
+ * The share code, host name, maybe percent and all RSVPs are left alone.
+ */
+export async function updateEvent(
+  db: Db,
+  hostId: string,
+  eventId: string,
+  input: UpdateEventInput,
+): Promise<void> {
+  const event = await getHostEvent(db, hostId, eventId);
+  const parsed = z.object(detailsShape).safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues.map((i) => i.message).join("; "));
+  }
+  const timezone = input.timezone || event.timezone;
+  const startsAt = zonedLocalToDate(input.startsAt, timezone);
+  await db
+    .update(events)
+    .set({ ...parsed.data, startsAt, timezone })
+    .where(and(eq(events.id, eventId), eq(events.hostId, hostId)));
 }
 
 /** The host's events, soonest first, each with its planning headcount. */
