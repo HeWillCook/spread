@@ -25,6 +25,11 @@ export interface SplitView {
   /** Used in the message the host sends with each guest's Venmo link. */
   eventTitle: string;
   rows: SplitRow[];
+  /**
+   * Guests who said "no" and haven't been ticked as attended. They owe nothing; the
+   * host can tick one who turned up anyway, which moves them into `rows`.
+   */
+  saidNo: SplitRow[];
   totalCents: number;
   hostCoveredCents: number;
   unassignedCents: number;
@@ -40,7 +45,8 @@ const VENMO_USERNAME = /^[A-Za-z0-9_-]{5,30}$/;
  * Everything the Split tab shows. Throws NotFoundError for another host's event.
  *
  * Rows: every guest who isn't a "no", plus any "no" the host ticked as attended
- * (someone can say no and turn up anyway). Only attended guests are in the split;
+ * (someone can say no and turn up anyway); the "no" guests who haven't been ticked
+ * are returned separately in `saidNo`. Only attended guests are in the split;
  * everyone else shows owedCents 0. Excluded guests (e.g. kids) owe 0 and their
  * heads are not counted, so the others pick up the difference.
  */
@@ -59,9 +65,9 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
   const plusOneCount = new Map<string, number>();
   for (const p of plusOneRows) plusOneCount.set(p.guestId, (plusOneCount.get(p.guestId) ?? 0) + 1);
 
-  const listed = guestRows
-    .filter((g) => g.status !== "no" || g.attended)
-    .map((g) => ({ guest: g, heads: 1 + (plusOneCount.get(g.id) ?? 0) }));
+  const withHeads = guestRows.map((g) => ({ guest: g, heads: 1 + (plusOneCount.get(g.id) ?? 0) }));
+  const listed = withHeads.filter(({ guest }) => guest.status !== "no" || guest.attended);
+  const notComing = withHeads.filter(({ guest }) => guest.status === "no" && !guest.attended);
 
   const split = computeSplit(
     plan.totalCents,
@@ -77,7 +83,7 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
   );
   const owedById = new Map(split.shares.map((s) => [s.guestId, s.owedCents]));
 
-  const rows = listed.map(({ guest, heads }): SplitRow => {
+  const toRow = ({ guest, heads }: (typeof withHeads)[number]): SplitRow => {
     const owedCents = owedById.get(guest.id) ?? 0;
     const venmoUrl =
       event.venmoUsername && guest.attended && owedCents > 0
@@ -98,11 +104,12 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
       owedCents,
       venmoUrl,
     };
-  });
+  };
 
   return {
     eventTitle: event.title,
-    rows,
+    rows: listed.map(toRow),
+    saidNo: notComing.map(toRow),
     totalCents: plan.totalCents,
     hostCoveredCents: split.hostCoveredCents,
     unassignedCents: split.unassignedCents,

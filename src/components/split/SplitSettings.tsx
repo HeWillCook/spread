@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { FormError } from "../menu/menuForm";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -49,6 +49,50 @@ function VenmoForm({ username, action }: { username: string | null; action: Spli
       <FormError message={state.error} />
       <Button variant="outline" type="submit" disabled={pending}>
         {pending ? "Saving..." : "Save"}
+      </Button>
+    </form>
+  );
+}
+
+/** "Add someone who came": a walk-in who never RSVPed, plus how many extra people they brought. */
+export function WalkInForm({ action }: { action: SplitFormAction }) {
+  const [state, formAction, pending] = useActionState(action, INITIAL_SPLIT_FORM_STATE);
+  // Controlled, so a rejected save keeps what was typed (React resets uncontrolled fields).
+  const [name, setName] = useState("");
+  const [extra, setExtra] = useState("0");
+  // Clear the fields once a save goes through.
+  const [seenSaves, setSeenSaves] = useState(state.saves);
+  if (state.saves !== seenSaves) {
+    setSeenSaves(state.saves);
+    setName("");
+    setExtra("0");
+  }
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <h2 className="text-lg font-bold">Add someone who came</h2>
+      <Field
+        label="Name"
+        name="name"
+        autoComplete="off"
+        maxLength={80}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Field
+        label="Extra people they brought"
+        hint="They count in the split like any other guest."
+        name="plusOnes"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={10}
+        step={1}
+        value={extra}
+        onChange={(e) => setExtra(e.target.value)}
+      />
+      <FormError message={state.error} />
+      <Button variant="outline" type="submit" disabled={pending}>
+        {pending ? "Adding..." : "Add to the split"}
       </Button>
     </form>
   );

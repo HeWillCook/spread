@@ -139,6 +139,44 @@ describe("getSplitView", () => {
     expect(row(after, no).attended).toBe(true);
   });
 
+  it("exposes 'no' guests who did not come in saidNo; ticking moves them into the split, unticking moves them back", async () => {
+    await ninetyDollars();
+    const yes = await rsvp("Yes");
+    const no = await rsvp("Nope", "no", ["Their Friend"]);
+    await setAttended(db, "host-1", eventId, yes, true);
+
+    const before = await getSplitView(db, "host-1", eventId);
+    expect(before.rows.map((r) => r.guestId)).toEqual([yes]);
+    expect(before.saidNo).toHaveLength(1);
+    expect(before.saidNo[0]).toMatchObject({
+      guestId: no,
+      name: "Nope",
+      attended: false,
+      heads: 2,
+      owedCents: 0,
+      venmoUrl: null,
+    });
+    expect(row(before, yes).owedCents).toBe(9000);
+
+    await setAttended(db, "host-1", eventId, no, true);
+    const came = await getSplitView(db, "host-1", eventId);
+    expect(came.saidNo).toEqual([]);
+    expect(row(came, no)).toMatchObject({ attended: true, heads: 2, owedCents: 6000 });
+    expect(row(came, yes).owedCents).toBe(3000);
+
+    await setAttended(db, "host-1", eventId, no, false);
+    const back = await getSplitView(db, "host-1", eventId);
+    expect(back.saidNo.map((r) => r.guestId)).toEqual([no]);
+    expect(back.rows.map((r) => r.guestId)).toEqual([yes]);
+    expect(row(back, yes).owedCents).toBe(9000);
+  });
+
+  it("saidNo is empty when nobody said no, and never holds yes or maybe guests", async () => {
+    await rsvp("Yes");
+    await rsvp("Maybe", "maybe");
+    expect((await getSplitView(db, "host-1", eventId)).saidNo).toEqual([]);
+  });
+
   it("venmoUrl is null until a username is set, then matches venmoPayLink", async () => {
     await ninetyDollars();
     const a = await rsvp("Ann");

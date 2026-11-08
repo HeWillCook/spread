@@ -53,7 +53,8 @@ function parseInput(input: RsvpInput) {
   return result.data;
 }
 
-function newEditToken(): string {
+/** A fresh, unguessable guest edit token (192 random bits, URL-safe). */
+export function newEditToken(): string {
   return randomBytes(24).toString("base64url");
 }
 

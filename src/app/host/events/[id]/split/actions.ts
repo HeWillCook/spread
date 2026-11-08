@@ -7,6 +7,7 @@ import { getDb } from "@/db/client";
 import { parseDollarsToCents } from "@/domain/money";
 import { requireHost } from "@/server/auth";
 import { NotFoundError, ValidationError } from "@/services/errors";
+import { addWalkIn } from "@/services/guestAdmin";
 import {
   markLinkSent,
   setAttended,
@@ -16,8 +17,10 @@ import {
   setVenmoUsername,
 } from "@/services/split";
 
-// Every action here takes the host from the session and the event/guest ids from
-// server-side `bind`; only the typed values come from the form.
+// Every action here takes the host from the session. The event/guest ids arrive through
+// `bind`, but in Next 16 bound arguments are sent to the browser and can be altered, so
+// they are NOT protected: these actions are safe only because every service re-checks
+// that the event (and guest) belongs to the signed-in host.
 
 function refresh(eventId: string) {
   revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
@@ -87,6 +90,25 @@ export async function markLinkSentAction(
 ): Promise<SplitFormState> {
   return run(eventId, prev, async (hostId) => {
     await markLinkSent(await getDb(), hostId, eventId, guestId);
+  });
+}
+
+/** Adds someone who came without RSVPing; blank extra people means none. */
+export async function addWalkInAction(
+  eventId: string,
+  prev: SplitFormState,
+  formData: FormData,
+): Promise<SplitFormState> {
+  const name = formData.get("name");
+  const extra = formData.get("plusOnes");
+  return run(eventId, prev, async (hostId) => {
+    const raw = typeof extra === "string" ? extra.trim() : "";
+    // Anything that isn't a plain whole number becomes NaN for the service to reject.
+    const plusOnes = raw === "" ? 0 : /^\d{1,3}$/.test(raw) ? Number(raw) : Number.NaN;
+    await addWalkIn(await getDb(), hostId, eventId, {
+      name: typeof name === "string" ? name : "",
+      plusOnes,
+    });
   });
 }
 

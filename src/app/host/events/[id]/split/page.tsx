@@ -4,6 +4,7 @@ import { requireHost } from "@/server/auth";
 import { loadHostEvent } from "@/server/host-event";
 import { getSplitView } from "@/services/split";
 import {
+  addWalkInAction,
   markLinkSentAction,
   setAttendedAction,
   setExcludedAction,
@@ -26,7 +27,7 @@ export default async function SplitTab({ params }: PageProps<"/host/events/[id]/
       view={view}
       hostCoverCents={event.hostCoverCents}
       rowActions={Object.fromEntries(
-        view.rows.map((row) => [
+        [...view.rows, ...view.saidNo].map((row) => [
           row.guestId,
           {
             attendedAction: setAttendedAction.bind(null, event.id, row.guestId),
@@ -38,6 +39,7 @@ export default async function SplitTab({ params }: PageProps<"/host/events/[id]/
       )}
       coverAction={setHostCoverAction.bind(null, event.id)}
       venmoAction={setVenmoUsernameAction.bind(null, event.id)}
+      walkInAction={addWalkInAction.bind(null, event.id)}
     />
   );
 }

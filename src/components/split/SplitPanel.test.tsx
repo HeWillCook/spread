@@ -22,6 +22,7 @@ function row(over: Partial<SplitRow> & { guestId: string; name: string }): Split
 function view(rows: SplitRow[], over: Partial<SplitView> = {}): SplitView {
   return {
     eventTitle: "Burger Night",
+    saidNo: [],
     rows,
     totalCents: 7550,
     hostCoveredCents: 0,
@@ -33,7 +34,9 @@ function view(rows: SplitRow[], over: Partial<SplitView> = {}): SplitView {
 
 function renderPanel(
   v: SplitView,
-  opts: Partial<Record<"attended" | "excluded" | "paid" | "linkSent" | "cover" | "venmo", SplitFormAction>> = {},
+  opts: Partial<
+    Record<"attended" | "excluded" | "paid" | "linkSent" | "cover" | "venmo" | "walkIn", SplitFormAction>
+  > = {},
   hostCoverCents = 0,
 ) {
   return render(
@@ -41,7 +44,7 @@ function renderPanel(
       view={v}
       hostCoverCents={hostCoverCents}
       rowActions={Object.fromEntries(
-        v.rows.map((r) => [
+        [...v.rows, ...v.saidNo].map((r) => [
           r.guestId,
           {
             attendedAction: opts.attended ?? ok,
@@ -53,6 +56,7 @@ function renderPanel(
       )}
       coverAction={opts.cover ?? ok}
       venmoAction={opts.venmo ?? ok}
+      walkInAction={opts.walkIn ?? ok}
     />,
   );
 }
@@ -241,6 +245,57 @@ describe("SplitPanel", () => {
     expect(screen.getByText("You cover $20.00")).toBeInTheDocument();
     expect(screen.getByLabelText("You cover ($)")).toHaveValue("20.00");
     expect(screen.getByLabelText("Your Venmo username")).toHaveValue("willcook");
+  });
+
+  it("keeps guests who said no in a collapsed 'Said no' section, with a came tick", async () => {
+    const attended = vi.fn<SplitFormAction>().mockResolvedValue({ error: null, saves: 1 });
+    const { container } = renderPanel(
+      view([row({ guestId: "a", name: "Ann" })], { saidNo: [row({ guestId: "n", name: "Nina" })] }),
+      { attended },
+    );
+    const details = container.querySelector("details");
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute("open");
+    expect(screen.getByText("Said no (1)")).toBeInTheDocument();
+    expect(details).toContainElement(screen.getByLabelText("Nina came"));
+    expect(details).not.toContainElement(screen.getByLabelText("Ann came"));
+
+    fireEvent.click(screen.getByLabelText("Nina came"));
+    await waitFor(() => expect(attended).toHaveBeenCalledTimes(1));
+  });
+
+  it("has no 'Said no' section when nobody said no", () => {
+    renderPanel(view([row({ guestId: "a", name: "Ann" })]));
+    expect(screen.queryByText(/Said no/)).not.toBeInTheDocument();
+  });
+
+  it("adds a walk-in with a name and extra people, then clears the form", async () => {
+    const walkIn = vi
+      .fn<SplitFormAction>()
+      .mockImplementation(async (prev) => ({ error: null, saves: prev.saves + 1 }));
+    renderPanel(view([]), { walkIn });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Dana" } });
+    fireEvent.change(screen.getByLabelText("Extra people they brought"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add to the split" }));
+
+    await waitFor(() => expect(walkIn).toHaveBeenCalledTimes(1));
+    const data = walkIn.mock.calls[0][1] as FormData;
+    expect(data.get("name")).toBe("Dana");
+    expect(data.get("plusOnes")).toBe("2");
+    await waitFor(() => expect(screen.getByLabelText("Name")).toHaveValue(""));
+    expect(screen.getByLabelText("Extra people they brought")).toHaveValue(0);
+  });
+
+  it("keeps the typed walk-in and shows the error when it is rejected", async () => {
+    const walkIn = vi.fn<SplitFormAction>().mockResolvedValue({ error: "At most 10 extra people", saves: 0 });
+    renderPanel(view([]), { walkIn });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Dana" } });
+    fireEvent.change(screen.getByLabelText("Extra people they brought"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add to the split" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("At most 10 extra people");
+    expect(screen.getByLabelText("Name")).toHaveValue("Dana");
+    expect(screen.getByLabelText("Extra people they brought")).toHaveValue(3);
   });
 
   it("says so when there are no guests", () => {

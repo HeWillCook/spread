@@ -22,6 +22,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import {
+  addWalkInAction,
   markLinkSentAction,
   setAttendedAction,
   setExcludedAction,
@@ -86,6 +87,31 @@ describe("split actions", () => {
     expect(await guest()).toMatchObject({ attended: false, excluded: false, paid: false });
   });
 
+  it("addWalkInAction adds an attended guest with extra people; blank extra means none", async () => {
+    expect(
+      await addWalkInAction(eventId, initial, form([["name", " Dana "], ["plusOnes", "2"]])),
+    ).toEqual({ error: null, saves: 1 });
+    await addWalkInAction(eventId, initial, form([["name", "Eli"], ["plusOnes", ""]]));
+    const all = await db.select().from(guests).where(eq(guests.eventId, eventId));
+    expect(all.find((g) => g.name === "Dana")).toMatchObject({ attended: true, status: "yes" });
+    expect(all.find((g) => g.name === "Eli")).toMatchObject({ attended: true, status: "yes" });
+    expect(all).toHaveLength(3);
+  });
+
+  it("addWalkInAction explains bad input and adds nothing", async () => {
+    for (const [entries, message] of [
+      [[["name", ""], ["plusOnes", "0"]], /name/i],
+      [[["name", "Dana"], ["plusOnes", "11"]], /at most 10/i],
+      [[["name", "Dana"], ["plusOnes", "1.5"]], /whole number/i],
+      [[["name", "Dana"], ["plusOnes", "-1"]], /whole number/i],
+    ] as const) {
+      const result = await addWalkInAction(eventId, initial, form([...entries] as [string, string][]));
+      expect(result.error).toMatch(message);
+      expect(result.saves).toBe(0);
+    }
+    expect(await db.select().from(guests).where(eq(guests.eventId, eventId))).toHaveLength(1);
+  });
+
   it("markLinkSentAction stamps the time", async () => {
     await markLinkSentAction(eventId, guestId, initial);
     expect((await guest()).linkSentAt).toBeInstanceOf(Date);
@@ -129,6 +155,9 @@ describe("split actions", () => {
       setAttendedAction(eventId, guestId, initial, form([["attended", "on"]])),
     ).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(markLinkSentAction(eventId, guestId, initial)).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(
+      addWalkInAction(eventId, initial, form([["name", "Dana"], ["plusOnes", "0"]])),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(setHostCoverAction(eventId, initial, form([["cover", "5"]]))).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );

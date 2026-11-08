@@ -2,7 +2,7 @@ import { formatCents } from "@/domain/money";
 import type { SplitView } from "@/services/split";
 import { Card } from "../ui/Card";
 import { SplitGuestRow, type SplitRowActions } from "./SplitGuestRow";
-import { SplitSettings } from "./SplitSettings";
+import { SplitSettings, WalkInForm } from "./SplitSettings";
 import type { SplitFormAction } from "./splitForm";
 
 /** Heads that actually share the bill: came and not excluded. */
@@ -16,6 +16,7 @@ export function SplitPanel({
   rowActions,
   coverAction,
   venmoAction,
+  walkInAction,
 }: {
   view: SplitView;
   /** What the host entered for cover, which can exceed the total (view.hostCoveredCents is clamped). */
@@ -24,8 +25,10 @@ export function SplitPanel({
   rowActions: Record<string, SplitRowActions>;
   coverAction: SplitFormAction;
   venmoAction: SplitFormAction;
+  /** Adds a walk-in from the form's `name` and `plusOnes` fields. */
+  walkInAction: SplitFormAction;
 }) {
-  const { rows, totalCents, hostCoveredCents, unassignedCents } = view;
+  const { rows, saidNo, totalCents, hostCoveredCents, unassignedCents } = view;
   const heads = payingHeads(rows);
   const charged = totalCents - hostCoveredCents;
   const each = heads > 0 ? Math.round(charged / heads) : null;
@@ -66,7 +69,9 @@ export function SplitPanel({
         </div>
         {rows.length === 0 ? (
           <p className="text-sm text-ink/80">
-            No guests yet. Share your link and the people who say yes show up here.
+            {saidNo.length > 0
+              ? "Nobody is coming yet. Open Said no below if someone changed their mind."
+              : "No guests yet. Share your link and the people who say yes show up here."}
           </p>
         ) : (
           rows.map((row) => (
@@ -78,6 +83,32 @@ export function SplitPanel({
             />
           ))
         )}
+      </Card>
+
+      {saidNo.length > 0 ? (
+        <Card>
+          {/* Collapsed by default: these guests said they can't come. */}
+          <details>
+            <summary className="cursor-pointer text-lg font-bold">
+              Said no ({saidNo.length})
+            </summary>
+            <p className="mb-3 mt-2 text-sm text-ink/80">
+              Tick anyone who turned up after all to add them to the split.
+            </p>
+            {saidNo.map((row) => (
+              <SplitGuestRow
+                key={row.guestId}
+                row={row}
+                eventTitle={view.eventTitle}
+                actions={rowActions[row.guestId]}
+              />
+            ))}
+          </details>
+        </Card>
+      ) : null}
+
+      <Card>
+        <WalkInForm action={walkInAction} />
       </Card>
 
       <SplitSettings
