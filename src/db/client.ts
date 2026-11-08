@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { PgDatabase } from "drizzle-orm/pg-core";
+import { chooseDriver, postgresOptions } from "./config";
 import { seedStarterRecipes } from "./seed";
 import * as schema from "./schema";
 
@@ -36,11 +37,13 @@ export async function seedAfterConnect(db: Db): Promise<void> {
 }
 
 async function init(): Promise<Db> {
+  // Throws in production when there is no DATABASE_URL (and no explicit PGLITE_DATA_DIR).
+  const driver = chooseDriver(process.env);
   const url = process.env.DATABASE_URL;
-  if (url) {
+  if (driver === "postgres" && url) {
     const { default: postgres } = await import("postgres");
     const { drizzle } = await import("drizzle-orm/postgres-js");
-    const client = postgres(url);
+    const client = postgres(url, postgresOptions(process.env));
     const db = drizzle(client, { schema });
     // Migrations are NOT run here (`npm run db:migrate` does that), so the
     // tables must already exist before we can seed the starter recipes.
@@ -69,7 +72,8 @@ async function init(): Promise<Db> {
 
 /**
  * Singleton database handle (kept on globalThis so Next.js hot reload doesn't
- * reopen it). DATABASE_URL -> postgres-js; otherwise PGlite in PGLITE_DATA_DIR (default .data/pglite).
+ * reopen it). DATABASE_URL -> postgres-js; otherwise PGlite in PGLITE_DATA_DIR (default
+ * .data/pglite). In production DATABASE_URL is required unless PGLITE_DATA_DIR is set.
  */
 export function getDb(): Promise<Db> {
   if (!globalForDb.__cookoutDb) {

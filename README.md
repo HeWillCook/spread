@@ -21,7 +21,9 @@ Copy `.env.example` to `.env.local` when you need them.
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Postgres connection string. When unset, PGlite in `.data/pglite` is used (`PGLITE_DATA_DIR` overrides that folder; the e2e run uses it for a throwaway database). |
+| `DATABASE_URL` | Postgres connection string. Required in production (the app refuses to start on PGlite there). When unset in development, PGlite in `.data/pglite` is used. Pooled connection strings work: prepared statements are off. |
+| `DATABASE_POOL_MAX` | Optional. Connections each server instance may hold, a whole number from 1 to 10. Defaults to 1 in production and on Vercel (one per serverless instance) and 5 in development. |
+| `PGLITE_DATA_DIR` | Optional. Folder for the embedded PGlite database when `DATABASE_URL` is unset (default `.data/pglite`). Setting it explicitly also allows PGlite in production; the e2e run uses it for a throwaway database. |
 | `BETTER_AUTH_SECRET` | Signs host sessions. Required in production; use a long random string, e.g. `openssl rand -base64 32`. |
 | `BETTER_AUTH_URL` | Public origin of the app (`http://localhost:3000` locally, `https://your-domain.com` in production). Also used to build the guest share links; when unset it is derived from the request. |
 
@@ -49,7 +51,7 @@ The first time, install the browser with `npm run e2e:install`. `npm run e2e` bu
 
 ## Deploying to Vercel
 
-1. Create a Postgres database on [Neon](https://neon.tech) or [Supabase](https://supabase.com) and copy its connection string. Use Neon's connection string as is. On Supabase use the direct or session-pooler string (port 5432), not the transaction pooler on port 6543, because the app uses prepared statements.
+1. Create a Postgres database on [Neon](https://neon.tech) or [Supabase](https://supabase.com) and copy its connection string. Neon's pooled connection string and Supabase's transaction pooler (port 6543) both work: the app turns prepared statements off and keeps one connection per serverless instance (`DATABASE_POOL_MAX` changes that). For the one-off `db:migrate` run, prefer a direct or session connection (Supabase port 5432) since migrations are not meant for a transaction pooler.
 2. Create the tables from your machine:
    ```bash
    DATABASE_URL="<connection string>" npm run db:migrate
