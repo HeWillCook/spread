@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Other checkouts (e.g. .claude/worktrees/<name>) are git-ignored and must
+    // not be linted along with this one.
+    ".claude/**",
   ]),
 ]);
 
