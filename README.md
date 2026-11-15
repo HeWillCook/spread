@@ -58,9 +58,13 @@ Migrations need a direct connection, not a transaction pooler. You can also pass
 
 ### Neon
 
-The project is linked to Neon (`neon.ts`, `.neon`). `neon deploy` writes the **production** branch's `DATABASE_URL` (pooled, for the app) and `DATABASE_URL_UNPOOLED` (direct, for migrations) into `.env.local`. Next loads that file for `npm run dev` too, so a dev server started with it talks to production. For local work, either remove those two lines (and go back to PGlite) or point `.env.local` at a development branch: `neon checkout dev --create` (new branches expire after 7 days, per `neon.ts`).
+The project is linked to Neon (`neon.ts`, `.neon`). `.env.local` holds the **dev** branch's `DATABASE_URL` (pooled, for the app) and `DATABASE_URL_UNPOOLED` (direct, for migrations), written by `neon checkout dev --create`. New branches expire after 7 days (see `neon.ts`); run `neon checkout dev --create` again to get a fresh copy of production's schema and data. Next loads `.env.local` for `npm run dev`, so never `neon checkout production` locally unless you mean to work on live data.
 
-The starter recipes (currently Burgers) are seeded automatically the first time the app connects, in both PGlite and Postgres mode. The seed is idempotent. If the tables are missing the app stops with a message to run `npm run db:migrate`.
+Migrate production (Vercel runs no migrations) whenever a deploy adds files to `drizzle/`, before or right after pushing:
+
+```bash
+DATABASE_URL_UNPOOLED="$(neon connection-string production)" npm run db:migrate
+```
 
 After changing `src/db/schema.ts`, run `npm run db:generate` and commit the new files in `drizzle/`.
 
@@ -84,6 +88,8 @@ The first time, install the browser with `npm run e2e:install`. `npm run e2e` bu
 3. Import the repository into Vercel (the Next.js preset needs no changes).
 4. In Project Settings, Environment Variables, add `DATABASE_URL`, `BETTER_AUTH_SECRET` (a long random string), and `BETTER_AUTH_URL` (your production origin, e.g. `https://cookout.example.com`, with no trailing slash).
 5. Deploy. The first request seeds the starter recipes. Re-run `npm run db:migrate` against the database whenever a deploy adds a migration.
+
+The live deployment is Vercel project `cookout` (https://cookout-lac.vercel.app), connected to this repo: every push to `main` deploys to production. Its production env vars are `DATABASE_URL` (Neon production, pooled), `DATABASE_POOL_MAX=1`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=https://cookout-lac.vercel.app`. Preview deployments have no database configured yet.
 
 ## Venmo links
 
