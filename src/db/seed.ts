@@ -1,8 +1,15 @@
+import { and, eq, notInArray } from "drizzle-orm";
 import { STARTER_RECIPES } from "@/domain/recipes";
 import type { Db } from "./client";
 import { recipeItems, recipes } from "./schema";
 
-/** Inserts the global starter recipes (owner_id null). Safe to run repeatedly. */
+/**
+ * Inserts or updates the global starter recipes (owner_id null). Safe to run repeatedly.
+ *
+ * Starters are read-only for hosts (editing one makes a copy), so a corrected quantity or
+ * price in code should reach an existing database on the next boot rather than staying
+ * stale. Items that disappeared from a recipe in code are removed too.
+ */
 export async function seedStarterRecipes(db: Db): Promise<void> {
   for (const recipe of STARTER_RECIPES) {
     await db
@@ -14,7 +21,15 @@ export async function seedStarterRecipes(db: Db): Promise<void> {
         emoji: recipe.emoji,
         defaultServingsPerPerson: recipe.defaultServingsPerPerson,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: recipes.id,
+        set: {
+          ownerId: null,
+          name: recipe.name,
+          emoji: recipe.emoji,
+          defaultServingsPerPerson: recipe.defaultServingsPerPerson,
+        },
+      });
 
     for (const [position, item] of recipe.items.entries()) {
       await db
@@ -31,7 +46,29 @@ export async function seedStarterRecipes(db: Db): Promise<void> {
           priceCents: item.priceCents,
           position,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: recipeItems.id,
+          set: {
+            name: item.name,
+            emoji: item.emoji,
+            perServing: item.perServing,
+            unit: item.unit,
+            buyUnit: item.buyUnit,
+            unitsPerBuy: item.unitsPerBuy,
+            priceCents: item.priceCents,
+            position,
+          },
+        });
     }
+
+    await db.delete(recipeItems).where(
+      and(
+        eq(recipeItems.recipeId, recipe.id),
+        notInArray(
+          recipeItems.id,
+          recipe.items.map((item) => item.id),
+        ),
+      ),
+    );
   }
 }

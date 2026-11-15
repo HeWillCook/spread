@@ -12,6 +12,8 @@ function row(over: Partial<SplitRow> & { guestId: string; name: string }): Split
     excluded: false,
     paid: false,
     linkSentAt: null,
+    linkSentAmountCents: null,
+    linkAmountChanged: false,
     heads: 1,
     owedCents: 0,
     venmoUrl: null,
@@ -25,6 +27,7 @@ function view(rows: SplitRow[], over: Partial<SplitView> = {}): SplitView {
     saidNo: [],
     rows,
     totalCents: 7550,
+    totalIsProvisional: false,
     hostCoveredCents: 0,
     unassignedCents: 0,
     venmoUsername: null,
@@ -62,6 +65,15 @@ function renderPanel(
 }
 
 describe("SplitPanel", () => {
+  it("warns about a previously sent payment link when the guest no longer owes anything", () => {
+    renderPanel(view([row({ guestId: "a", name: "Ann", linkSentAt: new Date(), linkSentAmountCents: 1000, linkAmountChanged: true })]));
+    expect(screen.getByText(/This guest no longer owes a share/)).toHaveTextContent("$10.00");
+    expect(screen.queryByText("link sent")).not.toBeInTheDocument();
+  });
+  it("warns before collecting money while shopping quantities need review", () => {
+    renderPanel(view([], { totalIsProvisional: true }));
+    expect(screen.getByText(/Review changed quantities on Shopping before collecting money/)).toBeInTheDocument();
+  });
   it("shows the empty state, the total and a tick box per guest when nobody is ticked", () => {
     renderPanel(view([row({ guestId: "a", name: "Ann" }), row({ guestId: "b", name: "Bo", heads: 3 })]));
     expect(screen.getByText("Tick who came to see what everyone owes")).toBeInTheDocument();
@@ -85,6 +97,7 @@ describe("SplitPanel", () => {
             owedCents: 3775,
             venmoUrl: url,
             linkSentAt: new Date(),
+            linkSentAmountCents: 3775,
             paid: true,
           }),
         ],
@@ -161,6 +174,7 @@ describe("SplitPanel", () => {
       fireEvent.click(sendButton());
       await waitFor(() => expect(linkSent).toHaveBeenCalledTimes(1));
       expect(share).toHaveBeenCalledWith({ text: message });
+      expect((linkSent.mock.calls[0][1] as FormData).get("amountCents")).toBe("7550");
     });
 
     it("does not mark it sent when the share sheet is cancelled", async () => {
@@ -208,6 +222,80 @@ describe("SplitPanel", () => {
       await new Promise((r) => setTimeout(r, 20));
       expect(linkSent).not.toHaveBeenCalled();
     });
+  });
+
+  it("asks for reconciliation after a paid share changes and hides full-share links", () => {
+    const url = "https://venmo.com/x?txn=pay&amount=75.50";
+    renderPanel(
+      view([
+        row({
+          guestId: "a",
+          name: "Ann",
+          attended: true,
+          owedCents: 7550,
+          venmoUrl: url,
+          linkSentAt: new Date(),
+          linkSentAmountCents: 5000,
+          linkAmountChanged: true,
+          paid: true,
+        }),
+      ]),
+    );
+    expect(
+      screen.getByText(/Their share changed after you recorded payment/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send Venmo link to Ann" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open link for Ann/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Ann paid")).toBeChecked();
+  });
+
+  it("offers an updated full-share link when the guest is unpaid", () => {
+    renderPanel(view([row({
+      guestId: "a", name: "Ann", attended: true, owedCents: 7550,
+      venmoUrl: "https://venmo.com/x?txn=pay&amount=75.50",
+      linkSentAt: new Date(), linkSentAmountCents: 5000, linkAmountChanged: true,
+    })]));
+    expect(screen.getByText("Amount changed — send an updated link (last sent $50.00).")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send Venmo link to Ann" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ann paid")).not.toBeChecked();
+  });
+
+  it("warns conservatively when the last link's amount was never recorded", () => {
+    const url = "https://venmo.com/x?txn=pay&amount=75.50";
+    renderPanel(
+      view([
+        row({
+          guestId: "a",
+          name: "Ann",
+          attended: true,
+          owedCents: 7550,
+          venmoUrl: url,
+          linkSentAt: new Date(),
+          linkSentAmountCents: null,
+          linkAmountChanged: true,
+        }),
+      ]),
+    );
+    expect(screen.getByText(/last link'?s amount wasn't recorded/)).toBeInTheDocument();
+  });
+
+  it("shows no amount warning while the last sent amount still matches", () => {
+    const url = "https://venmo.com/x?txn=pay&amount=75.50";
+    renderPanel(
+      view([
+        row({
+          guestId: "a",
+          name: "Ann",
+          attended: true,
+          owedCents: 7550,
+          venmoUrl: url,
+          linkSentAt: new Date(),
+          linkSentAmountCents: 7550,
+          linkAmountChanged: false,
+        }),
+      ]),
+    );
+    expect(screen.queryByText(/send an updated link/)).not.toBeInTheDocument();
   });
 
   it("hides Open link for a URL that is not on venmo.com", () => {

@@ -11,13 +11,17 @@ import { requireHost } from "./auth";
  * render independently, so the layout's check does not protect a page.
  */
 export const loadHostEvent = cache(
-  async (eventId: string): Promise<{ event: EventRow; planFor: number }> => {
+  async (eventId: string): Promise<{ event: EventRow; planFor: number; confirmed: number }> => {
     const host = await requireHost();
     const db = await getDb();
     try {
       const event = await getHostEvent(db, host.id, eventId);
       const headcount = (await headcountForEvents(db, [event.id])).get(event.id);
-      return { event, planFor: headcount?.planFor ?? 0 };
+      return {
+        event,
+        planFor: headcount?.planFor ?? 0,
+        confirmed: headcount?.confirmed ?? 0,
+      };
     } catch (error) {
       if (error instanceof NotFoundError) notFound();
       throw error;

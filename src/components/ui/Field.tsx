@@ -10,18 +10,18 @@ export function Field({ label, hint, id, className = "", ...props }: FieldProps)
   const inputId = id ?? autoId;
   const hintId = hint ? `${inputId}-hint` : undefined;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className="text-sm font-bold text-ink">
         {label}
       </label>
       <input
         id={inputId}
         aria-describedby={hintId}
-        className={`min-h-12 rounded-xl border-2 border-ink bg-white px-4 py-2 text-base text-ink placeholder:text-ink/40 ${className}`}
+        className={`min-h-11 rounded-xl border-[1.5px] border-ink/35 bg-white px-3.5 py-2.5 text-base text-ink transition-colors placeholder:text-ink-muted hover:border-ink/60 focus:border-ink disabled:cursor-not-allowed disabled:bg-cream/60 disabled:opacity-70 ${className}`}
         {...props}
       />
       {hint ? (
-        <p id={hintId} className="text-xs text-ink/70">
+        <p id={hintId} className="text-xs leading-relaxed text-ink-muted">
           {hint}
         </p>
       ) : null}

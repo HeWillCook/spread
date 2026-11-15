@@ -5,6 +5,7 @@ import type { Db } from "@/db/client";
 import { eventDishes, recipeItems, recipes } from "@/db/schema";
 import { seedStarterRecipes } from "@/db/seed";
 import { createTestDb } from "@/db/test-db";
+import { STARTER_RECIPES } from "@/domain/recipes";
 import { createEvent } from "@/services/events";
 import { addDishToEvent } from "@/services/menu";
 
@@ -96,7 +97,7 @@ describe("menu actions", () => {
       ]),
     );
     expect(result.error).toMatch(/greater than 0/);
-    expect((await db.select().from(recipes)).length).toBe(1);
+    expect((await db.select().from(recipes)).length).toBe(STARTER_RECIPES.length);
   });
 
   it("a different signed-in host gets a 404, not the event's data", async () => {
@@ -160,6 +161,6 @@ describe("menu actions", () => {
       ]),
     );
     expect(result.error).toBe('Price for "Cabbage" should look like 3.50');
-    expect(await db.select().from(recipes)).toHaveLength(1);
+    expect(await db.select().from(recipes)).toHaveLength(STARTER_RECIPES.length);
   });
 });

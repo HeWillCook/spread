@@ -10,7 +10,7 @@ import { NotFoundError, ValidationError } from "./errors";
 import { createEvent } from "./events";
 import { addDishToEvent } from "./menu";
 import { submitRsvp } from "./rsvp";
-import { addExtraCost } from "./shopping";
+import { addExtraCost, setChecked } from "./shopping";
 import {
   getSplitView,
   markLinkSent,
@@ -56,6 +56,14 @@ function row(view: Awaited<ReturnType<typeof getSplitView>>, guestId: string) {
 }
 
 describe("getSplitView", () => {
+  it("carries unresolved shopping quantity reviews into the split", async () => {
+    await rsvp("Ann");
+    await addDishToEvent(db, "host-1", eventId, "starter-burgers");
+    await setChecked(db, "host-1", eventId, "starter-burgers-beef", true);
+    expect((await getSplitView(db, "host-1", eventId)).totalIsProvisional).toBe(false);
+    await rsvp("Late family", "yes", ["Guest one", "Guest two"]);
+    expect((await getSplitView(db, "host-1", eventId)).totalIsProvisional).toBe(true);
+  });
   it("only attended guests owe, and the shares sum to the shopping total", async () => {
     await rsvp("Seed 1", "yes", ["P1"]);
     await rsvp("Seed 2", "maybe", ["P2", "P3"]);
@@ -119,7 +127,7 @@ describe("getSplitView", () => {
     await setExcluded(db, "host-1", eventId, maybe, true);
     await setAttended(db, "host-1", eventId, yes, false);
     await setPaid(db, "host-1", eventId, no, true);
-    await markLinkSent(db, "host-1", eventId, no);
+    await markLinkSent(db, "host-1", eventId, no, 1000);
 
     const rows = await db.select({ id: guests.id, status: guests.status }).from(guests);
     const byId = Object.fromEntries(rows.map((r) => [r.id, r.status]));
@@ -131,11 +139,13 @@ describe("getSplitView", () => {
     const maybe = await rsvp("Maybe", "maybe");
     const no = await rsvp("No", "no");
     const view = await getSplitView(db, "host-1", eventId);
-    expect(view.rows.map((r) => r.guestId)).toEqual([yes, maybe]);
+    // These writes can share a timestamp; the service breaks ties by name.
+    // This test covers membership, not insertion order.
+    expect(view.rows.map((r) => r.guestId).sort()).toEqual([yes, maybe].sort());
 
     await setAttended(db, "host-1", eventId, no, true);
     const after = await getSplitView(db, "host-1", eventId);
-    expect(after.rows.map((r) => r.guestId)).toEqual([yes, maybe, no]);
+    expect(after.rows.map((r) => r.guestId).sort()).toEqual([yes, maybe, no].sort());
     expect(row(after, no).attended).toBe(true);
   });
 
@@ -255,16 +265,92 @@ describe("getSplitView", () => {
   it("paid and linkSentAt persist and show up in the rows", async () => {
     const a = await rsvp("Ann");
     let view = await getSplitView(db, "host-1", eventId);
-    expect(row(view, a)).toMatchObject({ paid: false, linkSentAt: null });
+    expect(row(view, a)).toMatchObject({
+      paid: false,
+      linkSentAt: null,
+      linkSentAmountCents: null,
+      linkAmountChanged: false,
+    });
 
     await setPaid(db, "host-1", eventId, a, true);
-    await markLinkSent(db, "host-1", eventId, a);
+    await markLinkSent(db, "host-1", eventId, a, 1000);
     view = await getSplitView(db, "host-1", eventId);
     expect(row(view, a).paid).toBe(true);
     expect(row(view, a).linkSentAt).toBeInstanceOf(Date);
+    expect(row(view, a).linkSentAmountCents).toBe(1000);
 
     await setPaid(db, "host-1", eventId, a, false);
     expect(row(await getSplitView(db, "host-1", eventId), a).paid).toBe(false);
+  });
+
+  it("records the amount actually sent, and flags the link once the owed amount changes", async () => {
+    await ninetyDollars();
+    const a = await rsvp("Ann");
+    const b = await rsvp("Bo");
+    await setAttended(db, "host-1", eventId, a, true);
+    await setAttended(db, "host-1", eventId, b, true);
+    await markLinkSent(db, "host-1", eventId, a, 4500);
+
+    let view = await getSplitView(db, "host-1", eventId);
+    expect(row(view, a)).toMatchObject({
+      owedCents: 4500,
+      linkSentAmountCents: 4500,
+      linkAmountChanged: false,
+    });
+
+    // A bigger shopping total: the sent link is now for the wrong amount.
+    await addExtraCost(db, "host-1", eventId, "Ice", 3000);
+    view = await getSplitView(db, "host-1", eventId);
+    expect(row(view, a)).toMatchObject({
+      owedCents: 6000,
+      linkSentAmountCents: 4500,
+      linkAmountChanged: true,
+      paid: false,
+    });
+    expect(row(view, a).linkSentAt).toBeInstanceOf(Date);
+  });
+
+  it("flags the link when another guest joins and changes the share", async () => {
+    await ninetyDollars();
+    const a = await rsvp("Ann");
+    const b = await rsvp("Bo");
+    await setAttended(db, "host-1", eventId, a, true);
+    await markLinkSent(db, "host-1", eventId, a, 9000);
+    expect(row(await getSplitView(db, "host-1", eventId), a).linkAmountChanged).toBe(false);
+
+    await setAttended(db, "host-1", eventId, b, true);
+    expect(row(await getSplitView(db, "host-1", eventId), a)).toMatchObject({
+      owedCents: 4500,
+      linkSentAmountCents: 9000,
+      linkAmountChanged: true,
+    });
+  });
+
+  it("keeps a host-entered paid flag when the link amount goes stale", async () => {
+    await ninetyDollars();
+    const a = await rsvp("Ann");
+    await setAttended(db, "host-1", eventId, a, true);
+    await markLinkSent(db, "host-1", eventId, a, 9000);
+    await setPaid(db, "host-1", eventId, a, true);
+
+    await addExtraCost(db, "host-1", eventId, "Ice", 1000);
+    const view = await getSplitView(db, "host-1", eventId);
+    expect(row(view, a)).toMatchObject({ paid: true, linkAmountChanged: true });
+  });
+
+  it("treats a link sent before amounts were recorded as needing a fresh link", async () => {
+    await ninetyDollars();
+    const a = await rsvp("Ann");
+    await setAttended(db, "host-1", eventId, a, true);
+    // A legacy row: the old code stamped the time but never the amount.
+    await db.update(guests).set({ linkSentAt: new Date() }).where(eq(guests.id, a));
+
+    const view = await getSplitView(db, "host-1", eventId);
+    expect(row(view, a)).toMatchObject({
+      linkSentAmountCents: null,
+      linkAmountChanged: true,
+      owedCents: 9000,
+    });
   });
 });
 
@@ -280,6 +366,27 @@ describe("setHostCover", () => {
     }
     const [after] = await db.select().from(events).where(eq(events.id, eventId));
     expect(after.hostCoverCents).toBe(1250);
+  });
+});
+
+describe("markLinkSent", () => {
+  it("rejects an invalid amount and writes nothing", async () => {
+    const a = await rsvp("Ann");
+    for (const bad of [-1, 12.5, Number.NaN, Number.POSITIVE_INFINITY, 1_000_001]) {
+      await expect(markLinkSent(db, "host-1", eventId, a, bad)).rejects.toBeInstanceOf(
+        ValidationError,
+      );
+    }
+    const [g] = await db.select().from(guests).where(eq(guests.id, a));
+    expect(g).toMatchObject({ linkSentAt: null, linkSentAmountCents: null });
+  });
+
+  it("updates the stored amount when a fresh link is sent", async () => {
+    const a = await rsvp("Ann");
+    await markLinkSent(db, "host-1", eventId, a, 1000);
+    await markLinkSent(db, "host-1", eventId, a, 2500);
+    const [g] = await db.select().from(guests).where(eq(guests.id, a));
+    expect(g.linkSentAmountCents).toBe(2500);
   });
 });
 
@@ -321,7 +428,7 @@ describe("host and event scoping", () => {
     await expect(setAttended(db, "host-2", eventId, a, true)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setExcluded(db, "host-2", eventId, a, true)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setPaid(db, "host-2", eventId, a, true)).rejects.toBeInstanceOf(NotFoundError);
-    await expect(markLinkSent(db, "host-2", eventId, a)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(markLinkSent(db, "host-2", eventId, a, 1000)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setHostCover(db, "host-2", eventId, 100)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setVenmoUsername(db, "host-2", eventId, "willcook")).rejects.toBeInstanceOf(
       NotFoundError,
@@ -350,7 +457,7 @@ describe("host and event scoping", () => {
     await expect(setAttended(db, "host-1", eventId, foreign, true)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setExcluded(db, "host-1", eventId, foreign, true)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setPaid(db, "host-1", eventId, foreign, true)).rejects.toBeInstanceOf(NotFoundError);
-    await expect(markLinkSent(db, "host-1", eventId, foreign)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(markLinkSent(db, "host-1", eventId, foreign, 1000)).rejects.toBeInstanceOf(NotFoundError);
     await expect(setAttended(db, "host-1", eventId, "no-such-guest", true)).rejects.toBeInstanceOf(
       NotFoundError,
     );

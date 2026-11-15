@@ -34,7 +34,9 @@ export default defineConfig({
     stderr: "pipe",
     env: {
       PGLITE_DATA_DIR: DATA_DIR,
-      DATABASE_URL: "", // force the embedded PGlite database even if one is set in the shell
+      // Embedded PGlite by default, even if DATABASE_URL is set in the shell. Set
+      // E2E_DATABASE_URL to run the suite against a real (throwaway!) Postgres instead.
+      DATABASE_URL: process.env.E2E_DATABASE_URL ?? "",
       BETTER_AUTH_SECRET: "e2e-only-secret-not-for-production-use",
       BETTER_AUTH_URL: ORIGIN,
     },

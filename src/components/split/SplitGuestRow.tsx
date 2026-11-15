@@ -30,17 +30,20 @@ function AutoCheckbox({
   action: SplitFormAction;
   size?: string;
 }) {
-  const [state, formAction] = useActionState(action, INITIAL_SPLIT_FORM_STATE);
+  const [state, formAction, pending] = useActionState(action, INITIAL_SPLIT_FORM_STATE);
   return (
     <form action={formAction} className="flex flex-col gap-1">
+      <label className="flex size-11 cursor-pointer items-center justify-center">
       <input
         type="checkbox"
         name={field}
         defaultChecked={checked}
+        disabled={pending}
         aria-label={label}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
         className={`${size} shrink-0 accent-ketchup`}
       />
+      </label>
       <FormError message={state.error} />
     </form>
   );
@@ -59,12 +62,15 @@ function SendLink({
   eventTitle,
   owedCents,
   url,
+  warning,
   action,
 }: {
   name: string;
   eventTitle: string;
   owedCents: number;
   url: string;
+  /** Set when the last link's amount no longer matches what is owed. */
+  warning: string | null;
   action: SplitFormAction;
 }) {
   const [state, formAction] = useActionState(action, INITIAL_SPLIT_FORM_STATE);
@@ -98,11 +104,17 @@ function SendLink({
       setProblem("Couldn't share or copy the link. Try Open link, then copy it from there.");
       return;
     }
-    startTransition(() => formAction(new FormData()));
+    // Send the amount from this render, not whatever is owed after the async share settles.
+    const data = new FormData();
+    data.append("amountCents", String(owedCents));
+    startTransition(() => formAction(data));
   }
 
   return (
     <div className="flex flex-col gap-1">
+      {warning ? (
+        <p className="text-sm font-bold text-ketchup">{warning}</p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -151,6 +163,11 @@ export function SplitGuestRow({
 }) {
   const plusOnes = row.heads - 1;
   const owes = row.attended && !row.excluded;
+  const linkWarning = row.linkAmountChanged
+    ? row.linkSentAmountCents === null
+      ? "The last link's amount wasn't recorded — send an updated link."
+      : `Amount changed — send an updated link (last sent ${formatCents(row.linkSentAmountCents)}).`
+    : null;
   return (
     <div className="flex items-start gap-3 border-t-2 border-dashed border-divider py-3 first:border-t-0 first:pt-0 last:pb-0">
       <div className="pt-0.5">
@@ -168,12 +185,27 @@ export function SplitGuestRow({
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="font-bold leading-tight">{row.name}</span>
             {plusOnes > 0 ? <Pill tone="cream">+{plusOnes}</Pill> : null}
-            {row.linkSentAt ? <Pill>link sent</Pill> : null}
+            {row.linkSentAt && !row.linkAmountChanged ? <Pill>link sent</Pill> : null}
           </div>
           {row.attended ? (
             <span className="shrink-0 font-bold">{owes ? formatCents(row.owedCents) : "$0.00"}</span>
           ) : null}
         </div>
+
+        {row.linkAmountChanged && row.paid ? (
+          <p className="text-sm font-bold leading-relaxed text-ketchup">
+            Their share changed after you recorded payment. Reconcile what they paid before
+            collecting again. Clear Paid only if the full current share is still due.
+          </p>
+        ) : row.linkAmountChanged && row.owedCents === 0 ? (
+          <p className="text-sm font-bold leading-relaxed text-ketchup">
+            This guest no longer owes a share.{" "}
+            {row.linkSentAmountCents !== null ? `Their last link requested ${formatCents(row.linkSentAmountCents)}. ` : ""}
+            Let them know their previous payment link no longer applies.
+          </p>
+        ) : row.linkAmountChanged && !row.venmoUrl ? (
+          <p className="text-sm font-bold leading-relaxed text-ketchup">The amount in the previous payment link has changed. Review the current share of {formatCents(row.owedCents)} before collecting payment.</p>
+        ) : null}
 
         {row.attended ? (
           <>
@@ -190,12 +222,13 @@ export function SplitGuestRow({
             </div>
             {owes && row.owedCents > 0 ? (
               <div className="flex flex-wrap items-center gap-3">
-                {row.venmoUrl ? (
+                {row.venmoUrl && !row.paid ? (
                   <SendLink
                     name={row.name}
                     eventTitle={eventTitle}
                     owedCents={row.owedCents}
                     url={row.venmoUrl}
+                    warning={linkWarning}
                     action={actions.linkSentAction}
                   />
                 ) : null}

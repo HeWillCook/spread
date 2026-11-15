@@ -72,13 +72,13 @@ export function EditEventForm({
         {state.error ? (
           <p
             role="alert"
-            className="rounded-xl border-2 border-ink bg-ketchup px-4 py-3 text-sm font-bold text-cream"
+            className="rounded-xl bg-ketchup px-4 py-3 text-sm font-bold text-paper"
           >
             {state.error}
           </p>
         ) : null}
 
-        <Button variant="mustard" type="submit" disabled={pending} className="text-lg">
+        <Button variant="red" type="submit" disabled={pending} className="text-lg">
           {pending ? "Saving..." : "Save changes"}
         </Button>
         <p className="text-center text-sm">

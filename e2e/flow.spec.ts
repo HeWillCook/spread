@@ -44,6 +44,7 @@ async function createEvent(page: Page, title: string): Promise<{ eventUrl: strin
   await page.goto("/host");
   const shareLink = (await page.locator("p.select-all").first().innerText()).trim();
   expect(shareLink).toMatch(/\/e\/[^/]+$/);
+  await page.goto(eventUrl);
   return { eventUrl, shareLink };
 }
 
@@ -67,7 +68,9 @@ async function rsvp(
     await page.getByRole("button", { name: "+ add a guest" }).click();
     await page.getByLabel(`Guest ${i + 1} name`).fill(plusOne);
   }
-  await page.getByRole("button", { name: "Count me in" }).click();
+  await page.getByRole("button", {
+    name: answer.status === "Can't" ? "Send my regrets" : answer.status === "Maybe" ? "Send my RSVP" : "Count me in",
+  }).click();
   await expect(page.getByRole("button", { name: "Update my answer" })).toBeVisible();
   return { context, page };
 }
@@ -81,7 +84,12 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 1. The host signs up, creates the event and reads the share link.
   await signUp(page, "Hannah Host");
   const { eventUrl, shareLink } = await createEvent(page, "Burger Night");
-  await expect(page.getByText("0 coming")).toBeVisible();
+  await expect(page.getByText("Plan for ~0", { exact: true })).toBeVisible();
+  // Hosts can invite immediately without leaving the event.
+  await expect(page.getByRole("button", { name: "Copy link", exact: true })).toBeVisible();
+  await page.getByLabel(/Who did you invite/).fill("Pat Guest\nMorgan Unanswered");
+  await page.getByRole("button", { name: "Add names", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copy reminder for Morgan Unanswered" })).toBeVisible();
   expect(new URL(shareLink).origin).toBe(new URL(eventUrl).origin);
 
   // 2. Privacy: a different host cannot open this event; it is a 404, not a redirect or a peek.
@@ -90,7 +98,16 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   await signUp(otherPage, "Olivia Other");
   const response = await otherPage.goto(eventUrl);
   expect(response?.status()).toBe(404);
+  const sheetResponse = await otherPage.goto(`${eventUrl}/prep`);
+  expect(sheetResponse?.status()).toBe(404);
   await other.close();
+
+  const anonymous = await browser.newContext({ viewport: PHONE });
+  const anonymousPage = await anonymous.newPage();
+  await anonymousPage.goto(`${eventUrl}/prep`);
+  await expect(anonymousPage).toHaveURL(/\/login/);
+  await expect(anonymousPage.getByRole("heading", { name: "Kitchen sheet", exact: true })).toHaveCount(0);
+  await anonymous.close();
 
   // 3. A guest (fresh context, no account) says Yes and brings one person.
   const guest = await rsvp(browser, shareLink, {
@@ -104,7 +121,7 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 4. The host's Guests tab counts both heads.
   await page.goto(eventUrl);
   await expect(page.getByText(/^2 confirmed/)).toBeVisible();
-  await expect(page.getByText("2 coming")).toBeVisible();
+  await expect(page.getByText("Plan for ~2", { exact: true })).toBeVisible();
   await expect(page.getByText("Pat Guest")).toBeVisible();
 
   // 5. Add the starter Burgers dish on the Menu tab.
@@ -112,10 +129,51 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   await page.getByRole("button", { name: "Add Burgers" }).click();
   await expect(page.getByRole("button", { name: "Add Burgers" })).toHaveCount(0);
 
+  // Exploring a different crowd never changes saved RSVP/menu/shopping quantities.
+  await page.getByText("Try a different crowd", { exact: true }).click();
+  const preview = page.getByRole("region", { name: "Room for a few more?" });
+  await preview.getByLabel("Try a headcount").fill("8");
+  await expect(preview.getByRole("status")).toContainText("Previewing 8 people");
+  await expect(preview.locator(".whatif-yield-value")).toContainText("12 burgers");
+  await expect(page.getByText("Plan for ~2", { exact: true })).toBeVisible();
+
+  // A kitchen sheet uses saved quantities and remains readable in print media.
+  await page.getByRole("link", { name: /Kitchen sheet/ }).click();
+  await expect(page.getByRole("heading", { name: "Kitchen sheet", exact: true })).toBeVisible();
+  await expect(page.locator(".kitchen-dish-servings")).toContainText("3 burgers");
+  await expect(page.locator(".kitchen-headcount")).toContainText("2 confirmed");
+  await expect(page.getByRole("link", { name: "Menu", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".kitchen-sheet")).toBeVisible();
+  await expect(page.locator(".event-invite")).toBeHidden();
+  await expect(page.locator(".event-tabs")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Print kitchen sheet" })).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+  await page.getByRole("link", { name: "Back to Menu" }).click();
+
   // 6. Shopping: 2 heads x 1.5 = 3 burgers x 1/3 lb = 1 lb of beef.
   await page.getByRole("link", { name: "Shopping" }).click();
   const beef = rowOf(page.getByText("Ground beef", { exact: true }));
   await expect(beef).toContainText("1 lb");
+  await page.getByRole("checkbox", { name: "Got Ground beef" }).check();
+  await expect(page.getByRole("checkbox", { name: "Got Ground beef" })).toBeChecked();
+  await page.getByLabel("Actual price for Ground beef").fill("6.50");
+  await page.getByLabel("Actual price for Ground beef").blur();
+  await expect(beef).toContainText("paid $6.50");
+
+  // A late plus-one increases the required beef. The saved shopping tick must
+  // request review, while the host's recorded expenditure stays intact.
+  await guest.page.getByRole("button", { name: "+ add a guest" }).click();
+  await guest.page.getByLabel("Guest 2 name").fill("Lee Late");
+  await guest.page.getByRole("button", { name: "Update my answer" }).click();
+  await expect(guest.page.getByRole("status")).toContainText("You're in!");
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Got Ground beef" })).not.toBeChecked();
+  await expect(beef).toContainText(/quantity increased/i);
+  await expect(beef).toContainText("paid $6.50");
+  await page.getByRole("checkbox", { name: "Got Ground beef" }).check();
+  await expect(beef).not.toContainText(/quantity increased/i);
+  await expect(page.getByRole("checkbox", { name: "Got Ground beef" })).toBeChecked();
 
   // 7. Split: tick the guest as attended and see what they owe.
   await page.getByRole("link", { name: "Split" }).click();
@@ -140,7 +198,13 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 9. The host's count drops to zero.
   await page.goto(eventUrl);
   await expect(page.getByText(/^0 confirmed/)).toBeVisible();
-  await expect(page.getByText("0 coming")).toBeVisible();
+  await expect(page.getByText("Plan for ~0", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy reminder for Pat Guest" })).toHaveCount(0);
+  // The same event is usable on desktop and fits the phone without sideways scroll.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect((await page.getByRole("main").boundingBox())!.width).toBeGreaterThan(800);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await guest.context.close();
 });
 
@@ -263,4 +327,13 @@ test("a guest's personal link is private and 'not you' opens a blank form", asyn
   await expect(guest.page.getByLabel("Your name")).toHaveValue("");
   await expect(guest.page.getByRole("button", { name: "Count me in" })).toBeVisible();
   await guest.context.close();
+});
+
+test("a production build never shows the developer guest lab", async ({ page }) => {
+  await signUp(page, "Dev Check");
+  const { eventUrl } = await createEvent(page, "No Lab");
+  await page.goto(eventUrl);
+  await expect(page.getByRole("heading", { name: "No Lab" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Developer tools" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Clear guests" })).toHaveCount(0);
 });

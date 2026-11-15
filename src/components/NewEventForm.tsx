@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useActionState, useSyncExternalStore } from "react";
 import { Button } from "./ui/Button";
-import { Card } from "./ui/Card";
 import { Field } from "./ui/Field";
 import { Wordmark } from "./ui/Wordmark";
 
@@ -32,15 +31,17 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
   const timeZone = useBrowserTimeZone();
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-5 p-5">
-      <Wordmark />
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold leading-tight text-ink">New cookout</h1>
-        <p className="text-sm text-ink/80">You&apos;ll get a link to share with your guests.</p>
-      </header>
+    <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-3 pb-14 pt-5 sm:pt-14">
+      <div className="px-2">
+        <Wordmark />
+      </div>
 
-      <Card>
-        <form action={formAction} className="flex flex-col gap-4">
+      <div className="ticket slip">
+      <header className="slip-head">
+        <h1 className="text-[2.25rem] leading-none">New cookout</h1>
+        <p className="text-sm text-ink-muted">You&apos;ll get a link to share with your guests.</p>
+      </header>
+        <form action={formAction} className="slip-body">
           <input type="hidden" name="timezone" value={timeZone} />
           <Field
             label="What's the occasion?"
@@ -61,14 +62,14 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
           {state.error ? (
             <p
               role="alert"
-              className="rounded-xl border-2 border-ink bg-ketchup px-4 py-3 text-sm font-bold text-cream"
+              className="rounded-xl bg-ketchup px-4 py-3 text-sm font-bold text-paper"
             >
               {state.error}
             </p>
           ) : null}
 
           <Button
-            variant="mustard"
+            variant="red"
             type="submit"
             disabled={!timeZone || pending}
             className="text-lg"
@@ -76,7 +77,7 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
             {pending ? "Creating..." : "Create event"}
           </Button>
         </form>
-      </Card>
+      </div>
 
       <p className="text-center text-sm">
         <Link href="/host" className="font-bold text-ketchup underline">

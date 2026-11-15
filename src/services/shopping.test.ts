@@ -110,14 +110,24 @@ describe("getShoppingPlan", () => {
 describe("setChecked / setActualCost", () => {
   beforeEach(seedBurgerEvent);
 
-  it("ticking persists and doesn't change the total", async () => {
+  it("ticking persists, captures the quantity bought, and doesn't change the total", async () => {
     await setChecked(db, "host-1", eventId, BEEF, true);
     const plan = await getShoppingPlan(db, "host-1", eventId);
-    expect(line(plan, BEEF)).toMatchObject({ checked: true, actualCents: null });
+    expect(line(plan, BEEF)).toMatchObject({
+      checked: true,
+      checkedQty: 8,
+      needsReview: false,
+      actualCents: null,
+    });
     expect(line(plan, BUNS).checked).toBe(false);
     expect(plan.totalCents).toBe(7550);
+    expect(plan.totalIsProvisional).toBe(false);
     await setChecked(db, "host-1", eventId, BEEF, false);
-    expect(line(await getShoppingPlan(db, "host-1", eventId), BEEF).checked).toBe(false);
+    expect(line(await getShoppingPlan(db, "host-1", eventId), BEEF)).toMatchObject({
+      checked: false,
+      checkedQty: null,
+      needsReview: false,
+    });
   });
 
   it("an actual price replaces the estimate in the total", async () => {
@@ -134,6 +144,8 @@ describe("setChecked / setActualCost", () => {
     await setActualCost(db, "host-1", eventId, BEEF, 5100);
     expect(line(await getShoppingPlan(db, "host-1", eventId), BEEF)).toMatchObject({
       checked: true,
+      checkedQty: 8,
+      needsReview: false,
       actualCents: 5100,
     });
     expect(await db.select().from(shoppingState)).toHaveLength(1);
@@ -199,7 +211,20 @@ describe("setChecked / setActualCost", () => {
     expect(await db.select().from(shoppingState)).toHaveLength(0);
   });
 
-  it("ticks and prices survive editing a starter dish (copy-on-edit re-keys the state)", async () => {
+  it("keeps a tick when the menu edit doesn't raise the quantity (copy-on-edit migrates the basis)", async () => {
+    await setChecked(db, "host-1", eventId, BEEF, true);
+    await setActualCost(db, "host-1", eventId, BEEF, 4999);
+    const [dish] = (await getMenu(db, "host-1", eventId)).dishes;
+    await updateDish(db, "host-1", eventId, dish.dishId, {
+      servingsPerPerson: 1.5,
+      itemAmounts: {},
+    });
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    const beef = plan.lines.find((l) => l.name === "Ground beef")!;
+    expect(beef).toMatchObject({ checked: true, checkedQty: 8, needsReview: false, actualCents: 4999 });
+  });
+
+  it("flags a tick for review when editing the dish raises the quantity, keeping the price", async () => {
     await setChecked(db, "host-1", eventId, BEEF, true);
     await setActualCost(db, "host-1", eventId, BEEF, 4999);
     const [dish] = (await getMenu(db, "host-1", eventId)).dishes;
@@ -209,13 +234,20 @@ describe("setChecked / setActualCost", () => {
     });
     const plan = await getShoppingPlan(db, "host-1", eventId);
     const beef = plan.lines.find((l) => l.name === "Ground beef")!;
-    expect(beef).toMatchObject({ checked: true, actualCents: 4999 });
+    expect(beef).toMatchObject({
+      checked: false,
+      checkedQty: 8,
+      needsReview: true,
+      actualCents: 4999,
+    });
+    expect(plan.totalIsProvisional).toBe(true);
   });
 
-  it("a new yes RSVP with 2 plus-ones raises quantities but keeps the tick and actual price", async () => {
+  it("a new yes RSVP with 2 plus-ones raises quantities and flags the old tick for review", async () => {
     await setChecked(db, "host-1", eventId, BEEF, true);
     await setActualCost(db, "host-1", eventId, BEEF, 4999);
     const before = await getShoppingPlan(db, "host-1", eventId);
+    const checkedQty = line(before, BEEF).buyQty;
 
     await submitRsvp(db, {
       shareCode,
@@ -226,10 +258,104 @@ describe("setChecked / setActualCost", () => {
 
     const after = await getShoppingPlan(db, "host-1", eventId);
     expect(after.headcount.planFor).toBeGreaterThan(before.headcount.planFor);
-    expect(line(after, BEEF).buyQty).toBeGreaterThan(line(before, BEEF).buyQty);
+    expect(line(after, BEEF).buyQty).toBeGreaterThan(checkedQty);
     expect(line(after, BUNS).buyQty).toBeGreaterThan(line(before, BUNS).buyQty);
-    expect(line(after, BEEF)).toMatchObject({ checked: true, actualCents: 4999 });
+    // The tick no longer covers what is needed, so it reads as unchecked until rechecked.
+    expect(line(after, BEEF)).toMatchObject({
+      checked: false,
+      checkedQty,
+      needsReview: true,
+      actualCents: 4999,
+    });
+    expect(after.totalIsProvisional).toBe(true);
     expect(line(after, BUNS)).toMatchObject({ checked: false, actualCents: null });
+
+    // Ticking again acknowledges the current quantity; the real price is never erased.
+    await setChecked(db, "host-1", eventId, BEEF, true);
+    const rechecked = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(rechecked, BEEF)).toMatchObject({
+      checked: true,
+      checkedQty: line(rechecked, BEEF).buyQty,
+      needsReview: false,
+      actualCents: 4999,
+    });
+    expect(rechecked.totalIsProvisional).toBe(false);
+  });
+
+  it("doesn't ask for a recheck when an increase stays inside the same pack count", async () => {
+    await setChecked(db, "host-1", eventId, BEEF, true);
+    const before = await getShoppingPlan(db, "host-1", eventId);
+    await submitRsvp(db, { shareCode, name: "One More", status: "yes", plusOneNames: [] });
+    const after = await getShoppingPlan(db, "host-1", eventId);
+    expect(after.headcount.planFor).toBeGreaterThan(before.headcount.planFor);
+    expect(line(after, BEEF).buyQty).toBe(line(before, BEEF).buyQty);
+    expect(line(after, BEEF)).toMatchObject({ checked: true, needsReview: false });
+    expect(after.totalIsProvisional).toBe(false);
+  });
+
+  it("keeps the tick when the quantity goes down", async () => {
+    await setChecked(db, "host-1", eventId, BEEF, true);
+    await setMaybePercent(db, "host-1", eventId, 0);
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(plan, BEEF)).toMatchObject({
+      checked: true,
+      checkedQty: 8,
+      needsReview: false,
+    });
+    expect(line(plan, BEEF).buyQty).toBe(6);
+    expect(plan.totalIsProvisional).toBe(false);
+  });
+
+  it("ticking at zero headcount then adding a guest needs a review from zero", async () => {
+    const empty = await createEvent(db, "host-1", {
+      title: "Empty",
+      startsAt: new Date("2026-07-05T18:00:00Z"),
+      location: "Nowhere",
+      hostName: "Will",
+    });
+    await addDishToEvent(db, "host-1", empty.id, "starter-burgers");
+    const before = await getShoppingPlan(db, "host-1", empty.id);
+    expect(before.headcount.planFor).toBe(0);
+    expect(line(before, BEEF).buyQty).toBe(0);
+
+    await setChecked(db, "host-1", empty.id, BEEF, true);
+    await submitRsvp(db, {
+      shareCode: empty.shareCode,
+      name: "First Guest",
+      status: "yes",
+      plusOneNames: [],
+    });
+
+    const after = await getShoppingPlan(db, "host-1", empty.id);
+    expect(line(after, BEEF).buyQty).toBeGreaterThan(0);
+    expect(line(after, BEEF)).toMatchObject({
+      checked: false,
+      checkedQty: 0,
+      needsReview: true,
+    });
+    expect(after.totalIsProvisional).toBe(true);
+  });
+
+  it("shows a legacy tick with no captured quantity as unchecked for a conservative recheck", async () => {
+    // Rows written before quantities were captured have checked = true and no basis.
+    await db.insert(shoppingState).values({ eventId, recipeItemId: BEEF, checked: true });
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(plan, BEEF)).toMatchObject({
+      checked: false,
+      checkedQty: null,
+      needsReview: true,
+      actualCents: null,
+    });
+    expect(plan.totalIsProvisional).toBe(true);
+
+    await setChecked(db, "host-1", eventId, BEEF, true);
+    const rechecked = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(rechecked, BEEF)).toMatchObject({
+      checked: true,
+      checkedQty: line(rechecked, BEEF).buyQty,
+      needsReview: false,
+    });
+    expect(rechecked.totalIsProvisional).toBe(false);
   });
 });
 

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { authClient, friendlyAuthError } from "@/lib/auth-client";
 import { Button } from "./ui/Button";
-import { Card } from "./ui/Card";
 import { Field } from "./ui/Field";
 import { Wordmark } from "./ui/Wordmark";
 
@@ -78,14 +77,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-5 p-5">
-      <Wordmark />
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold leading-tight text-ink">{copy.title}</h1>
-        <p className="text-sm text-ink/80">{copy.blurb}</p>
-      </header>
+    <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-3 pb-14 pt-5 sm:pt-14">
+      <Link href="/" aria-label="Cookout home" className="wordmark-link self-start px-2">
+        <Wordmark />
+      </Link>
 
-      <Card>
+      <div className="ticket slip">
+      <header className="slip-head">
+        <h1 className="text-[2.25rem] leading-none">{copy.title}</h1>
+        <p className="text-sm text-ink-muted">{copy.blurb}</p>
+      </header>
+      <div className="slip-body">
         {/* method="post" + a disabled button until hydration: a native submit before
             React is live must never put credentials in the URL query string. */}
         <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -119,19 +121,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {error ? (
             <p
               role="alert"
-              className="rounded-xl border-2 border-ink bg-ketchup px-4 py-3 text-sm font-bold text-cream"
+              className="rounded-xl bg-ketchup px-4 py-3 text-sm font-bold text-paper"
             >
               {error}
             </p>
           ) : null}
 
-          <Button variant="mustard" type="submit" disabled={!hydrated || pending} className="text-lg">
+          <Button variant="red" type="submit" disabled={!hydrated || pending} className="text-lg">
             {pending ? copy.pending : copy.submit}
           </Button>
         </form>
-      </Card>
+      </div>
+      </div>
 
-      <p className="text-center text-sm text-ink/80">
+      <p className="pt-2 text-center text-sm text-ink-muted">
         {copy.switchText}{" "}
         <Link href={copy.switchHref} className="font-bold text-ketchup underline">
           {copy.switchLink}

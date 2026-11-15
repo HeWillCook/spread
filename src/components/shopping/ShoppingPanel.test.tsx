@@ -12,7 +12,10 @@ const ok: ShoppingFormAction = async (prev) => ({ error: null, saves: prev.saves
 function planFor(
   yes: number,
   maybe: number,
-  state: Record<string, { checked?: boolean; actualCents?: number | null }> = {},
+  state: Record<
+    string,
+    { checked?: boolean; checkedQty?: number | null; actualCents?: number | null }
+  > = {},
   extras: ShoppingPlan["extras"] = [],
 ): ShoppingPlan {
   const people = [
@@ -24,11 +27,20 @@ function planFor(
     [{ recipe: STARTER_RECIPES[0], servingsPerPerson: 1.5 }],
     headcount.planFor,
   );
-  const lines = built.map((l) => ({
-    ...l,
-    checked: state[l.itemId]?.checked ?? false,
-    actualCents: state[l.itemId]?.actualCents ?? null,
-  }));
+  const lines = built.map((l) => {
+    const saved = state[l.itemId];
+    const ticked = saved?.checked ?? false;
+    // A tick fixture defaults to the current quantity unless it asks for a legacy (null) basis.
+    const checkedQty = ticked ? (saved?.checkedQty === undefined ? l.buyQty : saved.checkedQty) : null;
+    const needsReview = ticked && (checkedQty === null || l.buyQty > checkedQty);
+    return {
+      ...l,
+      checked: ticked && !needsReview,
+      checkedQty,
+      needsReview,
+      actualCents: saved?.actualCents ?? null,
+    };
+  });
   const actual = Object.fromEntries(
     lines.filter((l) => l.actualCents !== null).map((l) => [l.itemId, l.actualCents as number]),
   );
@@ -37,6 +49,7 @@ function planFor(
     lines,
     extras,
     totalCents: totalCents(lines, actual, extras.map((e) => e.amountCents)),
+    totalIsProvisional: lines.some((l) => l.needsReview),
   };
 }
 
@@ -68,7 +81,7 @@ function renderPanel(
 describe("ShoppingPanel", () => {
   it("shows the headcount line, quantities in buy units, and the red total card", () => {
     renderPanel(planFor(12, 5));
-    expect(screen.getByText("12 yes + ~3 from maybes · range 12–17")).toBeInTheDocument();
+    expect(screen.getByText("12 confirmed + ~3 from maybes · range 12–17")).toBeInTheDocument();
     expect(screen.getByText("Shopping for ~15 people")).toBeInTheDocument();
     expect(screen.getByText("8 lb")).toBeInTheDocument();
     expect(screen.getByText("3 packs")).toBeInTheDocument();
@@ -97,9 +110,46 @@ describe("ShoppingPanel", () => {
     expect(screen.getByText("$73.49")).toBeInTheDocument();
   });
 
+  it("unchecks an item whose quantity grew, warns, and marks the total provisional", () => {
+    renderPanel(
+      planFor(12, 5, {
+        "starter-burgers-beef": { checked: true, checkedQty: 6, actualCents: 4999 },
+      }),
+    );
+    expect(screen.getByLabelText("Got Ground beef")).not.toBeChecked();
+    expect(
+      screen.getByText("Quantity increased: previously 6 lb, now 8 lb. Check the price too."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Total (provisional)")).toBeInTheDocument();
+    expect(screen.getByText(/recheck the items whose quantity increased/)).toBeInTheDocument();
+    // The real price already entered is kept and still shown; it is never erased.
+    expect(screen.getByLabelText("Actual price for Ground beef")).toHaveValue("49.99");
+    expect(screen.getByText(/paid \$49\.99/)).toBeInTheDocument();
+  });
+
+  it("treats a tick with no captured quantity as a legacy row needing a recheck", () => {
+    renderPanel(
+      planFor(12, 5, { "starter-burgers-beef": { checked: true, checkedQty: null } }),
+    );
+    expect(screen.getByLabelText("Got Ground beef")).not.toBeChecked();
+    expect(
+      screen.getByText("Recheck this item: it was ticked before we tracked quantities."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Total (provisional)")).toBeInTheDocument();
+  });
+
+  it("keeps a tick when the quantity went down", () => {
+    renderPanel(
+      planFor(12, 5, { "starter-burgers-beef": { checked: true, checkedQty: 9 } }),
+    );
+    expect(screen.getByLabelText("Got Ground beef")).toBeChecked();
+    expect(screen.queryByText(/Quantity increased/)).not.toBeInTheDocument();
+    expect(screen.getByText("Total")).toBeInTheDocument();
+  });
+
   it("skips the 'from maybes' clause and the each-line when it has nothing to say", () => {
     renderPanel(planFor(0, 0));
-    expect(screen.getByText("0 yes")).toBeInTheDocument();
+    expect(screen.getByText("0 confirmed")).toBeInTheDocument();
     expect(screen.queryByText(/^≈/)).not.toBeInTheDocument();
   });
 

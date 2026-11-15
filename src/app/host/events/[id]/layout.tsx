@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { EventTabs } from "@/components/EventTabs";
-import { Pill } from "@/components/ui/Pill";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { formatWhen } from "@/lib/format";
+import { getBaseUrl, shareUrl } from "@/server/base-url";
 import { loadHostEvent } from "@/server/host-event";
 
 // Reads the session and the database, so it must never be prerendered.
@@ -17,32 +18,62 @@ export default async function EventLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { event, planFor } = await loadHostEvent(id);
+  const [{ event, planFor, confirmed }, baseUrl] = await Promise.all([
+    loadHostEvent(id),
+    getBaseUrl(),
+  ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 p-5">
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/host" aria-label="All my events">
+    <div className="event-shell">
+      <header className="event-masthead">
+        <div className="event-top">
+          <Link href="/host" aria-label="All my events" className="wordmark-link">
             <Wordmark />
           </Link>
-          <Pill>{planFor} coming</Pill>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold leading-tight text-ink">{event.title}</h1>
-          <p className="text-sm text-ink/80">
-            {formatWhen(event.startsAt, event.location, event.timezone)}
-          </p>
-          <Link
-            href={`/host/events/${encodeURIComponent(event.id)}/edit`}
-            className="self-start text-sm font-bold text-ketchup underline"
-          >
-            Edit details
+          <Link href="/host" className="quiet-link">
+            All events
           </Link>
         </div>
+
+        <div className="ticket event-ticket">
+          <div className="event-heading">
+            <div className="min-w-0">
+              <h1 className="event-title">{event.title}</h1>
+              <p className="event-meta">
+                {formatWhen(event.startsAt, event.location, event.timezone)}
+              </p>
+              <Link
+                href={`/host/events/${encodeURIComponent(event.id)}/edit`}
+                className="quiet-link mt-2"
+              >
+                Edit details
+              </Link>
+            </div>
+            <div className="ticket-count">
+              <p>
+                <span className="ticket-count-label">Plan for </span>
+                <span className="ticket-count-number">~{planFor}</span>
+              </p>
+              <p className="ticket-count-sub">with {confirmed} confirmed</p>
+            </div>
+          </div>
+
+          <section className="event-invite" aria-labelledby="invite-title">
+            <div>
+              <h2 id="invite-title">Invite your guests</h2>
+              <p>Guests RSVP from this link. No account needed.</p>
+            </div>
+            <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
+          </section>
+        </div>
       </header>
-      <EventTabs eventId={event.id} />
-      <main>{children}</main>
+
+      <main className="event-main">
+        <div className="event-tabs">
+          <EventTabs eventId={event.id} />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

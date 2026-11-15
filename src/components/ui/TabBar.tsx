@@ -10,7 +10,7 @@ export function TabBar({
   activeHref: string;
 }) {
   return (
-    <nav className="flex gap-2" aria-label="Sections">
+    <nav className="flex gap-1 overflow-x-auto" aria-label="Sections">
       {tabs.map((tab) => {
         const active = tab.href === activeHref;
         return (
@@ -18,11 +18,7 @@ export function TabBar({
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={
-              active
-                ? "flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-ink bg-ketchup px-3 text-sm font-bold text-cream"
-                : "flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-transparent px-3 text-sm font-bold text-ink opacity-60"
-            }
+            className="tab-link"
           >
             {tab.label}
           </Link>

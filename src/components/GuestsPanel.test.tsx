@@ -31,6 +31,7 @@ function renderPanel(
       setMaybePercentAction={actions.percent ?? ok}
       addInviteesAction={actions.invitees ?? ok}
       removeGuestAction={actions.remove ?? ok}
+      invitation={{ title: "Burger Night", url: "https://cookout.test/e/burger" }}
     />,
   );
 }
@@ -89,6 +90,20 @@ describe("GuestsPanel", () => {
     expect(screen.getByText("Dana")).toBeInTheDocument();
     expect(screen.getByText("Eli")).toBeInTheDocument();
     expect(screen.getByText("2 no reply")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy reminder for Dana" })).toBeInTheDocument();
+    expect(screen.getByText(/People who haven't replied aren't included/)).toBeInTheDocument();
+  });
+
+  it("summarizes food notes from attending and maybe guests for planning", () => {
+    renderPanel({ guests: [
+      ...overview.guests,
+      { id: "4", name: "Dee", status: "maybe", plusOneNames: [], foodNotes: "Vegetarian" },
+      { id: "5", name: "Eli", status: "no", plusOneNames: [], foodNotes: "No dairy" },
+    ] });
+    const summary = screen.getByRole("region", { name: "Food notes to plan around" });
+    expect(summary).toHaveTextContent("Alex: no peanuts");
+    expect(summary).toHaveTextContent("Dee: Vegetarian");
+    expect(summary).not.toHaveTextContent("Eli");
   });
 
   it("submits the maybe percent and shows a friendly error from the action", async () => {

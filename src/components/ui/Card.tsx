@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-[14px] border-2 border-ink bg-white p-4 text-ink ${className}`}
+      className={`ticket-surface rounded-2xl bg-paper p-4 text-ink sm:p-6 ${className}`}
     >
       {children}
     </div>
@@ -26,7 +26,7 @@ export function CardRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 border-t-2 border-dashed border-divider py-3 first:border-t-0 first:pt-0 last:pb-0 ${className}`}
+      className={`flex items-center justify-between gap-3 border-t border-dashed border-divider py-3 first:border-t-0 first:pt-0 last:pb-0 ${className}`}
     >
       {children}
     </div>

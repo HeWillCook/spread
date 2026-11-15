@@ -97,7 +97,7 @@ describe("RsvpForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ add a guest" }));
     fireEvent.change(screen.getByLabelText(/guest 1 name/i), { target: { value: "Sam" } });
     fireEvent.change(screen.getByLabelText("Allergies or food notes"), { target: { value: "no peanuts" } });
-    fireEvent.click(screen.getByRole("button", { name: "Count me in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send my RSVP" }));
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     const formData = action.mock.calls[0][1];
@@ -136,6 +136,13 @@ describe("RsvpForm", () => {
     expect(
       screen.queryByRole("button", { name: "Count me in" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("uses a decline action for a guest who cannot attend", () => {
+    render(<RsvpForm event={event} action={noopAction} />);
+    fireEvent.click(screen.getByRole("button", { name: "Can't" }));
+    expect(screen.getByRole("button", { name: "Send my regrets" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Count me in" })).not.toBeInTheDocument();
   });
 
   it("shows an inline error returned by the action", async () => {

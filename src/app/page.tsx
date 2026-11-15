@@ -1,40 +1,146 @@
 import Link from "next/link";
+import { Pill } from "@/components/ui/Pill";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { getHostOrNull } from "@/server/auth";
 
 // Reads the session from request headers, so it must never be prerendered.
 export const dynamic = "force-dynamic";
 
-const linkBase =
-  "inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-ink px-5 py-3 text-lg font-bold text-ink transition-transform active:translate-y-px";
+const explainers = [
+  {
+    title: "One link, no accounts.",
+    body: "Guests open your link and RSVP without signing up. Each person sees their own answer; names stay private from other guests.",
+  },
+  {
+    title: "Maybes stay estimates.",
+    body: "Choose what share of maybes to expect. People who have not replied stay unknown, so the food plan does not quietly grow.",
+  },
+  {
+    title: "Quantities, not guesswork.",
+    body: "Replies become portion counts and a shopping list you can edit. Split the cost afterwards, and record payments yourself. A Venmo link does not confirm one.",
+  },
+];
 
 export default async function Home() {
   const host = await getHostOrNull();
+
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-6 py-16 text-center">
-      <h1 className="text-5xl">
-        <Wordmark className="text-5xl" />
-      </h1>
-      <p className="text-base font-bold">Party planning, minus the group chat.</p>
-      <p className="text-sm text-ink/80">
-        Share one link, see who&apos;s coming, and work out the food and the split.
-      </p>
-      <div className="flex w-full flex-col gap-3">
-        {host ? (
-          <Link href="/host" className={`${linkBase} bg-mustard`}>
-            Go to your events
-          </Link>
-        ) : (
-          <>
-            <Link href="/signup" className={`${linkBase} bg-mustard`}>
-              Host a cookout
+    <main className="page-shell flex-1">
+      <header className="site-top">
+        <Wordmark />
+        <nav aria-label="Account">
+          {host ? (
+            <Link href="/host" className="quiet-link">
+              Your events
             </Link>
-            <Link href="/login" className={`${linkBase} bg-white`}>
+          ) : (
+            <Link href="/login" className="quiet-link">
               Log in
             </Link>
-          </>
-        )}
-      </div>
+          )}
+        </nav>
+      </header>
+
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div>
+          <h1 id="landing-title" className="display-hero">
+            <span className="block">Enough food.</span>
+            <span className="block">More time together.</span>
+          </h1>
+          <p className="hero-lede">
+            Share one link. Guests answer without an account, and Cookout turns
+            their replies into a shopping list, a headcount you can plan for, and
+            an editable cost split.
+          </p>
+          <div className="hero-actions">
+            <Link href={host ? "/host" : "/signup"} className="cta-primary">
+              {host ? "Go to your events" : "Host a cookout"}
+            </Link>
+          </div>
+          <p className="hero-note">
+            Guests reply in their browser. No app to install.
+          </p>
+        </div>
+
+        <div className="ticket-slot">
+          <figure className="ticket plan-preview" aria-labelledby="example-title">
+            <div className="preview-head">
+              <div>
+                <h2 id="example-title" className="preview-title">
+                  Saturday cookout
+                </h2>
+                <p className="preview-meta">Sat, Jun 14 · 6pm · The backyard</p>
+              </div>
+              <Pill tone="quiet">Example</Pill>
+            </div>
+
+            <div className="preview-count">
+              <p>
+                <span className="ticket-count-label">Plan for </span>
+                <span className="ticket-count-number">~4</span>
+              </p>
+              <p className="preview-summary">
+                3 confirmed + about 1 from maybes{" "}
+                <span className="text-muted">(range 3–4)</span>
+              </p>
+            </div>
+
+            <ul className="preview-guests">
+              <li>
+                <span>Priya</span>
+                <Pill tone="pickle">Going</Pill>
+              </li>
+              <li>
+                <span>Sam + 1</span>
+                <Pill tone="pickle">Going</Pill>
+              </li>
+              <li>
+                <span>Alex</span>
+                <Pill tone="mustard">Maybe</Pill>
+              </li>
+            </ul>
+
+            <div className="preview-shopping">
+              <h3>Shopping list</h3>
+              <ul className="preview-shopping-list">
+                <li>
+                  <span>Burgers</span>
+                  <span>6</span>
+                </li>
+                <li>
+                  <span>Ground beef</span>
+                  <span>2 lb</span>
+                </li>
+                <li>
+                  <span>Buns</span>
+                  <span>6</span>
+                </li>
+              </ul>
+            </div>
+
+            <figcaption className="preview-caption">
+              Example plan. Your numbers come from your guests&apos; answers.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section className="landing-explainer" aria-labelledby="how-title">
+        <h2 id="how-title">The plan follows the people.</h2>
+        <div className="explain-list">
+          {explainers.map((item) => (
+            <div key={item.title} className="explain-row">
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <span>Cookout</span>
+        <span>Guests answer from a link. Hosts see the plan.</span>
+      </footer>
     </main>
   );
 }

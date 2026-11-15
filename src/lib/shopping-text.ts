@@ -18,10 +18,10 @@ export function formatBuyQty(qty: number, buyUnit: string): string {
   return `${qty} ${qty === 1 ? buyUnit : pluralize(buyUnit)}`;
 }
 
-/** "12 yes + ~3 from maybes · range 12–17"; clauses that add nothing are left out. */
+/** "12 confirmed + ~3 from maybes · range 12–17"; clauses that add nothing are left out. */
 export function headcountLine(headcount: Headcount): string {
   const fromMaybes = headcount.planFor - headcount.confirmed;
-  let text = `${headcount.confirmed} yes`;
+  let text = `${headcount.confirmed} confirmed`;
   if (fromMaybes > 0) text += ` + ~${fromMaybes} from maybes`;
   if (headcount.high > headcount.low) text += ` · range ${headcount.low}–${headcount.high}`;
   return text;

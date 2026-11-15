@@ -15,6 +15,10 @@ export interface SplitRow {
   excluded: boolean;
   paid: boolean;
   linkSentAt: Date | null;
+  /** Amount (cents) included in the last shared link; null for links sent before this was recorded. */
+  linkSentAmountCents: number | null;
+  /** True when a link was sent for something other than the amount owed now. */
+  linkAmountChanged: boolean;
   /** The guest plus their plus-ones: the inviting guest covers their plus-ones' shares. */
   heads: number;
   owedCents: number;
@@ -31,6 +35,8 @@ export interface SplitView {
    */
   saidNo: SplitRow[];
   totalCents: number;
+  /** Shopping quantities changed after purchase and need host review. */
+  totalIsProvisional: boolean;
   hostCoveredCents: number;
   unassignedCents: number;
   venmoUsername: string | null;
@@ -100,6 +106,10 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
       excluded: guest.excluded,
       paid: guest.paid,
       linkSentAt: guest.linkSentAt,
+      linkSentAmountCents: guest.linkSentAmountCents,
+      // A legacy link with no stored amount can't be trusted to match what is owed now.
+      linkAmountChanged:
+        guest.linkSentAt !== null && guest.linkSentAmountCents !== owedCents,
       heads,
       owedCents,
       venmoUrl,
@@ -111,6 +121,7 @@ export async function getSplitView(db: Db, hostId: string, eventId: string): Pro
     rows: listed.map(toRow),
     saidNo: notComing.map(toRow),
     totalCents: plan.totalCents,
+    totalIsProvisional: plan.totalIsProvisional,
     hostCoveredCents: split.hostCoveredCents,
     unassignedCents: split.unassignedCents,
     venmoUsername: event.venmoUsername,
@@ -123,7 +134,12 @@ async function updateGuest(
   hostId: string,
   eventId: string,
   guestId: string,
-  values: Partial<Pick<typeof guests.$inferInsert, "attended" | "excluded" | "paid" | "linkSentAt">>,
+  values: Partial<
+    Pick<
+      typeof guests.$inferInsert,
+      "attended" | "excluded" | "paid" | "linkSentAt" | "linkSentAmountCents"
+    >
+  >,
 ): Promise<void> {
   await getHostEvent(db, hostId, eventId);
   const updated = await db
@@ -149,9 +165,25 @@ export function setPaid(db: Db, hostId: string, eventId: string, guestId: string
   return updateGuest(db, hostId, eventId, guestId, { paid: v });
 }
 
-/** Records that the host shared this guest's Venmo link (the share or copy succeeded). */
-export function markLinkSent(db: Db, hostId: string, eventId: string, guestId: string) {
-  return updateGuest(db, hostId, eventId, guestId, { linkSentAt: new Date() });
+/** Records that the host shared this guest's Venmo link, and the amount actually in it. */
+export async function markLinkSent(
+  db: Db,
+  hostId: string,
+  eventId: string,
+  guestId: string,
+  amountCents: number,
+): Promise<void> {
+  await getHostEvent(db, hostId, eventId);
+  if (!Number.isInteger(amountCents) || amountCents < 0 || amountCents > MAX_CENTS) {
+    throw new ValidationError(
+      `Amount must be between $0.00 and ${formatCents(MAX_CENTS)}`,
+    );
+  }
+  // The paid flag is host-entered history: sending a new link never clears it.
+  await updateGuest(db, hostId, eventId, guestId, {
+    linkSentAt: new Date(),
+    linkSentAmountCents: amountCents,
+  });
 }
 
 /** How much of the bill the host pays. More than the total is allowed; the split clamps it. */

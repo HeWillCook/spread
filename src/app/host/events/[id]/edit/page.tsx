@@ -11,7 +11,7 @@ export default async function EditEventPage({ params }: PageProps<"/host/events/
   const { event } = await loadHostEvent((await params).id);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex max-w-xl flex-col gap-3">
       <h2 className="text-xl font-bold">Edit details</h2>
       <EditEventForm
         initial={{

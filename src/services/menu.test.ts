@@ -19,6 +19,7 @@ import {
 
 const BURGERS = "starter-burgers";
 const STARTER_BEEF = "starter-burgers-beef";
+const LIBRARY = STARTER_RECIPES.length;
 
 let db: Db;
 let eventId: string;
@@ -210,14 +211,14 @@ describe("updateDish", () => {
     expect((await dishRow(dishId)).recipeId).toBe(copyId);
     expect((await dishRow(dishId)).servingsPerPerson).toBe(1);
     expect((await itemsOf(copyId))[0].perServing).toBe(0.25);
-    expect(await db.select().from(recipes)).toHaveLength(2); // starter + one copy
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY + 1); // library + one copy
   });
 
   it("re-keys shopping state from the starter items to the cloned items, preserving it", async () => {
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
     await db
       .insert(shoppingState)
-      .values({ eventId, recipeItemId: STARTER_BEEF, checked: true, actualCents: 5400 });
+      .values({ eventId, recipeItemId: STARTER_BEEF, checked: true, checkedQty: 8, actualCents: 5400 });
     await db
       .insert(shoppingState)
       .values({ eventId, recipeItemId: "starter-burgers-buns", checked: false, actualCents: 700 });
@@ -233,6 +234,7 @@ describe("updateDish", () => {
     expect(rows.some((r) => r.recipeItemId.startsWith("starter-"))).toBe(false);
     expect(rows.find((r) => r.recipeItemId === copyItems[0].id)).toMatchObject({
       checked: true,
+      checkedQty: 8,
       actualCents: 5400,
     });
     expect(rows.find((r) => r.recipeItemId === copyItems[1].id)).toMatchObject({
@@ -324,7 +326,7 @@ describe("updateDish", () => {
     });
     // Whichever edit ran last won; no leftover copies, starter untouched.
     expect([2, 3]).toContain(dish.servingsPerPerson);
-    expect(await db.select().from(recipes)).toHaveLength(2);
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY + 1);
     expect((await itemsOf(BURGERS))[0].perServing).toBe(1 / 3);
   });
 
@@ -372,7 +374,7 @@ describe("updateDish", () => {
       .from(shoppingState)
       .where(eq(shoppingState.eventId, otherEvent));
     expect(theirState).toEqual([
-      { eventId: otherEvent, recipeItemId: cabbage.id, checked: true, actualCents: 111 },
+      { eventId: otherEvent, recipeItemId: cabbage.id, checked: true, checkedQty: null, actualCents: 111 },
     ]);
   });
 
@@ -418,7 +420,7 @@ describe("updateDish", () => {
     );
     // Nothing cloned, nothing changed.
     expect((await dishRow(dishId)).recipeId).toBe(BURGERS);
-    expect(await db.select().from(recipes)).toHaveLength(1);
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY);
   });
 
   it("rejects perServing <= 0 or not finite, and changes nothing", async () => {
@@ -433,7 +435,7 @@ describe("updateDish", () => {
     }
     expect((await dishRow(dishId)).recipeId).toBe(BURGERS);
     expect((await dishRow(dishId)).servingsPerPerson).toBe(1.5);
-    expect(await db.select().from(recipes)).toHaveLength(1);
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY);
   });
 
   it("rejects servingsPerPerson outside 0..20 (0 and 20 are allowed)", async () => {
@@ -457,7 +459,7 @@ describe("updateDish", () => {
         itemAmounts: { "someone-elses-item": 1 },
       }),
     ).rejects.toBeInstanceOf(ValidationError);
-    expect(await db.select().from(recipes)).toHaveLength(1);
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY);
   });
 });
 
@@ -521,7 +523,7 @@ describe("createCustomRecipe", () => {
         createCustomRecipe(db, "host-1", { ...base, items: [{ ...slaw, ...patch }] }),
       ).rejects.toBeInstanceOf(ValidationError);
     }
-    expect(await db.select().from(recipes)).toHaveLength(1); // only the starter
+    expect(await db.select().from(recipes)).toHaveLength(LIBRARY); // only the starter
   });
 
   it("accepts a free item (priceCents 0) such as ice", async () => {
@@ -570,11 +572,15 @@ describe("getMenu", () => {
     await customRecipe("host-2", "Theirs");
     let menu = await getMenu(db, "host-1", eventId);
     expect(menu.dishes).toEqual([]);
-    expect(menu.available.map((r) => r.id).sort()).toEqual([BURGERS, mine].sort());
+    expect(menu.available.map((r) => r.id).sort()).toEqual(
+      [...STARTER_RECIPES.map((r) => r.id), mine].sort(),
+    );
 
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
     menu = await getMenu(db, "host-1", eventId);
-    expect(menu.available.map((r) => r.id)).toEqual([mine]);
+    expect(menu.available.map((r) => r.id).sort()).toEqual(
+      [...STARTER_RECIPES.filter((r) => r.id !== BURGERS).map((r) => r.id), mine].sort(),
+    );
     expect(menu.dishes).toHaveLength(1);
     expect(menu.dishes[0]).toMatchObject({
       dishId,

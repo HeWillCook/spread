@@ -35,6 +35,7 @@ function renderPanel(
       available={props.available ?? []}
       addDishAction={props.add ?? ok}
       createDishAction={props.create ?? ok}
+      planFor={4}
     />,
   );
 }
@@ -49,6 +50,14 @@ describe("MenuPanel dish card", () => {
     expect(screen.getByLabelText("Burger buns (bun per burger)")).toHaveValue(1);
     expect(screen.getByLabelText("Onion (onion per burger)")).toHaveValue(0.1667);
     expect(screen.getByText("Starter recipe")).toBeInTheDocument();
+  });
+
+  it("shows the scaled prep quantities for the saved headcount and appetite", () => {
+    renderPanel();
+    const prep = screen.getByRole("region", { name: "Burgers prep quantities" });
+    expect(prep).toHaveTextContent("6 burgers for ~4 people");
+    expect(prep).toHaveTextContent("6 bun");
+    expect(prep).toHaveTextContent("Burger buns");
   });
 
   it("submits the appetite and amounts keyed by recipe item id", async () => {

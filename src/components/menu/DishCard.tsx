@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { formatCents } from "@/domain/money";
+import { buildShoppingList } from "@/domain/shopping";
+import { formatBuyQty } from "@/lib/shopping-text";
+import { servingWord } from "@/lib/menu-text";
 import { amountField, SERVINGS_FIELD } from "@/lib/menu-fields";
 import { amountLabel, appetiteLabel, formatAmount } from "@/lib/menu-text";
 import type { MenuDish } from "@/services/menu";
@@ -32,12 +35,15 @@ export function DishCard({
   dish,
   updateAction,
   removeAction,
+  planFor,
 }: {
   dish: MenuDish;
   updateAction: MenuFormAction;
   removeAction: MenuFormAction;
+  planFor?: number;
 }) {
   const { recipe } = dish;
+  const prep = planFor === undefined ? [] : buildShoppingList([{ recipe, servingsPerPerson: dish.servingsPerPerson }], planFor);
   const [state, formAction, pending] = useActionState(updateAction, INITIAL_MENU_FORM_STATE);
   // Controlled so a rejected save keeps what the host typed (React resets uncontrolled forms).
   const [servings, setServings] = useState(formatAmount(dish.servingsPerPerson));
@@ -55,8 +61,24 @@ export function DishCard({
       </div>
       {dish.isStarter ? (
         <p className="text-xs text-ink/70">
-          Change an amount and we save your own copy. The starter recipe stays as it is.
+          A starting point for your menu. Adjust the portions below to suit your crowd.
         </p>
+      ) : null}
+
+      {planFor !== undefined ? (
+        <section aria-label={`${recipe.name} prep quantities`} className="border-y border-divider py-4">
+          <h3 className="mb-3 text-lg font-bold">{formatBuyQty(prep[0]?.servings ?? 0, servingWord(recipe.name))} for ~{planFor} people</h3>
+          {planFor === 0 ? <p className="mb-3 text-sm text-ink/80">Quantities will appear as guests RSVP. You can set up your portions now.</p> : null}
+          <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
+            {prep.map((line) => (
+              <div key={line.itemId} className="contents">
+                <dt>{line.name}</dt>
+                <dd className="text-right font-bold tabular-nums">{formatBuyQty(Number(line.needed.toFixed(2)), line.neededUnit)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs leading-relaxed text-ink/80">Prep amounts use your saved portions. Shopping rounds up to whole packs.</p>
+        </section>
       ) : null}
 
       <form action={formAction} className="flex flex-col gap-4">

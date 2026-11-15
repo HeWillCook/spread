@@ -13,7 +13,7 @@ export function FormError({ message }: { message: string | null }) {
   return (
     <p
       role="alert"
-      className="rounded-xl border-2 border-ink bg-ketchup px-4 py-3 text-sm font-bold text-cream"
+      className="rounded-xl bg-ketchup px-4 py-3 text-sm font-bold text-paper"
     >
       {message}
     </p>

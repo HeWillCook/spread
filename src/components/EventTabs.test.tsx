@@ -34,6 +34,8 @@ describe("EventTabs", () => {
     ["/host/events/ev1/shopping", "Shopping"],
     ["/host/events/ev1/split", "Split"],
     ["/host/events/ev1/menu/", "Menu"],
+    ["/host/events/ev1/prep", "Menu"],
+    ["/host/events/ev1/prep/", "Menu"],
   ])("highlights the tab for %s", (path, label) => {
     usePathname.mockReturnValue(path);
     render(<EventTabs eventId="ev1" />);

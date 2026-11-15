@@ -60,9 +60,15 @@ describe("shopping actions", () => {
       error: null,
       saves: 1,
     });
-    expect((await db.select().from(shoppingState))[0].checked).toBe(true);
+    expect((await db.select().from(shoppingState))[0]).toMatchObject({
+      checked: true,
+      checkedQty: 0,
+    });
     await setCheckedAction(eventId, BEEF, initial, form([]));
-    expect((await db.select().from(shoppingState))[0].checked).toBe(false);
+    expect((await db.select().from(shoppingState))[0]).toMatchObject({
+      checked: false,
+      checkedQty: null,
+    });
   });
 
   it("setActualCostAction parses dollars, and a blank box clears the price", async () => {

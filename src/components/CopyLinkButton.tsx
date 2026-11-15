@@ -18,7 +18,7 @@ export function CopyLinkButton({ url }: { url: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="break-all rounded-xl border-2 border-dashed border-divider bg-cream px-3 py-2 text-sm text-ink select-all">
+      <p className="break-all rounded-lg border border-divider bg-cream px-3 py-2 text-sm text-ink select-all">
         {url}
       </p>
       <Button variant="outline" onClick={copy} className="min-h-11 py-2 text-sm">

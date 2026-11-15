@@ -18,17 +18,21 @@ export interface ShoppingLineActions {
 }
 
 function CheckBox({ name, checked, action }: { name: string; checked: boolean; action: ShoppingFormAction }) {
-  const [, formAction] = useActionState(action, INITIAL_SHOPPING_FORM_STATE);
+  const [state, formAction, pending] = useActionState(action, INITIAL_SHOPPING_FORM_STATE);
   return (
-    <form action={formAction} className="flex">
+    <form action={formAction} className="flex flex-col gap-1">
+      <label className="flex size-11 cursor-pointer items-center justify-center">
       <input
         type="checkbox"
         name="checked"
         defaultChecked={checked}
+        disabled={pending}
         aria-label={`Got ${name}`}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
         className="size-7 shrink-0 accent-ketchup"
       />
+      </label>
+      <FormError message={state.error} />
     </form>
   );
 }
@@ -65,7 +69,7 @@ function PriceBox({
           onBlur={(e) => {
             if (text.trim() !== saved) e.currentTarget.form?.requestSubmit();
           }}
-          className="min-h-12 w-24 rounded-xl border-2 border-ink bg-white px-3 py-2 text-right text-base text-ink placeholder:text-ink/40"
+          className="min-h-12 w-24 rounded-xl border border-ink/55 bg-white px-3 py-2 text-right text-base text-ink placeholder:text-ink-muted"
         />
       </label>
       <FormError message={state.error} />
@@ -86,7 +90,7 @@ export function ShoppingLineRow({
 }) {
   return (
     <div className="flex items-start gap-3 border-t-2 border-dashed border-divider py-3 first:border-t-0 first:pt-0 last:pb-0">
-      <div className="pt-2">
+      <div className="-ml-2">
         {/* Re-keyed when the saved tick changes, so the box always shows the server's state. */}
         <CheckBox
           key={`${line.itemId}:${line.checked}`}
@@ -95,7 +99,7 @@ export function ShoppingLineRow({
           action={actions.checkAction}
         />
       </div>
-      <span aria-hidden="true" className="pt-1 text-3xl leading-none">
+      <span aria-hidden="true" className="hidden pt-1 text-3xl leading-none sm:block">
         {line.emoji}
       </span>
       <div className="min-w-0 flex-1">
@@ -103,13 +107,20 @@ export function ShoppingLineRow({
           {line.name}
         </p>
         <p className="text-sm font-bold text-ink/80">{formatBuyQty(line.buyQty, line.buyUnit)}</p>
+        {line.needsReview ? (
+          <p className="mt-1 text-xs font-bold text-ketchup">
+            {line.checkedQty === null
+              ? "Recheck this item: it was ticked before we tracked quantities."
+              : `Quantity increased: previously ${formatBuyQty(line.checkedQty, line.buyUnit)}, now ${formatBuyQty(line.buyQty, line.buyUnit)}. Check the price too.`}
+          </p>
+        ) : null}
         <p className="text-xs text-ink/70">
           {line.actualCents === null
             ? `est. ${formatCents(line.estCostCents)}`
             : `paid ${formatCents(line.actualCents)} (est. ${formatCents(line.estCostCents)})`}
         </p>
         {rangeNote ? (
-          <p className="mt-1 inline-block rounded-full border-2 border-ink bg-cream px-2 py-0.5 text-xs font-bold">
+          <p className="mt-1 inline-block rounded-full border border-divider bg-cream px-2 py-0.5 text-xs font-bold">
             {rangeNote}
           </p>
         ) : null}

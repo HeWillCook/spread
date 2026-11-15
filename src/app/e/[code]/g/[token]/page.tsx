@@ -55,14 +55,14 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
           <div className="flex flex-col gap-2">
             <div
               role="status"
-              className="rounded-xl border-2 border-ink bg-mustard px-4 py-3 text-base font-bold text-ink"
+              className="rounded-2xl bg-mustard px-5 py-4 text-lg font-bold text-ink"
             >
               {CONFIRMATION[guest.status]}
               <span className="block text-sm font-normal">
                 Need to change something? Update your answer below.
               </span>
             </div>
-            <p className="text-xs text-ink/70">
+            <p className="px-2 text-xs text-ink-muted">
               This is your personal link — don&apos;t share it.{" "}
               <Link href={`/e/${encodeURIComponent(code)}?new=1`} className="font-bold text-ketchup underline">
                 Not you? Answer as someone else

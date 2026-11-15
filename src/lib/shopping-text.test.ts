@@ -24,16 +24,21 @@ describe("formatBuyQty", () => {
 });
 
 describe("headcountLine", () => {
+  it("counts plus-ones as confirmed people rather than RSVP answers", () => {
+    expect(headcountLine(computeHeadcount([{ status: "yes", plusOnes: 1 }], 0.5))).toBe(
+      "2 confirmed",
+    );
+  });
   it("12 yes + 5 maybes at 50%", () => {
     expect(headcountLine(computeHeadcount(guests(12, 5), 0.5))).toBe(
-      "12 yes + ~3 from maybes · range 12–17",
+      "12 confirmed + ~3 from maybes · range 12–17",
     );
   });
   it("drops the maybes clause when nothing is planned from them", () => {
-    expect(headcountLine(computeHeadcount(guests(12, 5), 0))).toBe("12 yes · range 12–17");
+    expect(headcountLine(computeHeadcount(guests(12, 5), 0))).toBe("12 confirmed · range 12–17");
   });
   it("drops the range when there are no maybes", () => {
-    expect(headcountLine(computeHeadcount(guests(12, 0), 0.5))).toBe("12 yes");
+    expect(headcountLine(computeHeadcount(guests(12, 0), 0.5))).toBe("12 confirmed");
   });
 });
 

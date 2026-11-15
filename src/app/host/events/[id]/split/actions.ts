@@ -87,9 +87,14 @@ export async function markLinkSentAction(
   eventId: string,
   guestId: string,
   prev: SplitFormState,
+  formData: FormData,
 ): Promise<SplitFormState> {
+  const raw = formData.get("amountCents");
   return run(eventId, prev, async (hostId) => {
-    await markLinkSent(await getDb(), hostId, eventId, guestId);
+    // The browser sends the amount it actually put in the shared message.
+    const text = typeof raw === "string" ? raw.trim() : "";
+    if (!/^\d+$/.test(text)) throw new ValidationError("Amount is missing or invalid");
+    await markLinkSent(await getDb(), hostId, eventId, guestId, Number(text));
   });
 }
 

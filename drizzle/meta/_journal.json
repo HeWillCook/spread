@@ -29,6 +29,13 @@
       "when": 1794177072284,
       "tag": "0003_condemned_dark_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794372497075,
+      "tag": "0004_cold_black_bolt",
+      "breakpoints": true
     }
   ]
 }

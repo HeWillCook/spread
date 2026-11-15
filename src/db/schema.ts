@@ -91,6 +91,8 @@ export const guests = pgTable("guests", {
   excluded: boolean("excluded").notNull().default(false),
   paid: boolean("paid").notNull().default(false),
   linkSentAt: timestamp("link_sent_at", { withTimezone: true }),
+  // Amount (cents) included in the last shared Venmo link; null for links sent before this was recorded.
+  linkSentAmountCents: integer("link_sent_amount_cents"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -120,6 +122,8 @@ export const shoppingState = pgTable(
       .notNull()
       .references(() => recipeItems.id, { onDelete: "cascade" }),
     checked: boolean("checked").notNull().default(false),
+    // Buy units needed when the host ticked; null for ticks made before this was recorded.
+    checkedQty: integer("checked_qty"),
     actualCents: integer("actual_cents"),
   },
   (t) => [unique("shopping_state_event_item_unique").on(t.eventId, t.recipeItemId)],

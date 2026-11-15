@@ -1,7 +1,7 @@
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`font-display text-3xl font-bold leading-none tracking-tight text-ketchup ${className}`}
+      className={`wordmark font-display text-[1.75rem] leading-none text-ketchup ${className}`}
     >
       <span>Cookout</span>
       <span className="text-mustard">.</span>

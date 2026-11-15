@@ -11,10 +11,20 @@ import { getMenu } from "./menu";
 
 export interface ShoppingPlan {
   headcount: Headcount;
-  lines: (ShoppingLine & { checked: boolean; actualCents: number | null })[];
+  lines: (ShoppingLine & {
+    /** Effective tick: false while the saved tick needs the host to confirm a bigger quantity. */
+    checked: boolean;
+    /** Buy units covered when the host ticked; null for a tick made before this was recorded. */
+    checkedQty: number | null;
+    /** True when the tick can no longer be trusted (quantity grew, or no basis was captured). */
+    needsReview: boolean;
+    actualCents: number | null;
+  })[];
   extras: { id: string; label: string; amountCents: number }[];
   /** Actual price where entered, else the estimate, plus extras. Integer cents. */
   totalCents: number;
+  /** True while any ticked line has an unresolved quantity issue; the total may move. */
+  totalIsProvisional: boolean;
 }
 
 const MAX_LABEL = 80;
@@ -64,7 +74,17 @@ export async function getShoppingPlan(
   const stateByItem = new Map(stateRows.map((s) => [s.recipeItemId, s]));
   const lines = built.map((line) => {
     const state = stateByItem.get(line.itemId);
-    return { ...line, checked: state?.checked ?? false, actualCents: state?.actualCents ?? null };
+    const ticked = state?.checked ?? false;
+    const checkedQty = state?.checkedQty ?? null;
+    // A tick made before quantities were captured is treated conservatively as needing a recheck.
+    const needsReview = ticked && (checkedQty === null || line.buyQty > checkedQty);
+    return {
+      ...line,
+      checked: ticked && !needsReview,
+      checkedQty,
+      needsReview,
+      actualCents: state?.actualCents ?? null,
+    };
   });
 
   const actualByItemId: Record<string, number> = {};
@@ -82,10 +102,15 @@ export async function getShoppingPlan(
       actualByItemId,
       extras.map((e) => e.amountCents),
     ),
+    totalIsProvisional: lines.some((line) => line.needsReview),
   };
 }
 
-/** Ticks or unticks an ingredient. Keeps any actual price already entered. */
+/**
+ * Ticks or unticks an ingredient. Ticking captures the quantity it covers, so a later
+ * increase can tell the host the tick is stale; unchecking clears that basis. Any actual
+ * price already entered is kept either way.
+ */
 export async function setChecked(
   db: Db,
   hostId: string,
@@ -95,12 +120,19 @@ export async function setChecked(
 ): Promise<void> {
   await getHostEvent(db, hostId, eventId);
   await assertEventItem(db, eventId, recipeItemId);
+  let checkedQty: number | null = null;
+  if (checked) {
+    const plan = await getShoppingPlan(db, hostId, eventId);
+    const line = plan.lines.find((l) => l.itemId === recipeItemId);
+    if (!line) throw new NotFoundError("Ingredient not found");
+    checkedQty = line.buyQty;
+  }
   await db
     .insert(shoppingState)
-    .values({ eventId, recipeItemId, checked })
+    .values({ eventId, recipeItemId, checked, checkedQty })
     .onConflictDoUpdate({
       target: [shoppingState.eventId, shoppingState.recipeItemId],
-      set: { checked },
+      set: { checked, checkedQty },
     });
 }
 

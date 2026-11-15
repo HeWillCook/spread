@@ -112,9 +112,22 @@ describe("split actions", () => {
     expect(await db.select().from(guests).where(eq(guests.eventId, eventId))).toHaveLength(1);
   });
 
-  it("markLinkSentAction stamps the time", async () => {
-    await markLinkSentAction(eventId, guestId, initial);
+  it("markLinkSentAction stamps the time and the amount that was sent", async () => {
+    expect(
+      await markLinkSentAction(eventId, guestId, initial, form([["amountCents", "4500"]])),
+    ).toEqual({ error: null, saves: 1 });
+    expect(await guest()).toMatchObject({ linkSentAmountCents: 4500 });
     expect((await guest()).linkSentAt).toBeInstanceOf(Date);
+  });
+
+  it("markLinkSentAction needs a valid amount and writes nothing when it is bad", async () => {
+    for (const bad of ["", "lots", "-1", "45.5", "1000001"]) {
+      const data = form(bad === "" ? [] : [["amountCents", bad]]);
+      const result = await markLinkSentAction(eventId, guestId, initial, data);
+      expect(result.saves).toBe(0);
+      expect(result.error).toBeTruthy();
+    }
+    expect(await guest()).toMatchObject({ linkSentAt: null, linkSentAmountCents: null });
   });
 
   it("setHostCoverAction parses dollars; blank means nothing covered", async () => {
@@ -154,7 +167,9 @@ describe("split actions", () => {
     await expect(
       setAttendedAction(eventId, guestId, initial, form([["attended", "on"]])),
     ).rejects.toThrow("NEXT_NOT_FOUND");
-    await expect(markLinkSentAction(eventId, guestId, initial)).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(
+      markLinkSentAction(eventId, guestId, initial, form([["amountCents", "4500"]])),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(
       addWalkInAction(eventId, initial, form([["name", "Dana"], ["plusOnes", "0"]])),
     ).rejects.toThrow("NEXT_NOT_FOUND");

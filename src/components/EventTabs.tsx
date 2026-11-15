@@ -23,5 +23,6 @@ export function EventTabs({ eventId }: { eventId: string }) {
     { label: "Shopping", href: `${base}/shopping` },
     { label: "Split", href: `${base}/split` },
   ];
-  return <TabBar tabs={tabs} activeHref={activeTabHref(tabs, pathname)} />;
+  const tabPath = pathname.replace(/\/+$/, "") === `${base}/prep` ? `${base}/menu` : pathname;
+  return <TabBar tabs={tabs} activeHref={activeTabHref(tabs, tabPath)} />;
 }
