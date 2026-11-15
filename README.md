@@ -40,6 +40,7 @@ Copy `.env.example` to `.env.local` when you need them.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Postgres connection string. Required in production (the app refuses to start on PGlite there). When unset in development, PGlite in `.data/pglite` is used. Pooled connection strings work: prepared statements are off. |
+| `DATABASE_URL_UNPOOLED` | Optional. Direct (non-pooled) connection string, used only by `npm run db:migrate`; falls back to `DATABASE_URL`. `neon env pull` / `neon deploy` write both into `.env.local`. |
 | `DATABASE_POOL_MAX` | Optional. Connections each server instance may hold, a whole number from 1 to 10. Defaults to 1 in production and on Vercel (one per serverless instance) and 5 in development. |
 | `PGLITE_DATA_DIR` | Optional. Folder for the embedded PGlite database when `DATABASE_URL` is unset (default `.data/pglite`). Setting it explicitly also allows PGlite in production; the e2e run uses it for a throwaway database. |
 | `BETTER_AUTH_SECRET` | Signs host sessions. Required in production; use a long random string, e.g. `openssl rand -base64 32`. |
@@ -50,8 +51,14 @@ Copy `.env.example` to `.env.local` when you need them.
 With `DATABASE_URL` set, the app does not create tables itself. Run the migrations first:
 
 ```bash
-DATABASE_URL=postgres://user:password@host:5432/cookout npm run db:migrate
+npm run db:migrate   # reads .env.local; uses DATABASE_URL_UNPOOLED, else DATABASE_URL
 ```
+
+Migrations need a direct connection, not a transaction pooler. You can also pass one inline: `DATABASE_URL_UNPOOLED=postgres://... npm run db:migrate`.
+
+### Neon
+
+The project is linked to Neon (`neon.ts`, `.neon`). `neon deploy` writes the **production** branch's `DATABASE_URL` (pooled, for the app) and `DATABASE_URL_UNPOOLED` (direct, for migrations) into `.env.local`. Next loads that file for `npm run dev` too, so a dev server started with it talks to production. For local work, either remove those two lines (and go back to PGlite) or point `.env.local` at a development branch: `neon checkout dev --create` (new branches expire after 7 days, per `neon.ts`).
 
 The starter recipes (currently Burgers) are seeded automatically the first time the app connects, in both PGlite and Postgres mode. The seed is idempotent. If the tables are missing the app stops with a message to run `npm run db:migrate`.
 
