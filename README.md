@@ -58,7 +58,7 @@ Migrations need a direct connection, not a transaction pooler. You can also pass
 
 ### Neon
 
-The project is linked to Neon (`neon.ts`, `.neon`). `.env.local` holds the **dev** branch's `DATABASE_URL` (pooled, for the app) and `DATABASE_URL_UNPOOLED` (direct, for migrations), written by `neon checkout dev --create`. New branches expire after 7 days (see `neon.ts`); run `neon checkout dev --create` again to get a fresh copy of production's schema and data. Next loads `.env.local` for `npm run dev`, so never `neon checkout production` locally unless you mean to work on live data.
+The project is linked to Neon (`neon.ts`, `.neon`). `.env.local` holds the **dev** branch's `DATABASE_URL` (pooled, for the app) and `DATABASE_URL_UNPOOLED` (direct, for migrations), written by `neon checkout dev --create`. The `dev` branch has no expiry (cleared with `neon branches set-expiration dev`); other new branches expire after 7 days (see `neon.ts`). Reset it to production's current schema and data with `neon branches reset dev --parent`. Next loads `.env.local` for `npm run dev`, so never `neon checkout production` locally unless you mean to work on live data.
 
 Migrate production (Vercel runs no migrations) whenever a deploy adds files to `drizzle/`, before or right after pushing:
 
