@@ -11,7 +11,7 @@ import { Wordmark } from "./ui/Wordmark";
 const COPY = {
   login: {
     title: "Welcome back",
-    blurb: "Log in to manage your cookouts.",
+    blurb: "Log in to manage your events.",
     submit: "Log in",
     pending: "Logging in...",
     switchText: "New here?",
@@ -19,7 +19,7 @@ const COPY = {
     switchHref: "/signup",
   },
   signup: {
-    title: "Host a cookout",
+    title: "Host a get-together",
     blurb: "Make an account to plan the food and the guest list. Guests never need one.",
     submit: "Create account",
     pending: "Creating account...",
@@ -78,7 +78,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-3 pb-14 pt-5 sm:pt-14">
-      <Link href="/" aria-label="Cookout home" className="wordmark-link self-start px-2">
+      <Link href="/" aria-label="Spread home" className="wordmark-link self-start px-2">
         <Wordmark />
       </Link>
 

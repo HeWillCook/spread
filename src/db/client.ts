@@ -8,7 +8,7 @@ import * as schema from "./schema";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Db = PgDatabase<any, typeof schema>;
 
-const globalForDb = globalThis as unknown as { __cookoutDb?: Promise<Db> };
+const globalForDb = globalThis as unknown as { __spreadDb?: Promise<Db> };
 
 function isMissingTable(error: unknown): boolean {
   for (let e = error as { code?: string; cause?: unknown } | undefined; e; ) {
@@ -76,13 +76,13 @@ async function init(): Promise<Db> {
  * .data/pglite). In production DATABASE_URL is required unless PGLITE_DATA_DIR is set.
  */
 export function getDb(): Promise<Db> {
-  if (!globalForDb.__cookoutDb) {
+  if (!globalForDb.__spreadDb) {
     const pending = init();
     // Don't cache a failed init, so the next call can retry.
     pending.catch(() => {
-      if (globalForDb.__cookoutDb === pending) delete globalForDb.__cookoutDb;
+      if (globalForDb.__spreadDb === pending) delete globalForDb.__spreadDb;
     });
-    globalForDb.__cookoutDb = pending;
+    globalForDb.__spreadDb = pending;
   }
-  return globalForDb.__cookoutDb;
+  return globalForDb.__spreadDb;
 }

@@ -37,7 +37,7 @@ const MAX_INVITEES_PER_CALL = 200;
 const SHARE_CODE_ATTEMPTS = 5;
 
 const detailsShape = {
-  title: z.string().trim().min(1, "Give your cookout a name").max(MAX_TITLE),
+  title: z.string().trim().min(1, "Give your event a name").max(MAX_TITLE),
   location: z.string().trim().min(1, "Where is it?").max(MAX_LOCATION),
 };
 

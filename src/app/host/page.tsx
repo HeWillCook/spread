@@ -28,7 +28,7 @@ export default async function HostDashboardPage() {
 
       <div className="dashboard-head">
         <div>
-          <h1 className="dashboard-title">Your cookouts</h1>
+          <h1 className="dashboard-title">Your events</h1>
           <p className="dashboard-sub">
             Hi, {host.name}. Pick an event to keep planning.
           </p>
@@ -41,7 +41,7 @@ export default async function HostDashboardPage() {
       {events.length === 0 ? (
         <div className="mt-8 max-w-2xl">
           <Card className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold">No cookouts yet</h2>
+            <h2 className="text-xl font-bold">No events yet</h2>
             <p className="text-sm leading-relaxed text-ink-muted">
               Create one, then share the link with your guests. Replies start
               filling in the food plan.

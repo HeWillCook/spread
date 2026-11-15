@@ -13,7 +13,7 @@ export default function NotFound() {
         href="/"
         className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-ink bg-mustard px-5 py-3 text-base font-bold text-ink transition-transform active:translate-y-px"
       >
-        Back to Cookout
+        Back to Spread
       </Link>
     </main>
   );

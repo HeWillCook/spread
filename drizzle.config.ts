@@ -15,6 +15,6 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: url ?? "postgres://localhost:5432/cookout",
+    url: url ?? "postgres://localhost:5432/spread",
   },
 });

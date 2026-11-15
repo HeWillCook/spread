@@ -48,13 +48,13 @@ export default async function Home() {
             <span className="block">More time together.</span>
           </h1>
           <p className="hero-lede">
-            Share one link. Guests answer without an account, and Cookout turns
+            Share one link. Guests answer without an account, and Spread turns
             their replies into a shopping list, a headcount you can plan for, and
             an editable cost split.
           </p>
           <div className="hero-actions">
             <Link href={host ? "/host" : "/signup"} className="cta-primary">
-              {host ? "Go to your events" : "Host a cookout"}
+              {host ? "Go to your events" : "Host a get-together"}
             </Link>
           </div>
           <p className="hero-note">
@@ -138,7 +138,7 @@ export default async function Home() {
       </section>
 
       <footer className="landing-footer">
-        <span>Cookout</span>
+        <span>Spread</span>
         <span>Guests answer from a link. Hosts see the plan.</span>
       </footer>
     </main>

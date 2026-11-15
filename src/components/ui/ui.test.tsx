@@ -84,9 +84,9 @@ describe("Field", () => {
 });
 
 describe("Wordmark, Pill, Card", () => {
-  it("renders the Cookout wordmark with a period", () => {
+  it("renders the Spread wordmark with a period", () => {
     render(<Wordmark />);
-    expect(screen.getByText("Cookout")).toBeInTheDocument();
+    expect(screen.getByText("Spread")).toBeInTheDocument();
     expect(screen.getByText(".")).toBeInTheDocument();
   });
 

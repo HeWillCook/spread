@@ -38,7 +38,7 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
 
       <div className="ticket slip">
       <header className="slip-head">
-        <h1 className="text-[2.25rem] leading-none">New cookout</h1>
+        <h1 className="text-[2.25rem] leading-none">New event</h1>
         <p className="text-sm text-ink-muted">You&apos;ll get a link to share with your guests.</p>
       </header>
         <form action={formAction} className="slip-body">

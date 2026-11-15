@@ -45,7 +45,7 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
         <p className="kitchen-headcount mt-1 text-sm font-bold text-ink/80">{sheet.headcountLine}</p>
         <p className="kitchen-snapshot-note mt-2 text-xs leading-relaxed text-ink/80">
           Saved planning snapshot. Counts and quantities use the RSVPs and portions saved in
-          Cookout; attendance can still change.
+          Spread; attendance can still change.
         </p>
       </section>
 
