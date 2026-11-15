@@ -6,6 +6,16 @@ Cookout is a phone-first party planner for backyard get-togethers. A host makes 
 
 Built with Next.js (App Router), TypeScript, Tailwind 4, Drizzle on Postgres, and Better Auth for host accounts.
 
+## Planning a real event
+
+Copy the invitation inside your event, then paste it into your usual chat. Add the names you invited on the Guests tab to track unanswered invitations. Each unanswered name has a personal reminder you can copy and send yourself; Cookout does not send email or SMS. Name matching uses spelling, so a guest who answers under a different name may still appear as unanswered.
+
+The planning headcount includes confirmed guests, their plus-ones and the percentage of maybes you choose. People who have not replied are not counted. Menu shows prep quantities from the saved portions; Shopping rounds those quantities up to whole packs. Food notes remain visible on Guests, Menu and Shopping, but do not automatically substitute ingredients or change portions.
+
+When required buy quantities grow after you mark an item as purchased, Shopping asks you to recheck it and review its price. Recorded actual expenses stay intact. Shopping and Split label the total provisional until those items are rechecked. Existing purchased items from before quantity tracking need a one-time recheck.
+
+Shared Venmo links remember the amount they contained. If the split changes, the row prompts you to send an updated link. Recorded paid flags remain manual history; if a paid share changes, reconcile the payment before collecting again. Full-share links are hidden while Paid is checked. Clear it only if the full current share is still due.
+
 ## Local development
 
 ```bash
@@ -14,6 +24,14 @@ npm run dev
 ```
 
 Open http://localhost:3000. No environment variables are needed: without `DATABASE_URL` the app uses an embedded [PGlite](https://pglite.dev) database stored in `.data/pglite` (git-ignored), runs the migrations on boot, and falls back to a development-only auth secret. Delete `.data/` to start fresh.
+
+## Built-in recipes
+
+The recipe box ships with 29 starter dishes in six sections: Grill, Tacos & handhelds, Sides & salads, Desserts, Drinks and Brunch. On the Menu tab, search by name or filter by section, then add a dish.
+
+Every ingredient stores an amount per serving plus the store package it comes in, so the shopping list scales with the headcount: servings are rounded up, amounts multiply, and purchases round up to whole packs. For example, at four people Burgers needs 2 lb of beef, one pack of buns and two jalapeños; Iced tea needs one box of tea bags for eight glasses.
+
+Starters are global and read-only. Editing one creates a copy owned by the host, so a past event never changes. `seedStarterRecipes` upserts the starter rows, so a corrected quantity or price in `src/domain/recipes/` reaches an existing database on the next boot.
 
 ## Environment variables
 
@@ -67,3 +85,5 @@ Venmo has no public API, so Cookout can only build prefilled Venmo pay links (`h
 "Send Venmo link" does not open Venmo on the host's phone. It shares (or, where the browser has no share sheet, copies) a short message such as "Hi Pat, your share of Burger Night is $12.50: <link>" so the host can send it to the guest, and only marks the guest "link sent" once the share or copy actually succeeded. A cancelled share sheet marks nothing. The small "Open link" next to it just opens the link for testing and never marks anything sent.
 
 Venmo may change how it handles these links, so before the first real party, send the link to a second phone that has the Venmo app installed and tap it there. Confirm it opens a prefilled payment screen for the host as the payee, with the right amount and note.
+
+Menu includes “Try a different crowd” to explore ingredient quantities and estimates without changing saved RSVPs or costs. Kitchen sheet provides a host-only saved prep/shopping view with copy and print controls.
