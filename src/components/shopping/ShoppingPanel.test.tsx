@@ -1,44 +1,40 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { computeHeadcount } from "@/domain/headcount";
 import { STARTER_RECIPES } from "@/domain/recipes";
-import { buildShoppingList, totalCents } from "@/domain/shopping";
+import { buildShoppingList, totalCents, type DishPlan } from "@/domain/shopping";
 import type { ShoppingPlan } from "@/services/shopping";
 import { ShoppingPanel } from "./ShoppingPanel";
 import type { ShoppingFormAction } from "./shoppingForm";
 
 const ok: ShoppingFormAction = async (prev) => ({ error: null, saves: prev.saves + 1 });
 
-function planFor(
-  yes: number,
-  maybe: number,
-  state: Record<
-    string,
-    { checked?: boolean; checkedQty?: number | null; actualCents?: number | null }
-  > = {},
+type SavedState = Record<
+  string,
+  { checked?: boolean; checkedQty?: number | null; actualCents?: number | null }
+>;
+
+function planFrom(
+  dishes: DishPlan[],
+  headcount: ShoppingPlan["headcount"],
+  state: SavedState = {},
   extras: ShoppingPlan["extras"] = [],
 ): ShoppingPlan {
-  const people = [
-    ...Array.from({ length: yes }, () => ({ status: "yes" as const, plusOnes: 0 })),
-    ...Array.from({ length: maybe }, () => ({ status: "maybe" as const, plusOnes: 0 })),
-  ];
-  const headcount = computeHeadcount(people, 0.5);
-  const built = buildShoppingList(
-    [{ recipe: STARTER_RECIPES[0], servingsPerPerson: 1.5 }],
-    headcount.planFor,
-  );
+  const built = buildShoppingList(dishes, headcount.planFor);
   const lines = built.map((l) => {
     const saved = state[l.itemId];
     const ticked = saved?.checked ?? false;
     // A tick fixture defaults to the current quantity unless it asks for a legacy (null) basis.
     const checkedQty = ticked ? (saved?.checkedQty === undefined ? l.buyQty : saved.checkedQty) : null;
     const needsReview = ticked && (checkedQty === null || l.buyQty > checkedQty);
+    const dishNames = [...new Set(l.sources.map((s) => s.recipeName))];
     return {
       ...l,
       checked: ticked && !needsReview,
       checkedQty,
       needsReview,
       actualCents: saved?.actualCents ?? null,
+      dishNames,
     };
   });
   const actual = Object.fromEntries(
@@ -51,6 +47,15 @@ function planFor(
     totalCents: totalCents(lines, actual, extras.map((e) => e.amountCents)),
     totalIsProvisional: lines.some((l) => l.needsReview),
   };
+}
+
+function planFor(yes: number, maybe: number, state: SavedState = {}, extras: ShoppingPlan["extras"] = []) {
+  const people = [
+    ...Array.from({ length: yes }, () => ({ status: "yes" as const, plusOnes: 0 })),
+    ...Array.from({ length: maybe }, () => ({ status: "maybe" as const, plusOnes: 0 })),
+  ];
+  const headcount = computeHeadcount(people, 0.5);
+  return planFrom([{ recipe: STARTER_RECIPES[0], servingsPerPerson: 1.5 }], headcount, state, extras);
 }
 
 function renderPanel(
@@ -78,17 +83,56 @@ function renderPanel(
   );
 }
 
+function stubClipboard(value: { writeText: (text: string) => Promise<void> } | undefined) {
+  Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+}
+
+afterEach(() => {
+  Reflect.deleteProperty(navigator, "clipboard");
+});
+
 describe("ShoppingPanel", () => {
-  it("shows the headcount line, quantities in buy units, and the red total card", () => {
+  it("shows the headcount line, the buy quantity vs. the need, and the red total card", () => {
     renderPanel(planFor(12, 5));
     expect(screen.getByText("12 confirmed + ~3 from maybes · range 12–17")).toBeInTheDocument();
     expect(screen.getByText("Shopping for ~15 people")).toBeInTheDocument();
-    expect(screen.getByText("8 lb")).toBeInTheDocument();
-    expect(screen.getByText("3 packs")).toBeInTheDocument();
-    expect(screen.getByText("1 pack")).toBeInTheDocument();
+    expect(screen.getByText("Buy 8 lb")).toBeInTheDocument();
+    expect(screen.getByText("Buy 3 packs")).toBeInTheDocument();
+    expect(screen.getByText("need 23 buns (packs of 8)")).toBeInTheDocument();
     expect(screen.getByText("$75.50")).toBeInTheDocument();
     // 7550 / 15 = 503.33 -> $5.03
-    expect(screen.getByText("≈ $5.03 each")).toBeInTheDocument();
+    expect(screen.getByText("≈ $5.03 per guest (incl. extras)")).toBeInTheDocument();
+    expect(screen.getByText("0 of 5 ingredients")).toBeInTheDocument();
+  });
+
+  it("groups the list by aisle with a header, alphabetised inside each group", () => {
+    renderPanel(planFor(12, 5));
+    const listCard = screen.getByRole("heading", { name: "Shopping list" }).closest(".ticket-surface")!;
+    const headings = within(listCard as HTMLElement)
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual(["Produce", "Meat & seafood", "Dairy & eggs", "Bakery"]);
+    const produce = screen.getByRole("heading", { name: "Produce" }).closest("section")!;
+    expect(within(produce).getAllByText(/^(Onion|Jalapeño)$/).map((n) => n.textContent)).toEqual([
+      "Jalapeño",
+      "Onion",
+    ]);
+  });
+
+  it("says which dishes a merged line is for", () => {
+    const plan = planFrom(
+      [
+        { recipe: STARTER_RECIPES[0], servingsPerPerson: 1.5 },
+        { recipe: STARTER_RECIPES.find((r) => r.id === "starter-hot-dogs")!, servingsPerPerson: 1.5 },
+      ],
+      computeHeadcount(
+        Array.from({ length: 12 }, () => ({ status: "yes" as const, plusOnes: 0 })),
+        0,
+      ),
+    );
+    renderPanel(plan);
+    expect(screen.getByText("for Burgers, Hot dogs")).toBeInTheDocument();
+    expect(screen.getAllByText("Onion")).toHaveLength(1);
   });
 
   it("puts the range note on the beef line only, and the estimate in each price box", () => {
@@ -108,9 +152,10 @@ describe("ShoppingPanel", () => {
     expect(screen.getByLabelText("Got Ground beef")).toBeChecked();
     expect(screen.getByLabelText("Got Burger buns")).not.toBeChecked();
     expect(screen.getByText("$73.49")).toBeInTheDocument();
+    expect(screen.getByText("1 of 5 ingredients")).toBeInTheDocument();
   });
 
-  it("unchecks an item whose quantity grew, warns, and marks the total provisional", () => {
+  it("unchecks an item whose quantity grew, says what to do, and marks the total provisional", () => {
     renderPanel(
       planFor(12, 5, {
         "starter-burgers-beef": { checked: true, checkedQty: 6, actualCents: 4999 },
@@ -118,7 +163,9 @@ describe("ShoppingPanel", () => {
     );
     expect(screen.getByLabelText("Got Ground beef")).not.toBeChecked();
     expect(
-      screen.getByText("Quantity increased: previously 6 lb, now 8 lb. Check the price too."),
+      screen.getByText(
+        "Quantity increased: now 8 lb (was 6 lb). Tick again to confirm.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Total (provisional)")).toBeInTheDocument();
     expect(screen.getByText(/recheck the items whose quantity increased/)).toBeInTheDocument();
@@ -133,7 +180,9 @@ describe("ShoppingPanel", () => {
     );
     expect(screen.getByLabelText("Got Ground beef")).not.toBeChecked();
     expect(
-      screen.getByText("Recheck this item: it was ticked before we tracked quantities."),
+      screen.getByText(
+        "Recheck this item: it was ticked before we tracked quantities. Tick again to confirm.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Total (provisional)")).toBeInTheDocument();
   });
@@ -173,6 +222,64 @@ describe("ShoppingPanel", () => {
     fireEvent.blur(box);
     await waitFor(() => expect(price).toHaveBeenCalledTimes(1));
     expect((price.mock.calls[0][1] as FormData).get("price")).toBe("$48.25");
+  });
+
+  it("ticks optimistically and reverts with an error when the save fails", async () => {
+    let resolve!: (state: { error: string | null; saves: number }) => void;
+    const check = vi.fn(
+      () =>
+        new Promise<{ error: string | null; saves: number }>((done) => {
+          resolve = done;
+        }),
+    );
+    renderPanel(planFor(12, 5), { check });
+    const box = screen.getByLabelText("Got Ground beef");
+    expect(box).not.toBeChecked();
+
+    fireEvent.click(box);
+    // The box flips before the action has answered.
+    expect(box).toBeChecked();
+
+    await act(async () => {
+      resolve({ error: "Couldn't save that tick. Try again.", saves: 0 });
+    });
+    await waitFor(() => expect(box).not.toBeChecked());
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't save that tick. Try again.");
+  });
+
+  it("hides ticked items on request without touching the server", () => {
+    const check = vi.fn<ShoppingFormAction>();
+    renderPanel(
+      planFor(12, 5, { "starter-burgers-beef": { checked: true } }),
+      { check },
+    );
+    expect(screen.getByText("Ground beef")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Hide items I've got"));
+    expect(screen.queryByText("Ground beef")).not.toBeInTheDocument();
+    expect(screen.getByText("Onion")).toBeInTheDocument();
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  it("copies the list as plain text and confirms", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    stubClipboard({ writeText });
+    renderPanel(planFor(12, 5));
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy list" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const text = writeText.mock.calls[0][0] as string;
+    expect(text).toContain("PRODUCE");
+    expect(text).toContain("- [ ] Onion: 4");
+    expect(await screen.findByRole("button", { name: "Copied!" })).toBeInTheDocument();
+  });
+
+  it("explains when the clipboard is unavailable", async () => {
+    stubClipboard(undefined);
+    renderPanel(planFor(12, 5));
+    fireEvent.click(screen.getByRole("button", { name: "Copy list" }));
+    expect(
+      await screen.findByText(/Couldn't copy automatically\. Select the list/),
+    ).toBeInTheDocument();
   });
 
   it("shows a price error and keeps what was typed", async () => {

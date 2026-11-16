@@ -57,9 +57,17 @@ async function seedBurgerEvent() {
 }
 
 function line(plan: Awaited<ReturnType<typeof getShoppingPlan>>, itemId: string) {
-  const found = plan.lines.find((l) => l.itemId === itemId);
+  const found = plan.lines.find((l) => l.itemIds.includes(itemId));
   if (!found) throw new Error(`no line ${itemId}`);
   return found;
+}
+
+/** Burgers, hot dogs and brats: three onion rows, three bun rows (hot dog buns). */
+async function seedOnionEvent() {
+  await seedTwelveYesFiveMaybe();
+  for (const recipeId of ["starter-burgers", "starter-hot-dogs", "starter-bratwurst"]) {
+    await addDishToEvent(db, "host-1", eventId, recipeId);
+  }
 }
 
 describe("getShoppingPlan", () => {
@@ -104,6 +112,122 @@ describe("getShoppingPlan", () => {
   it("another host's event is a NotFoundError", async () => {
     await seedBurgerEvent();
     await expect(getShoppingPlan(db, "host-2", eventId)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("merged ingredient lines", () => {
+  beforeEach(seedOnionEvent);
+
+  it("shows one onion line for three dishes with the need summed and rounded once", async () => {
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    const onions = plan.lines.filter((l) => l.name === "Onion");
+    expect(onions).toHaveLength(1);
+    const onion = onions[0];
+    // 15 planned heads x 1.5 = 23 servings each: 23/6 + 23/8 + 23/6 = 10.54 -> 11.
+    expect(onion.itemIds).toEqual([
+      "starter-bratwurst-onion",
+      "starter-burgers-onion",
+      "starter-hot-dogs-onion",
+    ]);
+    expect([...onion.dishNames].sort()).toEqual(["Bratwurst", "Burgers", "Hot dogs"]);
+    expect(onion.needed).toBeCloseTo(23 / 6 + 23 / 8 + 23 / 6, 10);
+    expect(onion.buyQty).toBe(11);
+    expect(onion.estCostCents).toBe(1100);
+  });
+
+  it("ticks every merged item id at once and keeps them all in sync", async () => {
+    await setChecked(db, "host-1", eventId, "starter-hot-dogs-onion", true);
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    const onion = line(plan, "starter-burgers-onion");
+    expect(onion).toMatchObject({ checked: true, checkedQty: 11, needsReview: false });
+    const rows = await db.select().from(shoppingState);
+    expect(rows).toHaveLength(3);
+    expect(rows.every((row) => row.checked && row.checkedQty === 11)).toBe(true);
+    expect(plan.totalIsProvisional).toBe(false);
+
+    // Unticking through any of the ids clears all of them.
+    await setChecked(db, "host-1", eventId, "starter-bratwurst-onion", false);
+    const after = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(after, "starter-hot-dogs-onion")).toMatchObject({
+      checked: false,
+      checkedQty: null,
+      needsReview: false,
+    });
+    expect((await db.select().from(shoppingState)).every((row) => !row.checked)).toBe(true);
+  });
+
+  it("asks for a recheck when the merged need grows past the ticked quantity", async () => {
+    await setChecked(db, "host-1", eventId, "starter-burgers-onion", true);
+    await submitRsvp(db, {
+      shareCode,
+      name: "Late Larry",
+      status: "yes",
+      plusOneNames: ["Plus A", "Plus B"],
+    });
+    const after = await getShoppingPlan(db, "host-1", eventId);
+    const onion = line(after, "starter-burgers-onion");
+    expect(onion.buyQty).toBeGreaterThan(11);
+    expect(onion).toMatchObject({ checked: false, checkedQty: 11, needsReview: true });
+    expect(after.totalIsProvisional).toBe(true);
+
+    await setChecked(db, "host-1", eventId, "starter-hot-dogs-onion", true);
+    const rechecked = await getShoppingPlan(db, "host-1", eventId);
+    expect(line(rechecked, "starter-burgers-onion")).toMatchObject({
+      checked: true,
+      checkedQty: line(rechecked, "starter-burgers-onion").buyQty,
+      needsReview: false,
+    });
+  });
+
+  it("is not checked while only some of its item ids are ticked", async () => {
+    await db
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: "starter-burgers-onion", checked: true, checkedQty: 11 });
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    // One ticked share is not a ticked line; there is no basis to review either.
+    expect(line(plan, "starter-burgers-onion")).toMatchObject({
+      checked: false,
+      needsReview: false,
+      checkedQty: null,
+    });
+  });
+
+  it("keeps the actual price on the first item id and ignores the others", async () => {
+    // A stale per-dish price must not win over the merged line's price.
+    await db.insert(shoppingState).values({
+      eventId,
+      recipeItemId: "starter-hot-dogs-onion",
+      actualCents: 123,
+    });
+    await setActualCost(db, "host-1", eventId, "starter-hot-dogs-onion", 500);
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    const onion = line(plan, "starter-hot-dogs-onion");
+    // Sorted-first id: bratwurst.
+    expect(onion.itemId).toBe("starter-bratwurst-onion");
+    expect(onion.actualCents).toBe(500);
+    const rows = await db.select().from(shoppingState);
+    expect(rows.find((r) => r.recipeItemId === "starter-bratwurst-onion")?.actualCents).toBe(500);
+    expect(rows.find((r) => r.recipeItemId === "starter-hot-dogs-onion")?.actualCents).toBeNull();
+    expect(plan.totalCents).toBe(
+      plan.lines.reduce(
+        (sum, l) => sum + (l.name === "Onion" ? 500 : l.estCostCents),
+        0,
+      ),
+    );
+  });
+
+  it("buys fewer bun packs once the two burger dishes merge", async () => {
+    await setMaybePercent(db, "host-1", eventId, 0);
+    await addDishToEvent(db, "host-1", eventId, "starter-veggie-burgers");
+
+    const plan = await getShoppingPlan(db, "host-1", eventId);
+    const buns = plan.lines.filter((l) => l.name === "Burger buns");
+    expect(buns).toHaveLength(1);
+    // 12 heads x 1.5 servings = 18 servings per dish, so 36 buns.
+    // One rounding at 8 buns a pack buys 5 packs; rounding each dish first bought 3 + 3.
+    expect(buns[0].needed).toBe(36);
+    expect(buns[0].buyQty).toBe(5);
+    expect(buns[0].itemIds).toEqual(["starter-burgers-buns", "starter-veggie-burgers-buns"]);
   });
 });
 

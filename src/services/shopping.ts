@@ -1,6 +1,6 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { eventDishes, extraCosts, recipeItems, shoppingState } from "@/db/schema";
+import { extraCosts, shoppingState } from "@/db/schema";
 import type { Headcount } from "@/domain/headcount";
 import { formatCents } from "@/domain/money";
 import { buildShoppingList, totalCents, type ShoppingLine } from "@/domain/shopping";
@@ -19,6 +19,8 @@ export interface ShoppingPlan {
     /** True when the tick can no longer be trusted (quantity grew, or no basis was captured). */
     needsReview: boolean;
     actualCents: number | null;
+    /** Dishes this ingredient belongs to, deduped in menu order, for "for Burgers, Hot dogs". */
+    dishNames: string[];
   })[];
   extras: { id: string; label: string; amountCents: number }[];
   /** Actual price where entered, else the estimate, plus extras. Integer cents. */
@@ -38,15 +40,16 @@ function validCents(cents: number, what: string): void {
   }
 }
 
-/** Throws unless the item belongs to a dish on this event: state is never written for foreign items. */
-async function assertEventItem(db: Db, eventId: string, recipeItemId: string): Promise<void> {
-  const [row] = await db
-    .select({ id: recipeItems.id })
-    .from(eventDishes)
-    .innerJoin(recipeItems, eq(recipeItems.recipeId, eventDishes.recipeId))
-    .where(and(eq(eventDishes.eventId, eventId), eq(recipeItems.id, recipeItemId)))
-    .limit(1);
-  if (!row) throw new NotFoundError("Ingredient not found");
+/**
+ * The shopping line an ingredient id belongs to. A line may merge several item
+ * ids; any of them resolves to the same line so the client can never tick a
+ * stranger's row.
+ */
+function lineForItem(
+  plan: ShoppingPlan,
+  recipeItemId: string,
+): ShoppingPlan["lines"][number] | undefined {
+  return plan.lines.find((line) => line.itemIds.includes(recipeItemId));
 }
 
 /** Everything the Shopping tab shows. Throws NotFoundError for another host's event. */
@@ -73,17 +76,31 @@ export async function getShoppingPlan(
   );
   const stateByItem = new Map(stateRows.map((s) => [s.recipeItemId, s]));
   const lines = built.map((line) => {
-    const state = stateByItem.get(line.itemId);
-    const ticked = state?.checked ?? false;
-    const checkedQty = state?.checkedQty ?? null;
-    // A tick made before quantities were captured is treated conservatively as needing a recheck.
-    const needsReview = ticked && (checkedQty === null || line.buyQty > checkedQty);
+    const states = line.itemIds.map((id) => stateByItem.get(id));
+    // A merged line is only "got" when every ingredient that feeds it was ticked.
+    const allTicked = states.every((state) => state?.checked === true);
+    const checkedQtys = states.map((state) => state?.checkedQty ?? null);
+    const checkedQty = checkedQtys.some((qty) => qty === null)
+      ? null
+      : Math.max(...(checkedQtys as number[]));
+    // Ticks made before quantities were captured, and ticks that no longer cover
+    // the current need, are conservatively treated as needing a recheck.
+    const needsReview = allTicked && (checkedQty === null || line.buyQty > checkedQty);
+
+    // The actual price lives on the line's primary (sorted-first) item id only; the
+    // other merged ids are ignored even if an older row still carries a value.
+    const actualCents = stateByItem.get(line.itemId)?.actualCents ?? null;
+    const dishNames: string[] = [];
+    for (const source of line.sources) {
+      if (!dishNames.includes(source.recipeName)) dishNames.push(source.recipeName);
+    }
     return {
       ...line,
-      checked: ticked && !needsReview,
+      checked: allTicked && !needsReview,
       checkedQty,
       needsReview,
-      actualCents: state?.actualCents ?? null,
+      actualCents,
+      dishNames,
     };
   });
 
@@ -107,8 +124,9 @@ export async function getShoppingPlan(
 }
 
 /**
- * Ticks or unticks an ingredient. Ticking captures the quantity it covers, so a later
- * increase can tell the host the tick is stale; unchecking clears that basis. Any actual
+ * Ticks or unticks an ingredient, writing every item id a merged line carries in
+ * one transaction. Ticking captures the line's buy quantity, so a later increase
+ * can tell the host the tick is stale; unchecking clears that basis. Any actual
  * price already entered is kept either way.
  */
 export async function setChecked(
@@ -119,24 +137,33 @@ export async function setChecked(
   checked: boolean,
 ): Promise<void> {
   await getHostEvent(db, hostId, eventId);
-  await assertEventItem(db, eventId, recipeItemId);
-  let checkedQty: number | null = null;
-  if (checked) {
-    const plan = await getShoppingPlan(db, hostId, eventId);
-    const line = plan.lines.find((l) => l.itemId === recipeItemId);
-    if (!line) throw new NotFoundError("Ingredient not found");
-    checkedQty = line.buyQty;
-  }
-  await db
-    .insert(shoppingState)
-    .values({ eventId, recipeItemId, checked, checkedQty })
-    .onConflictDoUpdate({
-      target: [shoppingState.eventId, shoppingState.recipeItemId],
-      set: { checked, checkedQty },
-    });
+  const plan = await getShoppingPlan(db, hostId, eventId);
+  const line = lineForItem(plan, recipeItemId);
+  if (!line) throw new NotFoundError("Ingredient not found");
+  const checkedQty = checked ? line.buyQty : null;
+  // Every id stores the same basis: the line's buy quantity. A contribution that
+  // grows without changing the pack count still leaves the tick valid, matching
+  // the pre-merge behaviour.
+  await db.transaction(async (tx) => {
+    for (const itemId of line.itemIds) {
+      await tx
+        .insert(shoppingState)
+        .values({ eventId, recipeItemId: itemId, checked, checkedQty })
+        .onConflictDoUpdate({
+          target: [shoppingState.eventId, shoppingState.recipeItemId],
+          set: { checked, checkedQty },
+        });
+    }
+  });
 }
 
-/** Records what was really paid; null goes back to the estimate. Keeps the tick. */
+/**
+ * Records what was really paid; null goes back to the estimate. Keeps the tick.
+ *
+ * A merged line keeps its price on the first item id (sorted order, so it is
+ * stable). The other ids' prices are cleared, and reads ignore them, because the
+ * line's price is the price of the whole purchase, not of each dish's share.
+ */
 export async function setActualCost(
   db: Db,
   hostId: string,
@@ -146,17 +173,32 @@ export async function setActualCost(
 ): Promise<void> {
   await getHostEvent(db, hostId, eventId);
   if (cents !== null) validCents(cents, "Price");
-  await assertEventItem(db, eventId, recipeItemId);
-  await db
-    .insert(shoppingState)
-    .values({ eventId, recipeItemId, actualCents: cents })
-    .onConflictDoUpdate({
-      target: [shoppingState.eventId, shoppingState.recipeItemId],
-      set: { actualCents: cents },
-    });
+  const plan = await getShoppingPlan(db, hostId, eventId);
+  const line = lineForItem(plan, recipeItemId);
+  if (!line) throw new NotFoundError("Ingredient not found");
+  const primaryId = line.itemId;
+  const others = line.itemIds.filter((id) => id !== primaryId);
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(shoppingState)
+      .values({ eventId, recipeItemId: primaryId, actualCents: cents })
+      .onConflictDoUpdate({
+        target: [shoppingState.eventId, shoppingState.recipeItemId],
+        set: { actualCents: cents },
+      });
+    // Update-only: don't create empty state rows for the other merged ids.
+    for (const itemId of others) {
+      await tx
+        .update(shoppingState)
+        .set({ actualCents: null })
+        .where(
+          and(eq(shoppingState.eventId, eventId), eq(shoppingState.recipeItemId, itemId)),
+        );
+    }
+  });
 }
 
-/** Adds a cost that isn't on the list (ice, charcoal, drinks). */
+/** Adds a cost that isn't on the list (ice, charcoal, plates). */
 export async function addExtraCost(
   db: Db,
   hostId: string,

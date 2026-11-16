@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { computeHeadcount } from "@/domain/headcount";
 import { STARTER_RECIPES } from "@/domain/recipes";
 import { buildShoppingList } from "@/domain/shopping";
-import { biggestLine, formatBuyQty, headcountLine, rangeNote } from "./shopping-text";
+import {
+  biggestLine,
+  formatBuyQty,
+  formatNeed,
+  formatQty,
+  headcountLine,
+  rangeNote,
+  shoppingListText,
+} from "./shopping-text";
 
 const guests = (yes: number, maybe: number) => [
   ...Array.from({ length: yes }, () => ({ status: "yes" as const, plusOnes: 0 })),
@@ -20,6 +28,63 @@ describe("formatBuyQty", () => {
     expect(formatBuyQty(2, "jar")).toBe("2 jars");
     expect(formatBuyQty(2, "pastry")).toBe("2 pastries");
     expect(formatBuyQty(2, "bags")).toBe("2 bags");
+  });
+});
+
+describe("formatQty / formatNeed", () => {
+  it("keeps whole numbers and common kitchen fractions readable", () => {
+    expect(formatQty(18)).toBe("18");
+    expect(formatQty(1)).toBe("1");
+    expect(formatQty(0.5)).toBe("1/2");
+    expect(formatQty(1 / 3)).toBe("1/3");
+    expect(formatQty(1.5)).toBe("1 1/2");
+    expect(formatQty(2 / 3)).toBe("2/3");
+    expect(formatQty(1.25)).toBe("1 1/4");
+    expect(formatQty(3 / 4)).toBe("3/4");
+    expect(formatQty(2.5)).toBe("2 1/2");
+  });
+
+  it("never shows a raw repeating decimal", () => {
+    expect(formatQty(1 / 6)).toBe("0.17");
+    expect(formatQty(0.1667)).toBe("0.17");
+    expect(formatQty(10.541666)).toBe("10.54");
+    expect(formatQty(0)).toBe("0");
+    expect(formatQty(Number.NaN)).toBe("0");
+  });
+
+  it("says the need and the pack size", () => {
+    expect(formatNeed(18, "bun", "pack", 8)).toBe("18 buns (packs of 8)");
+    expect(formatNeed(1.5, "lb", "lb", 1)).toBe("1 1/2 lb");
+    expect(formatNeed(1, "onion", "each", 1)).toBe("1 onion");
+    expect(formatNeed(0.17, "onion", "each", 1)).toBe("0.17 onions");
+  });
+});
+
+describe("shoppingListText", () => {
+  it("groups by aisle with unchecked items first", () => {
+    const text = shoppingListText([
+      { name: "Onion", buyQty: 3, buyUnit: "each", checked: false, dishNames: ["Burgers", "Hot dogs"] },
+      { name: "Jalapeño", buyQty: 6, buyUnit: "each", checked: true, dishNames: ["Burgers"] },
+      { name: "Ground beef", buyQty: 8, buyUnit: "lb", checked: true, dishNames: ["Burgers"] },
+      { name: "Burger buns", buyQty: 3, buyUnit: "pack", checked: false, dishNames: ["Burgers"] },
+    ]);
+    expect(text).toBe(
+      [
+        "PRODUCE",
+        "- [ ] Onion: 3 (for Burgers, Hot dogs)",
+        "- [x] Jalapeño: 6",
+        "",
+        "MEAT & SEAFOOD",
+        "- [x] Ground beef: 8 lb",
+        "",
+        "BAKERY",
+        "- [ ] Burger buns: 3 packs",
+      ].join("\n"),
+    );
+  });
+
+  it("is empty for an empty list", () => {
+    expect(shoppingListText([])).toBe("");
   });
 });
 

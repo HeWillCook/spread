@@ -97,10 +97,13 @@ export function ExtrasCard({
 }) {
   return (
     <Card className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold">Extras</h2>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-bold">Extra spending</h2>
+        <p className="text-xs text-ink/70">Costs that aren&apos;t on the ingredient list.</p>
+      </div>
       {extras.length === 0 ? (
         <EmptyState inset size="sm" art="shopping" title="Nothing extra yet">
-          <p>Drinks, ice and charcoal go here.</p>
+          <p>Log other spending like ice, charcoal or plates so the total stays honest.</p>
         </EmptyState>
       ) : (
         <div>
