@@ -1,10 +1,36 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
+<p align="center">
+  <img src="assets/icon.svg" width="72" height="72" alt="Spread logo: three slices of toast fanned out">
+</p>
 
-# Spread
+<h1 align="center">Spread</h1>
 
-Spread is a phone-first party planner for backyard get-togethers. A host makes an event and shares one link; guests RSVP with no account (plus-ones included); the host turns the headcount into a menu, a shopping list with quantities and costs, and a fair split with prefilled Venmo links.
+<p align="center">
+  <strong>Enough food. More time together.</strong><br>
+  A phone-first planner for backyard get-togethers.<br>
+  <a href="https://spreadparty.vercel.app">spreadparty.vercel.app</a>
+</p>
 
-Built with Next.js (App Router), TypeScript, Tailwind 4, Drizzle on Postgres, and Better Auth for host accounts.
+<p align="center">
+  <img src="assets/screenshots/landing-desktop.png" width="640" alt="Spread landing page on desktop">
+  &nbsp;
+  <img src="assets/screenshots/landing-mobile.png" width="180" alt="Spread landing page on a phone">
+</p>
+
+A host makes an event and shares one link. Guests RSVP with no account (plus-ones included). The host turns the headcount into a menu, a shopping list with quantities and costs, and a fair split with prefilled Venmo links.
+
+## Features
+
+- **One link, no guest accounts.** Guests answer in their browser; hosts track who hasn't replied and copy personal reminders.
+- **A headcount you can plan for.** Confirmed guests plus plus-ones, plus the share of maybes you choose.
+- **Menu from a recipe box.** 29 starter dishes across six sections, scaled per serving to the headcount.
+- **Shopping list in whole packs.** Quantities round up to what the store sells, with costs and purchased tracking.
+- **Fair split.** Editable shares and prefilled Venmo links the host sends themselves.
+- **Try a different crowd.** Explore quantities and costs for another headcount without touching saved RSVPs.
+- **Kitchen sheet.** A host-only prep and shopping view you can copy or print.
+
+## Stack
+
+Next.js (App Router) · TypeScript · Tailwind CSS 4 · Drizzle ORM on Postgres (Neon in production, embedded PGlite locally) · Better Auth · Vitest and Playwright · deployed on Vercel.
 
 ## Planning a real event
 
@@ -73,6 +99,7 @@ After changing `src/db/schema.ts`, run `npm run db:generate` and commit the new 
 ```bash
 npm test          # unit and component tests (Vitest)
 npm run lint
+npm run typecheck # generates Next route types, then tsc
 npm run e2e       # end-to-end flow (Playwright, mobile viewport)
 ```
 
@@ -86,7 +113,7 @@ The first time, install the browser with `npm run e2e:install`. `npm run e2e` bu
    DATABASE_URL="<connection string>" npm run db:migrate
    ```
 3. Import the repository into Vercel (the Next.js preset needs no changes).
-4. In Project Settings, Environment Variables, add `DATABASE_URL`, `BETTER_AUTH_SECRET` (a long random string), and `BETTER_AUTH_URL` (your production origin, e.g. `https://cookout.example.com`, with no trailing slash).
+4. In Project Settings, Environment Variables, add `DATABASE_URL`, `BETTER_AUTH_SECRET` (a long random string), and `BETTER_AUTH_URL` (your production origin, e.g. `https://spread.example.com`, with no trailing slash).
 5. Deploy. The first request seeds the starter recipes. Re-run `npm run db:migrate` against the database whenever a deploy adds a migration.
 
 The live deployment is Vercel project `cookout` (https://spreadparty.vercel.app; the old https://cookout-lac.vercel.app 308-redirects there), connected to this repo: every push to `main` deploys to production. Its production env vars are `DATABASE_URL` (Neon production, pooled), `DATABASE_POOL_MAX=1`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=https://spreadparty.vercel.app`. Preview deployments have no database configured yet.
@@ -98,5 +125,3 @@ Venmo has no public API, so Spread can only build prefilled Venmo pay links (`ht
 "Send Venmo link" does not open Venmo on the host's phone. It shares (or, where the browser has no share sheet, copies) a short message such as "Hi Pat, your share of Burger Night is $12.50: <link>" so the host can send it to the guest, and only marks the guest "link sent" once the share or copy actually succeeded. A cancelled share sheet marks nothing. The small "Open link" next to it just opens the link for testing and never marks anything sent.
 
 Venmo may change how it handles these links, so before the first real party, send the link to a second phone that has the Venmo app installed and tap it there. Confirm it opens a prefilled payment screen for the host as the payee, with the right amount and note.
-
-Menu includes “Try a different crowd” to explore ingredient quantities and estimates without changing saved RSVPs or costs. Kitchen sheet provides a host-only saved prep/shopping view with copy and print controls.
