@@ -1,13 +1,15 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentPropsWithRef } from "react";
 
 const variants = {
   red: "bg-ketchup text-paper shadow-[inset_0_-3px_0_rgb(0_0_0/0.18)] hover:bg-ketchup-deep",
   mustard: "bg-mustard text-ink shadow-[inset_0_-3px_0_rgb(0_0_0/0.12)] hover:bg-mustard-deep",
   outline:
     "border-[1.5px] border-ink/70 bg-paper text-ink hover:border-ink hover:bg-cream/40",
+  danger:
+    "border-[1.5px] border-ketchup bg-paper text-ketchup hover:border-ketchup-deep hover:bg-ketchup/5 hover:text-ketchup-deep",
 } as const;
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonProps = ComponentPropsWithRef<"button"> & {
   variant: keyof typeof variants;
 };
 

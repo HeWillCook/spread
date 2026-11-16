@@ -111,6 +111,24 @@ export async function updateEvent(
     .where(and(eq(events.id, eventId), eq(events.hostId, hostId)));
 }
 
+/**
+ * Deletes the host's event and returns its title (for a confirmation message).
+ * Every table that hangs off an event — guests and their plus-ones, dishes,
+ * invitees, shopping ticks, extra costs — cascades in the database.
+ */
+export async function deleteEvent(
+  db: Db,
+  hostId: string,
+  eventId: string,
+): Promise<{ title: string }> {
+  const [deleted] = await db
+    .delete(events)
+    .where(and(eq(events.id, eventId), eq(events.hostId, hostId)))
+    .returning({ title: events.title });
+  if (!deleted) throw new NotFoundError("Event not found");
+  return deleted;
+}
+
 /** The host's events, soonest first, each with its planning headcount. */
 export async function listHostEvents(db: Db, hostId: string): Promise<EventSummary[]> {
   const rows = await db

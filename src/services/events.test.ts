@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
+import { eventDishes, events, guests, invitees, plusOnes } from "@/db/schema";
+import { seedStarterRecipes } from "@/db/seed";
 import { createTestDb } from "@/db/test-db";
 import { formatWhen } from "@/lib/format";
 import { zonedLocalToDate } from "@/lib/zoned-time";
@@ -8,12 +10,14 @@ import { NotFoundError, ValidationError } from "./errors";
 import {
   addInvitees,
   createEvent,
+  deleteEvent,
   getHostEvent,
   headcountForEvents,
   listHostEvents,
   noReplyNames,
   updateEvent,
 } from "./events";
+import { addDishToEvent } from "./menu";
 import { getPublicEvent, submitRsvp } from "./rsvp";
 
 let db: Db;
@@ -232,6 +236,36 @@ describe("updateEvent", () => {
     }
     const event = await getHostEvent(db, "host-1", id);
     expect(event).toMatchObject({ title: "Fourth of July", location: "Backyard" });
+  });
+});
+
+describe("deleteEvent", () => {
+  it("deletes the host's event and cascades its guests, plus-ones, invitees and dishes", async () => {
+    await seedStarterRecipes(db);
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: ["Sam", "Jo"] });
+    await addInvitees(db, "host-1", id, ["Bea"]);
+    await addDishToEvent(db, "host-1", id, "starter-burgers");
+    await createEvent(db, "host-2", { ...input, title: "Not mine" });
+
+    expect(await deleteEvent(db, "host-1", id)).toEqual({ title: "Fourth of July" });
+
+    expect((await db.select().from(events)).map((e) => e.title)).toEqual(["Not mine"]);
+    expect(await db.select().from(guests)).toHaveLength(0);
+    expect(await db.select().from(plusOnes)).toHaveLength(0);
+    expect(await db.select().from(invitees)).toHaveLength(0);
+    expect(await db.select().from(eventDishes)).toHaveLength(0);
+    await expect(getPublicEvent(db, shareCode)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("is a NotFoundError for another host's event and leaves it in place", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await expect(deleteEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await getHostEvent(db, "host-1", id)).title).toBe("Fourth of July");
+  });
+
+  it("is a NotFoundError for an unknown id", async () => {
+    await expect(deleteEvent(db, "host-1", "missing")).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 

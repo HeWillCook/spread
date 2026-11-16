@@ -12,12 +12,15 @@ import { listHostEvents } from "@/services/events";
 // Reads the session and the database, so it must never be prerendered.
 export const dynamic = "force-dynamic";
 
-export default async function HostDashboardPage() {
+export default async function HostDashboardPage({ searchParams }: PageProps<"/host">) {
   const host = await requireHost();
   const [events, baseUrl] = await Promise.all([
     getDb().then((db) => listHostEvents(db, host.id)),
     getBaseUrl(),
   ]);
+  // Set by deleteEventAction; the notice stays until the host follows the Dismiss link.
+  const deleted = (await searchParams).deleted;
+  const deletedTitle = typeof deleted === "string" && deleted.trim() ? deleted : null;
 
   return (
     <main className="page-shell flex-1">
@@ -37,6 +40,20 @@ export default async function HostDashboardPage() {
           Create event
         </Link>
       </div>
+
+      {deletedTitle ? (
+        <div
+          role="status"
+          className="ticket-surface mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl bg-paper px-4 py-2"
+        >
+          <p className="text-sm font-semibold">
+            Deleted <strong className="font-bold">“{deletedTitle}”</strong>.
+          </p>
+          <Link href="/host" className="quiet-link">
+            Dismiss
+          </Link>
+        </div>
+      ) : null}
 
       {events.length === 0 ? (
         <div className="mt-8 max-w-2xl">

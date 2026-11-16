@@ -6,11 +6,11 @@ import type { EditEventState } from "@/components/EditEventForm";
 import { getDb } from "@/db/client";
 import { requireHost } from "@/server/auth";
 import { NotFoundError, ValidationError } from "@/services/errors";
-import { updateEvent } from "@/services/events";
+import { deleteEvent, updateEvent } from "@/services/events";
 
 // The host comes from the session. The event id arrives through `bind`, but in Next 16
 // bound arguments are sent to the browser and can be altered, so they are NOT protected:
-// this is safe only because updateEvent re-checks that the event belongs to the host.
+// this is safe only because these services re-check that the event belongs to the host.
 
 function text(formData: FormData, key: string): string {
   const v = formData.get(key);
@@ -40,4 +40,18 @@ export async function updateEventAction(
   revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
   revalidatePath("/host");
   redirect(`/host/events/${encodeURIComponent(eventId)}`);
+}
+
+/** Deletes the event (and everything on it), then returns to the dashboard to confirm. */
+export async function deleteEventAction(eventId: string): Promise<void> {
+  const host = await requireHost();
+  let title: string;
+  try {
+    ({ title } = await deleteEvent(await getDb(), host.id, eventId));
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+  revalidatePath("/host");
+  redirect(`/host?deleted=${encodeURIComponent(title)}`);
 }

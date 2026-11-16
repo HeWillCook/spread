@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { updateEventAction } from "./actions";
+import { deleteEventAction, updateEventAction } from "./actions";
 
 let db: Db;
 let eventId: string;
@@ -72,6 +72,21 @@ describe("updateEventAction", () => {
   it("a different signed-in host gets a 404", async () => {
     session.hostId = "host-2";
     await expect(updateEventAction(eventId, { error: null }, form())).rejects.toThrow("NEXT_NOT_FOUND");
+    expect((await getHostEvent(db, "host-1", eventId)).title).toBe("Cookout");
+  });
+});
+
+describe("deleteEventAction", () => {
+  it("deletes the event and redirects to the dashboard with its title", async () => {
+    await expect(deleteEventAction(eventId)).rejects.toThrow(
+      `NEXT_REDIRECT:/host?deleted=${encodeURIComponent("Cookout")}`,
+    );
+    await expect(getHostEvent(db, "host-1", eventId)).rejects.toThrow();
+  });
+
+  it("a different signed-in host gets a 404 and the event stays", async () => {
+    session.hostId = "host-2";
+    await expect(deleteEventAction(eventId)).rejects.toThrow("NEXT_NOT_FOUND");
     expect((await getHostEvent(db, "host-1", eventId)).title).toBe("Cookout");
   });
 });
