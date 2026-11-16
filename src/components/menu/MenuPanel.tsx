@@ -63,7 +63,7 @@ export function MenuPanel({
           <h2 className="text-2xl font-bold">What&apos;s on the table?</h2>
         </div>
         {sheetHref ? (
-          <Link href={sheetHref} className="menu-sheet-link" aria-label="Kitchen sheet. Copy or print your saved plan.">
+          <Link href={sheetHref} className="menu-sheet-link hidden lg:inline-flex" aria-label="Kitchen sheet. Copy or print your saved plan.">
             <svg width="22" height="26" viewBox="0 0 22 26" fill="none" aria-hidden="true">
               <rect x="2" y="2" width="18" height="22" rx="2" stroke="currentColor" strokeWidth="1.5" />
               <path d="M7 8h8M7 13h8M7 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -72,23 +72,6 @@ export function MenuPanel({
           </Link>
         ) : null}
       </header>
-      {planningTools ? (
-        <details className="menu-exploration">
-          <summary>
-            <span className="menu-exploration-intro">
-              <strong>Try a different crowd</strong>
-            </span>
-            <span className="menu-exploration-action">
-              <span className="menu-explore-label">Explore</span>
-              <span className="menu-close-label">Close</span>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="m5 7 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </summary>
-          {planningTools}
-        </details>
-      ) : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Search first in the source order so phones start with it. */}
         <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-1">
@@ -124,6 +107,25 @@ export function MenuPanel({
             ))
           )}
         </div>
+        {planningTools ? (
+          <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-2">
+            <details className="menu-exploration">
+              <summary>
+                <span className="menu-exploration-intro">
+                  <strong>Try a different crowd</strong>
+                </span>
+                <span className="menu-exploration-action">
+                  <span className="menu-explore-label">Explore</span>
+                  <span className="menu-close-label">Close</span>
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="m5 7 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </summary>
+              {planningTools}
+            </details>
+          </div>
+        ) : null}
         <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-2">
           <CustomDishForm action={createDishAction} />
         </div>

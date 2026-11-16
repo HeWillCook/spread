@@ -206,7 +206,7 @@ export function GuestsPanel({
         <Card className="flex flex-col gap-2">
           <h2 className="text-xl">Invite your guests</h2>
           <p className="text-sm leading-relaxed text-ink-muted">
-            Guests RSVP from this link. No account needed.
+            No account needed.
           </p>
           <CopyLinkButton url={invitation.url} />
         </Card>
