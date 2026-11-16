@@ -6,8 +6,7 @@ import { RECIPE_GROUPS, recipeCategory, type RecipeGroup } from "@/domain/recipe
 import { buildShoppingList } from "@/domain/shopping";
 import { dishAnchorId } from "@/lib/menu-fields";
 import {
-  appetiteLabel,
-  formatAmount,
+  appetiteRowText,
   formatIngredientAmount,
   servingWord,
   timeRow,
@@ -250,8 +249,7 @@ export function AddDishPanel({
                                 <span aria-hidden="true">{recipe.emoji}</span> {recipe.name}
                               </span>
                               <span className="text-xs text-ink/70">
-                                {formatAmount(recipe.defaultServingsPerPerson)}{" "}
-                                {appetiteLabel(recipe.name)}
+                                {appetiteRowText(recipe.defaultServingsPerPerson, recipe.name)}
                                 {totalTime ? ` · ${totalTime}` : ""}
                               </span>
                               {ingredientHits.length > 0 ? (

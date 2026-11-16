@@ -7,6 +7,7 @@ import { formatBuyQty } from "@/lib/shopping-text";
 import {
   amountLabel,
   appetiteLabel,
+  appetiteRowText,
   buyHint,
   formatAmount,
   formatIngredientAmount,
@@ -106,7 +107,7 @@ export function DishCard({
             </div>
 
             <p className="text-sm font-bold text-ink/85">
-              {formatAmount(dish.servingsPerPerson)} {appetiteLabel(recipe.name)}
+              {appetiteRowText(dish.servingsPerPerson, recipe.name)}
               {planFor !== undefined && planFor > 0
                 ? ` · ${formatBuyQty(servingsMade, servingWord(recipe.name))} for ${planFor} ${
                     planFor === 1 ? "guest" : "guests"

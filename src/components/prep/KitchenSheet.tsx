@@ -44,10 +44,6 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
           {planningLabel(sheet.headcount)}
         </h2>
         <p className="kitchen-headcount mt-1 text-sm font-bold text-ink/80">{sheet.headcountLine}</p>
-        <p className="kitchen-snapshot-note mt-2 text-xs leading-relaxed text-ink/80">
-          Saved planning snapshot. Counts and quantities use the RSVPs and portions saved in
-          Spread; attendance can still change.
-        </p>
       </section>
 
       <div className="kitchen-actions flex flex-wrap items-start justify-between gap-4 print:hidden">

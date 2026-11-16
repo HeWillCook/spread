@@ -91,7 +91,7 @@ describe("GuestsPanel", () => {
     expect(screen.getByText("Eli")).toBeInTheDocument();
     expect(screen.getByText("2 no reply")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy reminder for Dana" })).toBeInTheDocument();
-    expect(screen.getByText(/People who haven't replied aren't included/)).toBeInTheDocument();
+    expect(screen.getByText(/no-reply guests aren't counted/)).toBeInTheDocument();
   });
 
   it("summarizes food notes from attending and maybe guests for planning", () => {

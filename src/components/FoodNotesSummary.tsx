@@ -10,7 +10,7 @@ export function FoodNotesSummary({ guests }: { guests: Pick<GuestRow, "id" | "na
       <ul className="flex flex-col gap-2 text-sm leading-relaxed">
         {notes.map((g) => <li key={g.id}><strong>{g.name}:</strong> {g.foodNotes}</li>)}
       </ul>
-      <p className="mt-3 text-xs leading-relaxed text-ink-muted">From going and maybe guests. Check ingredients with them before you cook; quantities don&apos;t account for these notes automatically.</p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-muted">Quantities don&apos;t adjust for these.</p>
     </section>
   );
 }

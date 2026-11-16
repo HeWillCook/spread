@@ -17,7 +17,7 @@ describe("EditEventForm", () => {
     expect(screen.getByLabelText("What's the occasion?")).toHaveValue("Burger Night");
     expect(screen.getByLabelText("Date and time")).toHaveValue("2026-11-14T19:00");
     expect(screen.getByLabelText("Where?")).toHaveValue("The patio");
-    expect(screen.getByText("Time in America/Chicago")).toBeInTheDocument();
+    expect(screen.getByText("Your local time")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/host/events/e1");
   });
 

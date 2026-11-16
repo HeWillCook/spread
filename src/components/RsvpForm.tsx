@@ -43,11 +43,9 @@ const ANSWER_LABELS: Record<RsvpStatus, string> = {
 
 function SlipHead({
   event,
-  readOnly,
   hideTitle,
 }: {
   event: RsvpFormEvent;
-  readOnly: boolean;
   hideTitle: boolean;
 }) {
   return (
@@ -63,9 +61,7 @@ function SlipHead({
       )}
       <p className="text-[1.0625rem] font-semibold text-ketchup-deep">{event.when}</p>
       <p className="text-sm text-ink-muted">
-        {readOnly
-          ? `${event.goingCount} going so far.`
-          : `${event.goingCount} going so far. A quick answer helps the host plan the food. No account needed.`}
+        {event.goingCount} going so far.
       </p>
     </header>
   );
@@ -141,14 +137,14 @@ export function RsvpForm({
 
       {readOnly ? (
         <div className="ticket slip">
-          <SlipHead event={event} readOnly hideTitle={hideTitle} />
+          <SlipHead event={event} hideTitle={hideTitle} />
           <div className="slip-body">
             <ReadOnlyReply initial={initial} />
           </div>
         </div>
       ) : (
         <form action={formAction} className="ticket slip">
-          <SlipHead event={event} readOnly={false} hideTitle={hideTitle} />
+          <SlipHead event={event} hideTitle={hideTitle} />
 
           <div className="slip-body">
             <Field

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   amountLabel,
   appetiteLabel,
+  appetiteRowText,
   buyHint,
+  formatDuration,
+  lowercaseDishName,
   formatAmount,
   formatIngredientAmount,
   formatQuantity,
@@ -44,6 +47,13 @@ describe("menu text helpers", () => {
     expect(appetiteLabel("Burgers")).toBe("burgers per person");
     expect(appetiteLabel("Hummus")).toBe("hummus per person");
     expect(appetiteLabel("Potato salad")).toBe("servings of potato salad per person");
+    expect(appetiteRowText(1.5, "Burgers")).toBe("1.5 burgers per person");
+    expect(appetiteRowText(1.5, "Potato salad")).toBe("1.5 servings per person");
+    expect(appetiteRowText(1, "Potato salad")).toBe("1 serving per person");
+    expect(appetiteRowText(1.5, "BBQ pulled pork")).toBe("1.5 servings per person");
+    expect(appetiteRowText(2, "BBQ Burgers")).toBe("2 BBQ burgers per person");
+    expect(lowercaseDishName("BBQ pulled pork")).toBe("BBQ pulled pork");
+    expect(lowercaseDishName("Sunday Cookout")).toBe("sunday cookout");
     expect(amountLabel("lb", "Burgers")).toBe("lb per burger");
     expect(amountLabel("slice", "Pizza")).toBe("slice per serving");
   });
@@ -93,5 +103,16 @@ describe("menu text helpers", () => {
     expect(totalTimeLabel({ prepMinutes: 15, cookMinutes: 20 })).toBe("35 min");
     expect(totalTimeLabel({ cookMinutes: 20 })).toBe("20 min");
     expect(totalTimeLabel({})).toBeNull();
+  });
+
+  it("formats long durations as hours and minutes", () => {
+    expect(formatDuration(35)).toBe("35 min");
+    expect(formatDuration(60)).toBe("1 hr");
+    expect(formatDuration(320)).toBe("5 hr 20 min");
+    expect(formatDuration(125)).toBe("2 hr 5 min");
+    expect(timeRow({ prepMinutes: 20, cookMinutes: 300 })).toBe(
+      "Prep 20 min · Cook 5 hr · Total 5 hr 20 min",
+    );
+    expect(totalTimeLabel({ cookMinutes: 320 })).toBe("5 hr 20 min");
   });
 });

@@ -23,11 +23,35 @@ export function servingWord(recipeName: string): string {
   return name.slice(0, -1);
 }
 
+/** Lowercase a dish name for a unit phrase, but keep acronyms like "BBQ" intact. */
+export function lowercaseDishName(recipeName: string): string {
+  return recipeName
+    .trim()
+    .split(/\s+/)
+    .map((word) => (/^(?=.*[A-Z]{2})[A-Z0-9&.'-]+$/.test(word) ? word : word.toLowerCase()))
+    .join(" ");
+}
+
 /** Label for the appetite input: "burgers per person", "servings of potato salad per person". */
 export function appetiteLabel(recipeName: string): string {
-  const name = recipeName.trim().toLowerCase();
+  const name = lowercaseDishName(recipeName);
   if (servingWord(recipeName) !== "serving") return `${name} per person`;
   return `servings of ${name} per person`;
+}
+
+/**
+ * A row subtitle with its amount: "1.5 burgers per person". When the unit word is
+ * just the generic "serving", the dish name above already says which dish it is, so
+ * the row says only "1.5 servings per person".
+ */
+export function appetiteRowText(amount: number, recipeName: string): string {
+  const unit =
+    servingWord(recipeName) === "serving"
+      ? amount === 1
+        ? "serving"
+        : "servings"
+      : lowercaseDishName(recipeName);
+  return `${formatAmount(amount)} ${unit} per person`;
 }
 
 /** "lb per burger" - what the amount input for an item means. */
@@ -128,19 +152,29 @@ export function totalMinutes(recipe: Pick<Recipe, "prepMinutes" | "cookMinutes">
   return total > 0 ? total : null;
 }
 
+/** "35 min", "1 hr", "1 hr 20 min": a cook-friendly duration. */
+export function formatDuration(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (hours === 0) return `${rest} min`;
+  if (rest === 0) return `${hours} hr`;
+  return `${hours} hr ${rest} min`;
+}
+
 /** "35 min" for a result row; null when the dish has no time estimates. */
 export function totalTimeLabel(recipe: Pick<Recipe, "prepMinutes" | "cookMinutes">): string | null {
   const total = totalMinutes(recipe);
-  return total === null ? null : `${total} min`;
+  return total === null ? null : formatDuration(total);
 }
 
-/** "Prep 15 min · Cook 20 min · Total 35 min", leaving out anything unknown. */
+/** "Prep 15 min · Cook 1 hr 20 min · Total 1 hr 35 min", leaving out anything unknown. */
 export function timeRow(recipe: Pick<Recipe, "prepMinutes" | "cookMinutes">): string | null {
   const parts: string[] = [];
-  if (recipe.prepMinutes) parts.push(`Prep ${recipe.prepMinutes} min`);
-  if (recipe.cookMinutes) parts.push(`Cook ${recipe.cookMinutes} min`);
+  if (recipe.prepMinutes) parts.push(`Prep ${formatDuration(recipe.prepMinutes)}`);
+  if (recipe.cookMinutes) parts.push(`Cook ${formatDuration(recipe.cookMinutes)}`);
   if (recipe.prepMinutes && recipe.cookMinutes) {
-    parts.push(`Total ${recipe.prepMinutes + recipe.cookMinutes} min`);
+    parts.push(`Total ${formatDuration(recipe.prepMinutes + recipe.cookMinutes)}`);
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }

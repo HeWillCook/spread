@@ -33,7 +33,6 @@ export function SplitPanel({
   const heads = payingHeads(rows);
   const charged = totalCents - hostCoveredCents;
   const each = heads > 0 ? Math.round(charged / heads) : null;
-  const nobodyCame = !rows.some((r) => r.attended);
   const paidCount = rows.filter((r) => r.attended && !r.excluded && r.owedCents > 0 && r.paid).length;
   const owingCount = rows.filter((r) => r.attended && !r.excluded && r.owedCents > 0).length;
 
@@ -44,19 +43,15 @@ export function SplitPanel({
           <p className="text-sm font-semibold">Total</p>
           <p className="receipt-amount">{formatCents(totalCents)}</p>
           {view.totalIsProvisional ? (
-            <p className="mt-3 text-sm font-bold leading-relaxed">Review changed quantities on Shopping before collecting money. This total is provisional.</p>
+            <p className="mt-3 text-sm font-bold leading-relaxed">Total is provisional. Recheck Shopping.</p>
           ) : null}
           {each !== null ? (
-            <p className="text-base font-bold">
-              {formatCents(totalCents)} total · about {formatCents(each)} each
-            </p>
+            <p className="mt-1 text-base font-bold">≈ {formatCents(each)} each</p>
           ) : null}
           {hostCoveredCents > 0 ? (
             <p className="text-sm">You cover {formatCents(hostCoveredCents)}</p>
           ) : null}
-          {nobodyCame ? (
-            <p className="mt-1 text-sm font-bold">Tick who came to see what everyone owes</p>
-          ) : unassignedCents > 0 ? (
+          {unassignedCents > 0 ? (
             <p className="mt-1 text-sm font-bold">
               {formatCents(unassignedCents)} isn&apos;t assigned to anyone yet
             </p>

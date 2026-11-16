@@ -60,7 +60,7 @@ export function EditEventForm({
           name="startsAt"
           type="datetime-local"
           required
-          hint={`Time in ${initial.timezone}`}
+          hint="Your local time"
           value={startsAt}
           onChange={(e) => setStartsAt(e.target.value)}
         />
