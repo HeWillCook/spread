@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { OccasionScene } from "./occasion/OccasionScene";
 import { Bunting } from "./scrapbook/Bunting";
 import { Sticker } from "./scrapbook/Sticker";
@@ -48,20 +48,22 @@ export function ScrapbookPage({
           }`}
         >
           {occasion ? (
-            <>
-              <span className="scrapbook-scene-strip">
-                <OccasionScene theme={theme} size="strip" />
-              </span>
-              <span className="scrapbook-scene-panel">
-                <OccasionScene theme={theme} size="panel" />
-              </span>
-            </>
+            <span className="scrapbook-scene-panel">
+              <OccasionScene theme={theme} size="panel" />
+            </span>
           ) : (
             <>
               <Bunting count={14} className="scrapbook-bunting" />
               <span className="scrapbook-base-scene" aria-hidden="true">
-                <span className="scrapbook-blanket" />
                 <span className={`scrapbook-hero ${previewTheme ? "scrapbook-hero-preview" : ""}`}>
+                  {!previewTheme ? (
+                    <Sticker
+                      name="plate"
+                      size="lg"
+                      tilt={7}
+                      className="base-hero-small base-hero-small-plate"
+                    />
+                  ) : null}
                   <Sticker name={hero} size="xl" tilt={-4} className="base-hero-main" />
                   {previewTheme ? (
                     <>
@@ -95,6 +97,17 @@ export function ScrapbookPage({
                     </>
                   )}
                 </span>
+                <span className="scrapbook-base-ants">
+                  {[0, 1, 2].map((index) => (
+                    <span
+                      key={index}
+                      className="base-ant"
+                      style={{ "--ant-delay": `${index * 0.35}s` } as CSSProperties}
+                    >
+                      <Sticker name="ant" size="sm" tilt={index % 2 ? 5 : -5} />
+                    </span>
+                  ))}
+                </span>
               </span>
             </>
           )}
@@ -107,6 +120,12 @@ export function ScrapbookPage({
             <Link href="/" aria-label="Spread home" className="scrapbook-home paper-label">
               <Wordmark />
             </Link>
+
+            {occasion ? (
+              <span className="scrapbook-compact-scene">
+                <OccasionScene theme={theme} size="compact" />
+              </span>
+            ) : null}
 
             <div className="scrapbook-base-copy">
               <div className="scrapbook-label paper-label">

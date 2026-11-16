@@ -24,7 +24,8 @@ export type StickerName =
   | "ticket"
   | "bag"
   | "popper"
-  | "grill";
+  | "grill"
+  | "plate";
 
 /** The thick white die-cut edge behind every filled silhouette. */
 function Die({ children }: { children: ReactNode }) {
@@ -239,17 +240,17 @@ const DESIGNS: Record<StickerName, ReactNode> = {
         <ellipse cx="32" cy="36" rx="22" ry="17" fill="var(--ketchup)" />
         <path d="M30 19c0-6 3-6 3-11 4 3 3 7 2 11" fill="var(--pickle)" />
       </Die>
-      <ellipse cx="22" cy="36" rx="6" ry="14" fill="var(--ketchup-deep)" opacity=".3" />
-      <ellipse cx="42" cy="36" rx="6" ry="14" fill="var(--ketchup-deep)" opacity=".3" />
-      <path d="M21 31l6 5-6 2Z" fill="var(--ink)" />
-      <path d="M43 31l-6 5 6 2Z" fill="var(--ink)" />
+      <ellipse cx="22" cy="36" rx="6" ry="14" fill="var(--ketchup-deep)" opacity=".28" />
+      <ellipse cx="42" cy="36" rx="6" ry="14" fill="var(--ketchup-deep)" opacity=".28" />
       <path
-        d="M26 45c4 3 8 3 12 0"
-        stroke="var(--ink)"
-        strokeWidth="2"
+        d="M26 22c-5 6-5 22 0 28M38 22c5 6 5 22 0 28M32 20v31"
+        stroke="var(--ketchup-deep)"
+        strokeWidth="1.6"
         strokeLinecap="round"
+        opacity=".38"
         fill="none"
       />
+      <path d="M36 17c5-3 11-1 12 4-4 3-10 1-12-4Z" fill="var(--pickle)" opacity=".85" />
     </>
   ),
   tree: (
@@ -466,22 +467,46 @@ const DESIGNS: Record<StickerName, ReactNode> = {
   ),
   popper: (
     <>
-      <path
-        d="M10 10C17 4 25 7 28 16s0 22-9 30c-8 0-13-6-13-14s-1-17 4-22Z"
-        fill="var(--paper)"
-      />
       <Die>
-        <path d="M16 58 30 32l11 8-14 26Z" fill="var(--ketchup)" />
-        <path d="M30 32l11 8 6-5-9-10Z" fill="var(--mustard-deep)" />
+        <path d="M12 60 32 26l16 10-21 30Z" fill="var(--ketchup)" />
+        <path d="M32 26l16 10 4-4-15-11Z" fill="var(--mustard-deep)" />
       </Die>
-      <path d="M20 48l14-8M22 54l15-9" stroke="var(--paper)" strokeWidth="3" strokeLinecap="round" opacity=".9" />
-      <g>
-        <path d="M36 12l2.4 5.2 5.7.7-4.2 3.9 1.1 5.7-5-2.9-5 2.9 1.1-5.7-4.2-3.9 5.7-.7Z" fill="var(--mustard)" />
-        <circle cx="24" cy="16" r="3.2" fill="var(--pickle)" />
-        <circle cx="46" cy="30" r="2.7" fill="var(--ketchup)" />
-        <path d="M42 8c4 2 5 5 4 9M16 26c-3 2-4 5-3 8" stroke="var(--mustard-deep)" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-        <path d="M46 14c4-1 6 1 7 4-3 2-6 1-7-4Z" fill="var(--pickle-soft)" />
+      <path
+        d="M18 54l14-9M21 60l15-10"
+        stroke="var(--paper)"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        opacity=".9"
+      />
+      <g strokeLinecap="round" fill="none">
+        <path d="M50 30c7-5 10-2 16-8" stroke="var(--mustard)" strokeWidth="3.6" />
+        <path d="M47 37c9-2 11 2 17-3" stroke="var(--pickle)" strokeWidth="3.2" />
+        <path d="M53 22c2-8 8-10 13-11" stroke="var(--ketchup)" strokeWidth="3.2" />
+        <path d="M42 22c-2-8 0-13 5-17" stroke="var(--mustard-deep)" strokeWidth="2.8" />
       </g>
+      <g>
+        <circle cx="61" cy="15" r="3.2" fill="var(--pickle)" />
+        <circle cx="42" cy="9" r="2.6" fill="var(--ketchup)" />
+        <path
+          d="M31 4l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.6-4.5 2.6 1-5L24 9.2l5-.6Z"
+          fill="var(--mustard)"
+        />
+        <path d="M57 34c4-2 7-1 8 2-3 2-6 1-8-2Z" fill="var(--pickle-soft)" />
+      </g>
+    </>
+  ),
+  plate: (
+    <>
+      <Die>
+        <rect x="22" y="16" width="26" height="26" rx="3" fill="var(--paper)" transform="rotate(8 35 29)" />
+        <circle cx="31" cy="36" r="18" fill="var(--cream)" />
+        <circle cx="31" cy="36" r="13" fill="var(--paper)" />
+      </Die>
+      <g opacity=".85">
+        <path d="M22 22h8M22 28h8M22 34h8M30 22v12" stroke="var(--ketchup)" strokeWidth="1.6" />
+        <path d="M24 22v12M27 22v12" stroke="var(--ketchup)" strokeWidth="1.2" opacity=".55" />
+      </g>
+      <path d="M49 22v22M49 22c3 0 4 2 4 4s-1 4-4 4" stroke="var(--ink-muted)" strokeWidth="2" fill="none" strokeLinecap="round" />
     </>
   ),
   grill: (

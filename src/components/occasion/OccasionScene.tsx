@@ -7,7 +7,7 @@ import { Embers } from "@/components/fire/Embers";
 import { Flames } from "@/components/fire/Flames";
 import { between, round, seeded } from "@/components/scrapbook/seed";
 
-type SceneSize = "strip" | "panel";
+type SceneSize = "strip" | "compact" | "panel";
 
 interface Bit {
   x: number;
@@ -33,7 +33,7 @@ function makeBits(count: number, seed: number, small: boolean): Bit[] {
   return Array.from({ length: count }, () => ({
     x: between(rand, 4, 96),
     y: between(rand, 4, 86),
-    size: small ? between(rand, 3.5, 7.5) : between(rand, 7, 15),
+    size: small ? between(rand, 3.5, 7.5) : between(rand, 6.5, 16),
     dur: between(rand, 7, 13),
     delay: -between(rand, 0, 8),
     drift: between(rand, -12, 12),
@@ -105,18 +105,21 @@ function Particles({
   count,
   seed,
   small,
+  scale = 1,
   glyph,
 }: {
   count: number;
   seed: number;
   small: boolean;
+  /** Visual weight multiplier, for shapes that read small at their normal size. */
+  scale?: number;
   glyph: (tone: string, index: number) => ReactNode;
 }) {
   return makeBits(count, seed, small).map((bit, index) => (
     <span
       key={index}
       className="scene-bit"
-      style={bitStyle(bit, TONES[index % TONES.length])}
+      style={bitStyle({ ...bit, size: bit.size * scale }, TONES[index % TONES.length])}
     >
       {glyph(TONES[index % TONES.length], index)}
     </span>
@@ -131,11 +134,12 @@ function Confetti({ count, small }: { count: number; small: boolean }) {
         seed: 0xc0f7,
         small,
         glyph: (tone, index) => {
-          if (index % 5 === 0) return <StarGlyph colour={tone} />;
-          if (index % 5 === 1) return <RibbonGlyph colour={tone} />;
-          if (index % 5 === 2) {
+          if (index % 6 === 0) return <StarGlyph colour={tone} />;
+          if (index % 6 === 1) return <RibbonGlyph colour={tone} />;
+          if (index % 6 === 2) {
             return <span className="scene-confetti-fill" style={{ borderRadius: "50%" }} />;
           }
+          if (index % 6 === 3) return <span className="scene-confetti-fill scene-confetti-strip" />;
           return <span className="scene-confetti-fill" />;
         },
       })}
@@ -170,8 +174,8 @@ function Steam({ count = 3 }: { count?: number }) {
           className="scene-steam"
           style={
             {
-              "--x": `${round(between(rand, 55, 78), 1)}%`,
-              "--y": `${round(between(rand, 28, 55), 1)}%`,
+              "--x": `${round(between(rand, 41, 59), 1)}%`,
+              "--y": `${round(between(rand, 32, 48), 1)}%`,
               "--dur": `${round(between(rand, 6, 9), 2)}s`,
               "--delay": `${round(-between(rand, 0, 6), 2)}s`,
             } as CSSProperties
@@ -302,6 +306,35 @@ function Butterfly() {
   );
 }
 
+function Balloons({ count, small }: { count: number; small: boolean }) {
+  const rand = seeded(0xba110);
+  const spots = [
+    { x: 14, y: 18 },
+    { x: 78, y: 12 },
+    { x: 88, y: 28 },
+  ];
+  return (
+    <>
+      {spots.slice(0, count).map((spot, index) => (
+        <span
+          key={index}
+          className="scene-balloon"
+          style={
+            {
+              "--x": `${spot.x + between(rand, -3, 3)}%`,
+              "--y": `${spot.y + between(rand, -4, 4)}%`,
+              "--dur": `${round(between(rand, 7, 11), 2)}s`,
+              "--delay": `${round(-between(rand, 0, 5), 2)}s`,
+            } as CSSProperties
+          }
+        >
+          <Sticker name="balloon" size={small || index === 1 ? "sm" : "md"} tilt={index % 2 ? 6 : -7} />
+        </span>
+      ))}
+    </>
+  );
+}
+
 function Dice() {
   return (
     <span className="scene-die">
@@ -324,33 +357,40 @@ export function OccasionScene({
   className?: string;
 }) {
   const strip = size === "strip";
-  const count = strip ? 22 : 54;
+  const compact = size === "compact";
+  const count = strip ? 22 : compact ? 20 : 66;
   
   return (
     <span
       aria-hidden="true"
       className={`occasion-scene occasion-${theme} ${
-        strip ? "occasion-strip" : "occasion-panel"
+        strip ? "occasion-strip" : compact ? "occasion-compact" : "occasion-panel"
       } ${className}`}
     >
-      {theme === "party" ? <Confetti count={count} small={strip} /> : null}
+      {theme === "party" ? (
+        <>
+          <Confetti count={count} small={strip || compact} />
+          {!strip ? <Balloons count={compact ? 2 : 3} small={compact} /> : null}
+        </>
+      ) : null}
       {theme === "cookout" ? (
         <>
-          <Embers count={strip ? 12 : 30} rise={strip ? 70 : 720} />
-          {strip ? (
-            <span className="scene-fire">
-              <Flames edge="bottom" size="sm" />
-            </span>
-          ) : null}
+          <Embers count={strip ? 14 : 46} rise={strip ? 70 : 640} />
+          <Steam count={strip ? 2 : 5} />
+          <span className="scene-fire">
+            <Flames edge="bottom" size="sm" />
+          </span>
         </>
       ) : null}
       {theme === "birthday" ? (
         <>
-          <Sprinkles count={count} small={strip} />
+          <Confetti count={strip ? 10 : count} small={strip || compact} />
+          <Sprinkles count={strip ? 8 : compact ? 8 : 14} small={strip || compact} />
           {strip ? <Candles /> : null}
+          {!strip ? <Balloons count={compact ? 2 : 3} small={compact} /> : null}
         </>
       ) : null}
-      {theme === "pizzeria" ? <Steam count={strip ? 3 : 4} /> : null}
+      {theme === "pizzeria" && strip ? <Steam count={3} /> : null}
       {theme === "fiesta" ? (
         <>
           <Confetti count={count} small={strip} />
@@ -408,9 +448,11 @@ export function OccasionScene({
         </>
       ) : null}
 
+      {!strip ? <span className={`scene-floor scene-floor-${theme}`} /> : null}
+
       {!strip ? (
         <span className={`scene-hero scene-hero-${theme}`}>
-          <Sticker name={occasionHero(theme)} size="xxl" tilt={-4} />
+          <Sticker name={occasionHero(theme)} size={compact ? "lg" : "xxl"} tilt={-4} />
           {theme === "birthday" ? (
             <span className="scene-hero-flames" aria-hidden="true">
               <span />

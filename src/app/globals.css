@@ -1638,7 +1638,7 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 1.5px solid var(--tone);
+    border: 2px solid var(--tone);
     background: rgb(255 250 244 / 0.18);
   }
 
@@ -3682,6 +3682,397 @@
     }
   }
 }
+@layer components {
+  /* ---- One pink picnic blanket, seated picnic hero ---------------------- */
+  .scrapbook-panel-base {
+    background-color: #f6d8cd;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(196 48 26 / 0.16) 0 10px, transparent 10px 20px),
+      repeating-linear-gradient(90deg, rgb(196 48 26 / 0.16) 0 10px, transparent 10px 20px);
+  }
+
+  .scrapbook-hero {
+    bottom: 1.1rem;
+  }
+
+  .base-hero-main {
+    width: 12rem;
+  }
+
+  .scrapbook-hero-preview .base-hero-main {
+    width: 12rem;
+  }
+
+  .base-hero-small-left {
+    left: -4.1rem;
+    bottom: -0.3rem;
+    width: 8.4rem;
+  }
+
+  .base-hero-small-right {
+    right: -6.5rem;
+    bottom: 0.2rem;
+    width: 4.2rem;
+    z-index: 3;
+  }
+
+  .base-hero-small-plate {
+    right: -5.4rem;
+    bottom: 0.1rem;
+    width: 6.6rem;
+    z-index: 2;
+  }
+
+  .scrapbook-hero::after {
+    content: "";
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    bottom: -0.5rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgb(43 29 23 / 0.3), transparent 70%);
+    filter: blur(5px);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .scrapbook-base-ants {
+    position: absolute;
+    left: 13%;
+    bottom: 1.6rem;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.1rem;
+  }
+
+  .base-ant {
+    animation: ant-crawl 6s ease-in-out var(--ant-delay, 0s) infinite alternate;
+  }
+
+  .base-ant .sticker {
+    width: 1.7rem;
+  }
+
+  /* ---- Confident occasion grounds -------------------------------------- */
+  .occasion-party {
+    background: linear-gradient(180deg, #f6cfc6 0%, #edb3a8 62%, #e19a8d 100%);
+  }
+
+  .occasion-cookout {
+    background: linear-gradient(180deg, #ffeacd 0%, #f6c493 64%, #eaa76f 100%);
+  }
+
+  .occasion-cookout .scene-floor {
+    height: 22%;
+  }
+
+  .occasion-cookout .ember {
+    width: calc(var(--size) + 2px);
+    height: calc(var(--size) + 2px);
+    background: #b8461a;
+    box-shadow: 0 0 7px 2px rgb(255 122 40 / 0.55);
+  }
+
+  .occasion-cookout .ember[data-tone="flame"],
+  .occasion-cookout .ember[data-tone="tip"] {
+    background: var(--flame);
+    box-shadow: 0 0 9px 2px rgb(255 150 50 / 0.65);
+  }
+
+  .occasion-birthday {
+    background: linear-gradient(180deg, #fbe3a8 0%, #f2c78f 62%, #e7ad72 100%);
+  }
+
+  .occasion-pizzeria {
+    background-color: #f0cfc2;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(196 48 26 / 0.26) 0 10px, transparent 10px 20px),
+      repeating-linear-gradient(90deg, rgb(196 48 26 / 0.26) 0 10px, transparent 10px 20px);
+  }
+
+  .occasion-fiesta {
+    background: linear-gradient(180deg, #f6d27a 0%, #eec157 62%, #e0ac33 100%);
+  }
+
+  .occasion-toast {
+    background: linear-gradient(180deg, #f7e3bb 0%, #eacb90 62%, #d9b264 100%);
+  }
+
+  .occasion-harvest {
+    background: linear-gradient(180deg, #f8c8a0 0%, #eaa06a 62%, #d9864d 100%);
+  }
+
+  .occasion-holiday {
+    background: linear-gradient(180deg, #bdd6ac 0%, #9cbd8a 62%, #87a975 100%);
+  }
+
+  .occasion-holiday .scene-bit svg {
+    filter: drop-shadow(0 1px 0 rgb(62 106 51 / 0.28));
+  }
+
+  .occasion-picnic {
+    background-color: #f6d8cd;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(196 48 26 / 0.18) 0 10px, transparent 10px 20px),
+      repeating-linear-gradient(90deg, rgb(196 48 26 / 0.18) 0 10px, transparent 10px 20px);
+  }
+
+  .occasion-brunch {
+    background: linear-gradient(180deg, #fdf0dd 0%, #f2d9bf 62%, #e6c3a4 100%);
+  }
+
+  .occasion-gamenight {
+    background-color: #c6d6a7;
+    background-image: radial-gradient(rgb(62 106 51 / 0.12) 1px, transparent 1.2px);
+    background-size: 6px 6px;
+  }
+
+  /* ---- Floors the heroes stand on --------------------------------------- */
+  .scene-floor {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 22%;
+    z-index: 0;
+    box-shadow: inset 0 2px 0 rgb(43 29 23 / 0.12);
+  }
+
+  .scene-floor-party {
+    background: linear-gradient(180deg, #dd968b, #c5766b);
+  }
+
+  .scene-floor-cookout {
+    height: 18%;
+    background: linear-gradient(180deg, #46200f, #26100a);
+  }
+
+  .scene-floor-birthday {
+    background: linear-gradient(180deg, #dda967, #c68d4b);
+  }
+
+  .scene-floor-pizzeria {
+    background: linear-gradient(180deg, #a83a24, #7f2413);
+  }
+
+  .scene-floor-fiesta {
+    background: linear-gradient(180deg, #d2a02a, #b5850f);
+  }
+
+  .scene-floor-toast {
+    background: linear-gradient(180deg, #d6b064, #bd8f3e);
+  }
+
+  .scene-floor-harvest {
+    background: linear-gradient(180deg, #d6935a, #bd7739);
+  }
+
+  .scene-floor-holiday {
+    background: linear-gradient(180deg, #7f9c69, #668454);
+  }
+
+  .scene-floor-picnic {
+    background: repeating-linear-gradient(90deg, #86a566 0 8px, #94b373 8px 16px);
+  }
+
+  .scene-floor-brunch {
+    background: repeating-linear-gradient(90deg, var(--ketchup) 0 9px, #fff6ea 9px 30px);
+  }
+
+  .scene-floor-gamenight {
+    background: linear-gradient(180deg, #8fa466, #75904f);
+  }
+
+  /* ---- Hero standing on the floor -------------------------------------- */
+  .scene-hero {
+    top: auto;
+    bottom: 22%;
+    z-index: 2;
+  }
+
+  .scene-hero-cookout {
+    bottom: 22%;
+  }
+
+  .scene-hero-cookout .sticker {
+    width: 17rem;
+  }
+
+  .scene-hero-harvest .sticker {
+    width: 18rem;
+  }
+
+  .occasion-cookout::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 44%;
+    z-index: 0;
+    background: radial-gradient(70% 100% at 50% 100%, rgb(255 140 60 / 0.4), transparent 72%);
+    pointer-events: none;
+  }
+
+  .occasion-panel .scene-fire,
+  .occasion-compact .scene-fire {
+    bottom: 21%;
+    height: 44px;
+  }
+
+  .scene-hero::before {
+    width: 17rem;
+    height: 17rem;
+  }
+
+  .scene-hero .sticker {
+    width: 16rem;
+  }
+
+  .scene-hero-holiday .sticker {
+    width: 18rem;
+  }
+
+  .scene-hero-gamenight .sticker {
+    width: 17rem;
+  }
+
+  .scene-hero-brunch .sticker {
+    width: 16.5rem;
+  }
+
+  .scene-hero-picnic .sticker {
+    width: 17rem;
+  }
+
+  .scene-hero-party .sticker {
+    width: 17.5rem;
+  }
+
+  .scene-hero-fiesta .sticker {
+    width: 17.5rem;
+  }
+
+  .scene-hero-harvest .sticker {
+    width: 17rem;
+  }
+
+  .scene-hero-toast .sticker {
+    width: 16.5rem;
+  }
+
+  .scene-hero::after {
+    left: 50%;
+    right: auto;
+    width: 13rem;
+    height: 1.5rem;
+    margin-left: -6.5rem;
+    bottom: -0.6rem;
+    background: radial-gradient(ellipse, rgb(43 29 23 / 0.32), transparent 70%);
+    filter: blur(5px);
+    z-index: -1;
+  }
+
+  .scene-hero-flames {
+    top: 17%;
+  }
+
+  .scene-balloon {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    z-index: 3;
+    animation: balloon-drift var(--dur, 9s) ease-in-out var(--delay, 0s) infinite alternate;
+  }
+
+  @keyframes balloon-drift {
+    from {
+      transform: translate3d(0, 0, 0) rotate(-4deg);
+    }
+    to {
+      transform: translate3d(9px, -15px, 0) rotate(4deg);
+    }
+  }
+
+  .scene-confetti-strip {
+    width: 26%;
+    height: 100%;
+    border-radius: 1px;
+    transform: translateX(35%) rotate(22deg);
+  }
+
+  /* ---- Mobile guest: compact hero band --------------------------------- */
+  .scrapbook-compact-scene {
+    display: block;
+    width: 100%;
+    height: 8rem;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-top: 0.15rem;
+  }
+
+  .occasion-compact {
+    height: 8rem;
+  }
+
+  .occasion-compact .scene-floor {
+    height: 26%;
+  }
+
+  .occasion-compact .scene-hero {
+    bottom: 26%;
+  }
+
+  .occasion-compact .scene-hero .sticker {
+    width: 7rem;
+  }
+
+  .occasion-compact .scene-hero::before {
+    width: 8rem;
+    height: 8rem;
+  }
+
+  .occasion-compact .scene-hero::after {
+    width: 6rem;
+    height: 0.7rem;
+    margin-left: -3rem;
+    bottom: -0.3rem;
+  }
+
+  .occasion-compact .scene-hero-flames {
+    display: none;
+  }
+
+  .occasion-compact .scene-balloon .sticker {
+    width: 2rem;
+  }
+
+  @media (max-width: 63.999rem) {
+    .scrapbook-panel-inner-occasion {
+      justify-content: flex-start;
+      gap: 0.55rem;
+      padding: 0.8rem 0.9rem 1rem;
+    }
+
+    .scrapbook-panel-inner-occasion .scrapbook-base-copy {
+      width: 100%;
+      margin-top: 0.2rem;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .scrapbook-compact-scene {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene-balloon {
+      animation: none !important;
+    }
+  }
+}
+
 /*
  * Print strips the scrapbook: no stickers, tape, garlands or occasion motion.
  * Real content keeps its text on white paper.
