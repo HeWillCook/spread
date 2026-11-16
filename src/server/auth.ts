@@ -13,7 +13,7 @@ export interface Host {
 }
 
 // Only used outside production so local dev and tests work with zero setup.
-const DEV_SECRET = "cookout-dev-only-secret-do-not-use-in-production";
+const DEV_SECRET = "spread-dev-only-secret-do-not-use-in-production";
 
 function authSecret(): string {
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -41,22 +41,22 @@ async function createAuth() {
 
 export type Auth = Awaited<ReturnType<typeof createAuth>>;
 
-const globalForAuth = globalThis as unknown as { __cookoutAuth?: Promise<Auth> };
+const globalForAuth = globalThis as unknown as { __spreadAuth?: Promise<Auth> };
 
 /**
  * Singleton Better Auth instance. Created lazily because the database handle is
  * async and so the production secret check doesn't run at build time.
  */
 export function getAuth(): Promise<Auth> {
-  if (!globalForAuth.__cookoutAuth) {
+  if (!globalForAuth.__spreadAuth) {
     const pending = createAuth();
     // Don't cache a failed init, so the next call can retry.
     pending.catch(() => {
-      if (globalForAuth.__cookoutAuth === pending) delete globalForAuth.__cookoutAuth;
+      if (globalForAuth.__spreadAuth === pending) delete globalForAuth.__spreadAuth;
     });
-    globalForAuth.__cookoutAuth = pending;
+    globalForAuth.__spreadAuth = pending;
   }
-  return globalForAuth.__cookoutAuth;
+  return globalForAuth.__spreadAuth;
 }
 
 /** The signed-in host for this request, or null. Guests never have a session. */

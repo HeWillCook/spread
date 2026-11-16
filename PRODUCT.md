@@ -16,7 +16,7 @@ Turn guest responses into a practical food plan, shopping quantities and a cost 
 
 ## Operating Context
 
-Guests use phones without creating an account. Hosts plan ahead, shop, record attendance and manually confirm payments. The existing app is called Cookout.
+Guests use phones without creating an account. Hosts plan ahead, shop, record attendance and manually confirm payments. The existing app is called Spread.
 
 ## Capabilities and Constraints
 
@@ -31,7 +31,7 @@ Next.js App Router, React, TypeScript, Tailwind, Drizzle and Better Auth. Embedd
 
 ## Decisions for This Audit
 
-The user delegated visual and functional decisions. This pass retains the warm Cookout identity and existing stack, improves responsive layouts, and prioritizes host follow-up and shopping reliability. These are implementation choices for this pass.
+The user delegated visual and functional decisions. This pass retains the warm Spread identity and existing stack, improves responsive layouts, and prioritizes host follow-up and shopping reliability. These are implementation choices for this pass.
 
 ## Taking the plan into the kitchen
 

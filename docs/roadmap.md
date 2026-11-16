@@ -1,4 +1,4 @@
-# Cookout: public launch roadmap
+# Spread: public launch roadmap
 
 Last updated: 11 November 2026
 
@@ -91,7 +91,7 @@ Goal: ten real parties, with you watching every one.
 ### Feedback and support
 
 - [ ] `support@your-domain.com` (or a form) linked in the footer and the dashboard.
-- [ ] A one-question feedback prompt after an event date passes: "Did Cookout get the food right?"
+- [ ] A one-question feedback prompt after an event date passes: "Did Spread get the food right?"
 - [ ] A public changelog page, updated weekly.
 - [ ] A 15-minute onboarding call offer for the first ten hosts.
 

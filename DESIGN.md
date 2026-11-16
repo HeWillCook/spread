@@ -1,5 +1,5 @@
 ---
-name: Cookout
+name: Spread
 description: Smokehouse order tickets on pink butcher paper, for casual hosts.
 colors:
   butcher-paper: "#efd3c1"   # page (token: cream)
@@ -32,7 +32,7 @@ rounded:
 
 ## Overview
 
-Cookout looks like the counter of a backyard smokehouse: pink butcher paper underneath, and the plan printed on order tickets. The **ticket** is the one bold object. It appears as the event header (title, then the headcount printed large like a deli order number, then a perforated stub holding the invitation link), the guest RSVP slip, the sign-in and new-event slips, the dashboard event tickets, the landing-page example, and the running-total receipt. Everything around the ticket stays quiet: flat paper surfaces, no borders, no decorative shadows.
+Spread looks like the counter of a backyard smokehouse: pink butcher paper underneath, and the plan printed on order tickets. The **ticket** is the one bold object. It appears as the event header (title, then the headcount printed large like a deli order number, then a perforated stub holding the invitation link), the guest RSVP slip, the sign-in and new-event slips, the dashboard event tickets, the landing-page example, and the running-total receipt. Everything around the ticket stays quiet: flat paper surfaces, no borders, no decorative shadows.
 
 ## Colors
 

@@ -24,7 +24,7 @@ async function signUp(page: Page, name: string): Promise<void> {
   // error, so wait out the window and press the button again.
   await expect(async () => {
     await submit.click();
-    await expect(page.getByRole("heading", { name: "Your cookouts" })).toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole("heading", { name: "Your events" })).toBeVisible({ timeout: 3000 });
   }).toPass({ intervals: [4000], timeout: 60_000 });
 }
 
@@ -300,14 +300,14 @@ test("host removes a duplicate guest, charges a 'no' who came and a walk-in, the
 
 test("landing page offers sign-up and log-in, and a signed-in host goes to their events", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Host a cookout" })).toHaveAttribute("href", "/signup");
+  await expect(page.getByRole("link", { name: "Host a get-together" })).toHaveAttribute("href", "/signup");
   await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
-  await page.getByRole("link", { name: "Host a cookout" }).click();
+  await page.getByRole("link", { name: "Host a get-together" }).click();
   await expect(page).toHaveURL(/\/signup$/);
 
   await signUp(page, "Lena Landing");
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Host a cookout" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Host a get-together" })).toHaveCount(0);
   await page.getByRole("link", { name: "Go to your events" }).click();
   await expect(page).toHaveURL(/\/host$/);
 });

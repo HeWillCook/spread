@@ -23,14 +23,14 @@ describe("eventPreview", () => {
       }),
     ).toEqual({
       title: "Burger Night · Sat, Nov 14 · 7pm",
-      description: "RSVP to Will's cookout",
+      description: "RSVP to Will's get-together",
     });
   });
 
   it("falls back to a generic preview when there is no event", () => {
     expect(eventPreview(null)).toEqual({
-      title: "Cookout",
-      description: "RSVP to a cookout",
+      title: "Spread",
+      description: "RSVP to a get-together",
     });
   });
 });

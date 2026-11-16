@@ -1,14 +1,14 @@
 <img src="assets/icon.svg" width="64" height="64" alt="">
 
-# Cookout
+# Spread
 
-Cookout is a phone-first party planner for backyard get-togethers. A host makes an event and shares one link; guests RSVP with no account (plus-ones included); the host turns the headcount into a menu, a shopping list with quantities and costs, and a fair split with prefilled Venmo links.
+Spread is a phone-first party planner for backyard get-togethers. A host makes an event and shares one link; guests RSVP with no account (plus-ones included); the host turns the headcount into a menu, a shopping list with quantities and costs, and a fair split with prefilled Venmo links.
 
 Built with Next.js (App Router), TypeScript, Tailwind 4, Drizzle on Postgres, and Better Auth for host accounts.
 
 ## Planning a real event
 
-Copy the invitation inside your event, then paste it into your usual chat. Add the names you invited on the Guests tab to track unanswered invitations. Each unanswered name has a personal reminder you can copy and send yourself; Cookout does not send email or SMS. Name matching uses spelling, so a guest who answers under a different name may still appear as unanswered.
+Copy the invitation inside your event, then paste it into your usual chat. Add the names you invited on the Guests tab to track unanswered invitations. Each unanswered name has a personal reminder you can copy and send yourself; Spread does not send email or SMS. Name matching uses spelling, so a guest who answers under a different name may still appear as unanswered.
 
 The planning headcount includes confirmed guests, their plus-ones and the percentage of maybes you choose. People who have not replied are not counted. Menu shows prep quantities from the saved portions; Shopping rounds those quantities up to whole packs. Food notes remain visible on Guests, Menu and Shopping, but do not automatically substitute ingredients or change portions.
 
@@ -93,7 +93,7 @@ The live deployment is Vercel project `cookout` (https://cookout-lac.vercel.app)
 
 ## Venmo links
 
-Venmo has no public API, so Cookout can only build prefilled Venmo pay links (`https://venmo.com/<username>?txn=pay&audience=private&amount=...&note=...`); it never sees or confirms a payment, and the host ticks "Paid" by hand.
+Venmo has no public API, so Spread can only build prefilled Venmo pay links (`https://venmo.com/<username>?txn=pay&audience=private&amount=...&note=...`); it never sees or confirms a payment, and the host ticks "Paid" by hand.
 
 "Send Venmo link" does not open Venmo on the host's phone. It shares (or, where the browser has no share sheet, copies) a short message such as "Hi Pat, your share of Burger Night is $12.50: <link>" so the host can send it to the guest, and only marks the guest "link sent" once the share or copy actually succeeded. A cancelled share sheet marks nothing. The small "Open link" next to it just opens the link for testing and never marks anything sent.
 

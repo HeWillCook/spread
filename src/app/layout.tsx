@@ -19,7 +19,7 @@ const body = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "Cookout",
+  title: "Spread",
   description:
     "Plan your party: guest list, RSVPs, and how much food to make. No accounts for guests.",
 };

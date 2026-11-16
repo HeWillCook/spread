@@ -12,10 +12,10 @@ export function wantsBlankForm(searchParams: { [key: string]: string | string[] 
 export function eventPreview(
   event: { title: string; startsAt: Date; timezone: string; hostName: string } | null,
 ): { title: string; description: string } {
-  if (!event) return { title: "Cookout", description: "RSVP to a cookout" };
+  if (!event) return { title: "Spread", description: "RSVP to a get-together" };
   return {
     // No location here: formatWhen skips an empty one.
     title: `${event.title} · ${formatWhen(event.startsAt, "", event.timezone)}`,
-    description: `RSVP to ${event.hostName}'s cookout`,
+    description: `RSVP to ${event.hostName}'s get-together`,
   };
 }
