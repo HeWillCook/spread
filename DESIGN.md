@@ -11,6 +11,12 @@ colors:
   pickle: "#3e6a33"
   charcoal: "#2b1d17"        # token: ink
   charcoal-muted: "#6a4636"  # token: ink-muted
+  coal: "#1a110c"            # darkest grill, token: coal
+  coal-2: "#2b1d17"          # same value as ink, token: coal-2
+  coal-3: "#3a2820"          # grate bars, token: coal-3
+  ember: "#ff6b1a"
+  flame: "#ffb43a"
+  flame-tip: "#ffe08a"
   divider: "#ead6c7"
   divider-strong: "#cfa58c"
 typography:
@@ -44,11 +50,30 @@ Alfa Slab One sets every heading and the wordmark. It has one heavy weight, so `
 
 ## Layout
 
-Shells are at most 64rem wide. Event screens open with the ticket, then sticky text tabs over a 2px charcoal rule, with a 5px ketchup bar under the current tab. At 1024px and up, task content uses a list beside a 320px summary column. Guest, sign-in and new-event screens are single slips about 28rem wide.
+Shells are at most 64rem wide. Event screens open with the ticket, then sticky text tabs over a 2px charcoal rule, with a 5px ketchup bar under the current tab. At 1024px and up, task content uses a list beside a 320px summary column that sticks below the tabs. Guest, sign-in, new-event and RSVP screens are two panes: a tall sticky coal band with the page's headline on the left, and the slip on the right; below 1024px the band becomes a short strip above the slip. The dashboard grid is one column, then two from 640px; it never crowds three cards into the 64rem shell.
+
+Today stacks Timeline and Make beside Still to buy, so the day does not leave a column blank. Edit details keeps the form on the left and the cancellation and delete controls on the right, sticky.
+
+Empty states are paper cards with a slab title, a line of body copy and a simple line-art grill, ticket, cart, split or calendar in charcoal with an ember accent. They fill the column they sit in.
 
 ## Motion
 
-There is one orchestrated moment: on the landing page the example ticket prints down out of a dark slot. Reduced-motion users get it already printed. Elsewhere, motion only answers actions.
+Two loops belong to the chrome, both decorative and both CSS-only. Embers drift up through coal bands, and flame tongues flicker along their edges with staggered timing so a row never looks looped. The active tab bar carries a slow shimmer, the wordmark's ember period breathes, and primary buttons answer hover with one ember sweep and a soft glow. Nothing moves inside a form, a data row or a table.
+
+The one orchestrated page moment is still the landing example printing down out of its coal slot. Success notices may burst embers once on mount. Fire is there to frame the paper, so the loops stay slow, low and at the edges.
+
+`prefers-reduced-motion: reduce` removes embers, stills flames at full height and stops every loop; the design must look finished without motion. Print strips all fire.
+
+## Fire
+
+The grill is lit behind the counter. Coal, ember and flame are chrome, never content: they frame pages and mark moments while the paper stays calm and readable.
+
+- Fire appears in bands and edges: the dashboard header, the coal strip on top of the event ticket, the slot above the example plan, the landing close, the two-pane sign-in and guest screens, the 404 and empty-state art.
+- The fire bed is continuous: overlapping tongues in two depths over a glowing coal strip, never a row of separated drops. Tall tongues stay behind shorter, brighter ones.
+- Fire never enters a form, a data row, a table, the kitchen sheet or anything printed. Decorative layers are `aria-hidden`, CSS-only and deterministic, so they render identically every time.
+- Text on coal uses `--paper`. Muted copy on coal is paper at 80% or more; never set ketchup or mustard body copy on coal.
+- Grill marks are a quiet texture on cover chips, stamps and empty-state art, and stay under about a quarter tint.
+- Stamps are the one place fire meets a statistic: a slab figure on a paper stamp with faint marks, slightly rotated, never more than three in a row.
 
 ## Shapes
 

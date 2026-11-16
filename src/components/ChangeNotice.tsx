@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { EmberBurst } from "./fire/EmberBurst";
+import { FlameIcon } from "./fire/FlameIcon";
 import { Button } from "./ui/Button";
 
 /** The sentence the host pastes into their group chat; Spread never sends it. */
@@ -35,8 +37,12 @@ export function ChangeNotice({
   }
 
   return (
-    <div className="flex min-w-0 flex-col items-start gap-2">
-      <p className="text-sm font-bold leading-relaxed text-ink">{message}</p>
+    <div className="relative flex min-w-0 flex-col items-start gap-2">
+      <EmberBurst />
+      <p className="relative flex items-start gap-2 text-sm font-bold leading-relaxed text-ink">
+        <FlameIcon size="sm" className="mt-0.5 shrink-0" />
+        <span>{message}</span>
+      </p>
       <p className="text-xs leading-relaxed text-ink-muted">
         Copy this into your group chat. Spread doesn&apos;t message guests for you.
       </p>

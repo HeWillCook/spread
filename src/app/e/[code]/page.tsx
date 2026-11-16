@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
+import { CoverChip } from "@/components/CoverChip";
 import { EventUnavailable } from "@/components/EventUnavailable";
+import { FirePage } from "@/components/FirePage";
 import { RsvpForm } from "@/components/RsvpForm";
 import { UpdatedDetailsNotice } from "@/components/UpdatedDetailsNotice";
 import { getDb } from "@/db/client";
@@ -85,7 +87,16 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
   });
 
   return (
-    <main>
+    <FirePage
+      cover={<CoverChip cover={coverFor(event)} size="lg" />}
+      headline={event.title}
+      detail={
+        <>
+          <p>{formatWhen(event.startsAt, event.location, event.timezone)}</p>
+          <p>Hosted by {event.hostName}</p>
+        </>
+      }
+    >
       <RsvpForm
         event={{
           title: event.title,
@@ -96,6 +107,7 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
         }}
         action={submitGuestRsvp.bind(null, code)}
         readOnly={cancelled}
+        hideTitle
         notice={
           cancelled ? (
             <CancelledEventNotice hostName={event.hostName} />
@@ -106,28 +118,26 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
       />
 
       {cancelled ? null : (
-        <aside className="mx-auto -mt-6 w-full max-w-lg px-3 pb-14 sm:px-5">
-          <div className="ticket-surface rounded-2xl border border-divider bg-paper p-4">
-            <h2 className="text-base font-bold text-ink">Add to calendar</h2>
-            <p className="mt-1 text-sm leading-relaxed text-ink/80">
-              Save the time now. Come back to this link if plans change.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-              <a href={`/e/${encodeURIComponent(code)}/calendar.ics`} className="quiet-link">
-                Download .ics
-              </a>
-              <a
-                href={googleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="quiet-link"
-              >
-                Google Calendar
-              </a>
-            </div>
+        <aside className="ticket-surface rounded-2xl border border-divider bg-paper p-4">
+          <h2 className="text-base font-bold text-ink">Add to calendar</h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink/80">
+            Save the time now. Come back to this link if plans change.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <a href={`/e/${encodeURIComponent(code)}/calendar.ics`} className="quiet-link">
+              Download .ics
+            </a>
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="quiet-link"
+            >
+              Google Calendar
+            </a>
           </div>
         </aside>
       )}
-    </main>
+    </FirePage>
   );
 }

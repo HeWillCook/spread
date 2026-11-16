@@ -2,7 +2,10 @@ import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { SignOutButton } from "@/components/SignOutButton";
-import { Card } from "@/components/ui/Card";
+import { FlameIcon } from "@/components/fire/FlameIcon";
+import { GrillBand } from "@/components/fire/GrillBand";
+import { GrillMarks } from "@/components/fire/GrillMarks";
+import { EmptyState } from "@/components/EmptyState";
 import { Pill } from "@/components/ui/Pill";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Wordmark } from "@/components/ui/Wordmark";
@@ -92,6 +95,21 @@ function EventTicket({
   );
 }
 
+function MoreTicket() {
+  return (
+    <Link href="/host/new" className="dash-ticket-more">
+      <GrillMarks />
+      <span className="dash-ticket-more-mark" aria-hidden="true">
+        <FlameIcon size="md" />
+      </span>
+      <span className="dash-ticket-more-title">Fire up another</span>
+      <span className="dash-ticket-more-note">
+        A fresh ticket for the next crowd.
+      </span>
+    </Link>
+  );
+}
+
 export default async function HostDashboardPage({ searchParams }: PageProps<"/host">) {
   const host = await requireHost();
   const db = await getDb();
@@ -120,17 +138,27 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
         <SignOutButton />
       </header>
 
-      <div className="dashboard-head">
-        <div>
-          <h1 className="dashboard-title">Your events</h1>
-          <p className="dashboard-sub">
-            Hi, {host.name}. Pick an event to keep planning.
-          </p>
+      <GrillBand
+        edge="bottom"
+        flameSize="md"
+        emberCount={22}
+        emberRise={210}
+        className="dashboard-band"
+      >
+        <div className="dashboard-head">
+          <div>
+            <h1 className="dashboard-title">Your events</h1>
+            <p className="dashboard-sub">
+              Hi, {host.name}. Pick an event to keep planning.
+            </p>
+          </div>
+          {events.length > 0 ? (
+            <Link href="/host/new" className="cta-primary">
+              Create event
+            </Link>
+          ) : null}
         </div>
-        <Link href="/host/new" className="cta-primary">
-          Create event
-        </Link>
-      </div>
+      </GrillBand>
 
       {deletedEvent ? (
         <div
@@ -158,15 +186,21 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
       ) : null}
 
       {events.length === 0 ? (
-        <div className="mt-8 max-w-2xl">
-          <Card className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold">No events yet</h2>
-            <p className="text-sm leading-relaxed text-ink-muted">
-              Create one, then share the link with your guests. Replies start
-              filling in the food plan.
-            </p>
-          </Card>
-        </div>
+        <EmptyState
+          art="grill"
+          title="No events yet"
+          className="mt-8"
+          action={
+            <Link href="/host/new" className="cta-primary">
+              Create event
+            </Link>
+          }
+        >
+          <p>
+            Create one, then share the link with your guests. Replies start
+            filling in the food plan.
+          </p>
+        </EmptyState>
       ) : (
         <>
           {upcoming.length > 0 ? (
@@ -185,6 +219,9 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
                     showGlance={event.cancelledAt === null}
                   />
                 ))}
+                <li className="event-list-more">
+                  <MoreTicket />
+                </li>
               </ul>
             </section>
           ) : null}
@@ -207,6 +244,12 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
                 ))}
               </ul>
             </details>
+          ) : null}
+
+          {upcoming.length === 0 ? (
+            <div className="event-list mt-8">
+              <MoreTicket />
+            </div>
           ) : null}
         </>
       )}

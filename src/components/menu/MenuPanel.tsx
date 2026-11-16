@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Recipe } from "@/domain/recipes";
 import type { MenuDish } from "@/services/menu";
-import { Card } from "../ui/Card";
+import { EmptyState } from "../EmptyState";
 import { AddDishPanel } from "./AddDishPanel";
 import { CustomDishForm } from "./CustomDishForm";
 import { DishCard } from "./DishCard";
@@ -67,13 +67,12 @@ export function MenuPanel({
           {planningTools}
         </details>
       ) : null}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {dishes.length === 0 ? (
-            <Card>
-              <h2 className="text-lg font-bold">What are you serving?</h2>
-              <p className="text-sm text-ink/80">Nothing on the menu yet. Add a dish below.</p>
-            </Card>
+            <EmptyState art="grill" title="What are you serving?" className="lg:flex-1">
+              <p>Nothing on the menu yet. Add a dish below.</p>
+            </EmptyState>
           ) : (
             dishes.map(({ dish, updateAction, removeAction }) => (
               <DishCard
@@ -89,7 +88,7 @@ export function MenuPanel({
             ))
           )}
         </div>
-        <aside className="flex min-w-0 flex-col gap-6">
+        <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-[4.25rem] lg:self-start">
           <AddDishPanel recipes={available} action={addDishAction} />
           <CustomDishForm action={createDishAction} />
         </aside>

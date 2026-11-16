@@ -1,5 +1,6 @@
 import { formatCents } from "@/domain/money";
 import type { SplitView } from "@/services/split";
+import { EmptyState } from "../EmptyState";
 import { Card } from "../ui/Card";
 import { SplitGuestRow, type SplitRowActions } from "./SplitGuestRow";
 import { SplitSettings, WalkInForm } from "./SplitSettings";
@@ -38,7 +39,7 @@ export function SplitPanel({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-      <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-24">
+      <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[4.25rem] lg:self-start">
         <div className="ticket receipt rounded-t-md p-5 pb-6 text-ink">
           <p className="text-sm font-semibold">Total</p>
           <p className="receipt-amount">{formatCents(totalCents)}</p>
@@ -74,11 +75,17 @@ export function SplitPanel({
             ) : null}
           </div>
           {rows.length === 0 ? (
-            <p className="text-sm text-ink/80">
-              {saidNo.length > 0
-                ? "Nobody is coming yet. Open Said no below if someone changed their mind."
-                : "No guests yet. Share your link and the people who say yes show up here."}
-            </p>
+            <EmptyState
+              inset
+              art="split"
+              title={saidNo.length > 0 ? "Nobody is coming yet" : "No guests yet"}
+            >
+              <p>
+                {saidNo.length > 0
+                  ? "Open Said no below if someone changed their mind."
+                  : "Share your link and the people who say yes show up here."}
+              </p>
+            </EmptyState>
           ) : (
             rows.map((row) => (
               <SplitGuestRow

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/AuthForm";
+import { FirePage } from "@/components/FirePage";
 import { getHostOrNull } from "@/server/auth";
 
 // Reads the session from request headers, so it must never be prerendered.
@@ -7,5 +8,12 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage() {
   if (await getHostOrNull()) redirect("/host");
-  return <AuthForm mode="signup" />;
+  return (
+    <FirePage
+      headline="Your first cookout starts here."
+      detail="One link invites everyone. Guests reply without an account, and Spread counts the buns."
+    >
+      <AuthForm mode="signup" />
+    </FirePage>
+  );
 }

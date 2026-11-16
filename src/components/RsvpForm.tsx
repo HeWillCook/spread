@@ -7,7 +7,6 @@ import type { GuestView } from "@/services/rsvp";
 import { CoverChip } from "./CoverChip";
 import { Button } from "./ui/Button";
 import { Field } from "./ui/Field";
-import { Wordmark } from "./ui/Wordmark";
 
 export const MAX_PLUS_ONES = 10;
 
@@ -42,16 +41,26 @@ const ANSWER_LABELS: Record<RsvpStatus, string> = {
   no: "Can't make it",
 };
 
-function SlipHead({ event, readOnly }: { event: RsvpFormEvent; readOnly: boolean }) {
+function SlipHead({
+  event,
+  readOnly,
+  hideTitle,
+}: {
+  event: RsvpFormEvent;
+  readOnly: boolean;
+  hideTitle: boolean;
+}) {
   return (
     <header className="slip-head">
       <p className="text-sm font-semibold text-ink-muted">
         <b className="font-semibold text-ink">{event.hostName}</b> is hosting
       </p>
-      <div className="flex items-center gap-3">
-        {event.cover ? <CoverChip cover={event.cover} size="md" /> : null}
-        <h1 className="slip-title">{event.title}</h1>
-      </div>
+      {hideTitle ? null : (
+        <div className="flex items-center gap-3">
+          {event.cover ? <CoverChip cover={event.cover} size="md" /> : null}
+          <h1 className="slip-title">{event.title}</h1>
+        </div>
+      )}
       <p className="text-[1.0625rem] font-semibold text-ketchup-deep">{event.when}</p>
       <p className="text-sm text-ink-muted">
         {readOnly
@@ -106,14 +115,17 @@ export function RsvpForm({
   action,
   notice,
   readOnly = false,
+  hideTitle = false,
 }: {
   event: RsvpFormEvent;
   initial?: GuestView;
   action: RsvpFormAction;
-  /** Optional banner shown under the wordmark (e.g. the confirmation or a cancellation). */
+  /** Optional banner shown above the slip (e.g. the confirmation or a cancellation). */
   notice?: ReactNode;
   /** Cancelled event: render the details and answer, but nothing to submit. */
   readOnly?: boolean;
+  /** The headline already appears in the fire band; skip it in the slip. */
+  hideTitle?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, { error: null });
   const [name, setName] = useState(initial?.name ?? "");
@@ -124,22 +136,19 @@ export function RsvpForm({
   const canSubmit = name.trim().length > 0 && status !== null && !pending;
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-3 pb-14 pt-5 sm:px-5 sm:pt-10">
-      <div className="px-2">
-        <Wordmark />
-      </div>
+    <div className="flex flex-col gap-5">
       {notice}
 
       {readOnly ? (
         <div className="ticket slip">
-          <SlipHead event={event} readOnly />
+          <SlipHead event={event} readOnly hideTitle={hideTitle} />
           <div className="slip-body">
             <ReadOnlyReply initial={initial} />
           </div>
         </div>
       ) : (
         <form action={formAction} className="ticket slip">
-          <SlipHead event={event} readOnly={false} />
+          <SlipHead event={event} readOnly={false} hideTitle={hideTitle} />
 
           <div className="slip-body">
             <Field

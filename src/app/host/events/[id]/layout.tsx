@@ -5,6 +5,7 @@ import { CopyCancellationButton } from "@/components/CopyCancellationButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { EventTabs } from "@/components/EventTabs";
+import { Flames } from "@/components/fire/Flames";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { coverFor } from "@/lib/cover";
 import { formatWhen } from "@/lib/format";
@@ -58,9 +59,12 @@ export default async function EventLayout({
         ) : null}
 
         <div className="ticket event-ticket">
+          <div className="ticket-fire-strip" aria-hidden="true">
+            <Flames edge="bottom" size="sm" />
+          </div>
           <div className="event-heading">
             <div className="flex min-w-0 items-start gap-3">
-              <CoverChip cover={coverFor(event)} size="lg" className="mt-1" />
+              <CoverChip cover={coverFor(event)} size="lg" marks className="mt-1" />
               <div className="min-w-0">
                 <h1 className="event-title">{event.title}</h1>
                 <p className="event-meta">
