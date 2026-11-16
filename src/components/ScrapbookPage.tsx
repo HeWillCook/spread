@@ -6,19 +6,21 @@ import { Sticker } from "./scrapbook/Sticker";
 import { WashiTape } from "./scrapbook/WashiTape";
 import { Wordmark } from "./ui/Wordmark";
 import type { OccasionTheme } from "@/lib/occasion";
+import { occasionHero } from "@/lib/occasion";
 
 type Variant = "base" | "occasion";
 
 /**
- * The shared scrapbook page: a sticky decorated panel beside the slip. Base
- * pages get a gingham blanket, bunting and loose stickers; guest pages get the
- * event's occasion scene behind a paper title label.
+ * The shared scrapbook page: a decorated panel beside the slip, both inside one
+ * centred spread. Base pages compose a picnic scene; guest pages show the
+ * event's occasion scene with a large hero illustration.
  */
 export function ScrapbookPage({
   headline,
   detail,
   cover,
   theme,
+  previewTheme,
   variant = "base",
   children,
   className = "",
@@ -27,11 +29,15 @@ export function ScrapbookPage({
   detail?: ReactNode;
   cover?: ReactNode;
   theme?: OccasionTheme;
+  /** New event: preview the cover's theme with a large hero sticker. */
+  previewTheme?: OccasionTheme;
   variant?: Variant;
   children: ReactNode;
   className?: string;
 }) {
   const occasion = variant === "occasion" && theme;
+  const heroTheme = previewTheme ?? "picnic";
+  const hero = occasion ? occasionHero(theme) : previewTheme ? occasionHero(heroTheme) : "basket";
 
   return (
     <main className={`scrapbook-page ${className}`}>
@@ -50,61 +56,108 @@ export function ScrapbookPage({
                 <OccasionScene theme={theme} size="panel" />
               </span>
             </>
-          ) : null}
+          ) : (
+            <>
+              <Bunting count={14} className="scrapbook-bunting" />
+              <span className="scrapbook-base-scene" aria-hidden="true">
+                <span className="scrapbook-blanket" />
+                <span className={`scrapbook-hero ${previewTheme ? "scrapbook-hero-preview" : ""}`}>
+                  <Sticker name={hero} size="xl" tilt={-4} className="base-hero-main" />
+                  {previewTheme ? (
+                    <>
+                      <Sticker
+                        name="heart"
+                        size="sm"
+                        tilt={10}
+                        className="base-hero-small base-hero-small-top"
+                      />
+                      <Sticker
+                        name="star"
+                        size="sm"
+                        tilt={-8}
+                        className="base-hero-small base-hero-small-bottom"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Sticker
+                        name="watermelon"
+                        size="lg"
+                        tilt={-11}
+                        className="base-hero-small base-hero-small-left"
+                      />
+                      <Sticker
+                        name="mug"
+                        size="md"
+                        tilt={7}
+                        className="base-hero-small base-hero-small-right"
+                      />
+                    </>
+                  )}
+                </span>
+              </span>
+            </>
+          )}
 
-          {!occasion ? <Bunting count={14} className="scrapbook-bunting" /> : null}
-
-          <div className="scrapbook-panel-inner">
+          <div
+            className={`scrapbook-panel-inner ${
+              occasion ? "scrapbook-panel-inner-occasion" : "scrapbook-panel-inner-base"
+            }`}
+          >
             <Link href="/" aria-label="Spread home" className="scrapbook-home paper-label">
               <Wordmark />
             </Link>
 
-            {!occasion ? (
-              <>
-                <Sticker
-                  name="sun"
-                  size="md"
-                  peel
-                  delay={0.1}
-                  className="scrapbook-sticker scrapbook-sticker-sun"
+            <div className="scrapbook-base-copy">
+              <div className="scrapbook-label paper-label">
+                <WashiTape
+                  pattern={occasion ? "gingham" : "stripe"}
+                  tone={occasion ? "ketchup" : "mustard"}
+                  tilt={-2}
                 />
-                <Sticker
-                  name="balloon"
-                  size="md"
-                  peel
-                  delay={0.25}
-                  className="scrapbook-sticker scrapbook-sticker-balloon"
-                />
-                <Sticker
-                  name="watermelon"
-                  size="md"
-                  peel
-                  delay={0.4}
-                  className="scrapbook-sticker scrapbook-sticker-watermelon"
-                />
-                <Sticker
-                  name="star"
-                  size="md"
-                  peel
-                  delay={0.55}
-                  className="scrapbook-sticker scrapbook-sticker-star"
-                />
-              </>
-            ) : null}
-
-            <div className="scrapbook-label paper-label">
-              <WashiTape
-                pattern={occasion ? "gingham" : "stripe"}
-                tone={occasion ? "ketchup" : "mustard"}
-                tilt={-2}
-              />
-              <div className="scrapbook-copy">
-                {cover ? <div className="scrapbook-cover">{cover}</div> : null}
-                <div>
-                  <h1 className="scrapbook-headline">{headline}</h1>
-                  {detail ? <div className="scrapbook-detail">{detail}</div> : null}
+                <div className="scrapbook-copy">
+                  {cover ? <div className="scrapbook-cover">{cover}</div> : null}
+                  <div>
+                    <h1 className="scrapbook-headline">{headline}</h1>
+                    {detail ? <div className="scrapbook-detail">{detail}</div> : null}
+                  </div>
                 </div>
               </div>
+
+              {occasion ? (
+                <Sticker
+                  name="star"
+                  size="sm"
+                  tilt={10}
+                  className="occasion-label-sticker"
+                />
+              ) : null}
+
+              {!occasion ? (
+                <>
+                  <Sticker
+                    name="sun"
+                    size="md"
+                    peel
+                    delay={0.1}
+                    className="base-cluster-sticker base-cluster-sun"
+                  />
+                  <Sticker
+                    name="star"
+                    size="sm"
+                    peel
+                    delay={0.25}
+                    className="base-cluster-sticker base-cluster-star"
+                  />
+                  <Sticker
+                    name="balloon"
+                    size="md"
+                    peel
+                    delay={0.4}
+                    className="base-cluster-sticker base-cluster-balloon"
+                  />
+                </>
+              ) : null}
             </div>
           </div>
         </section>

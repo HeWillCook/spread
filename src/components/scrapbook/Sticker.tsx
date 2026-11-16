@@ -22,7 +22,9 @@ export type StickerName =
   | "star"
   | "heart"
   | "ticket"
-  | "bag";
+  | "bag"
+  | "popper"
+  | "grill";
 
 /** The thick white die-cut edge behind every filled silhouette. */
 function Die({ children }: { children: ReactNode }) {
@@ -462,9 +464,50 @@ const DESIGNS: Record<StickerName, ReactNode> = {
       <path d="M27 38h10" stroke="var(--ketchup)" strokeWidth="2" strokeLinecap="round" />
     </>
   ),
+  popper: (
+    <>
+      <path
+        d="M10 10C17 4 25 7 28 16s0 22-9 30c-8 0-13-6-13-14s-1-17 4-22Z"
+        fill="var(--paper)"
+      />
+      <Die>
+        <path d="M16 58 30 32l11 8-14 26Z" fill="var(--ketchup)" />
+        <path d="M30 32l11 8 6-5-9-10Z" fill="var(--mustard-deep)" />
+      </Die>
+      <path d="M20 48l14-8M22 54l15-9" stroke="var(--paper)" strokeWidth="3" strokeLinecap="round" opacity=".9" />
+      <g>
+        <path d="M36 12l2.4 5.2 5.7.7-4.2 3.9 1.1 5.7-5-2.9-5 2.9 1.1-5.7-4.2-3.9 5.7-.7Z" fill="var(--mustard)" />
+        <circle cx="24" cy="16" r="3.2" fill="var(--pickle)" />
+        <circle cx="46" cy="30" r="2.7" fill="var(--ketchup)" />
+        <path d="M42 8c4 2 5 5 4 9M16 26c-3 2-4 5-3 8" stroke="var(--mustard-deep)" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+        <path d="M46 14c4-1 6 1 7 4-3 2-6 1-7-4Z" fill="var(--pickle-soft)" />
+      </g>
+    </>
+  ),
+  grill: (
+    <>
+      <Die>
+        <path d="M8 34h48l-6 18H14Z" fill="var(--ink)" />
+        <path d="M8 34h48" strokeWidth="4" />
+        <path d="M17 52 12 62M47 52l5 10M32 52v10" />
+      </Die>
+      <g stroke="var(--paper)" strokeWidth="2.4" strokeLinecap="round">
+        <path d="M16 40h32M19 46h26" />
+      </g>
+      <g>
+        <path d="M24 33c-4 -3 1-6 -1-10 4 2 5 5 4 8 2-1 3-2 3-4 2 3 2 6 1 8" fill="var(--ember)" />
+        <path d="M38 33c-3-2 1-5-1-8 3 2 4 4 3 6 2-1 2-2 2-3 2 2 2 4 1 6" fill="var(--flame)" />
+        <circle cx="31" cy="35" r="2" fill="var(--flame-tip)" />
+      </g>
+      <g fill="var(--mustard)">
+        <circle cx="18" cy="24" r="2.2" />
+        <circle cx="46" cy="21" r="1.8" />
+      </g>
+    </>
+  ),
 };
 
-const SIZES = { sm: "2.5rem", md: "4rem", lg: "6rem" } as const;
+const SIZES = { sm: "2.5rem", md: "4rem", lg: "6rem", xl: "10rem", xxl: "12rem" } as const;
 
 /** A deterministic tilt so a row of stickers never lands on the same angle. */
 function defaultTilt(name: StickerName): number {

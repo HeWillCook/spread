@@ -70,7 +70,15 @@ export function MenuPanel({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {dishes.length === 0 ? (
-            <EmptyState art="menu" title="What are you serving?" className="lg:flex-1">
+            <EmptyState
+              art="menu"
+              title="What are you serving?"
+              steps={[
+                "Pick a dish from the recipe box",
+                "Set the portions per person",
+                "Check the shopping list",
+              ]}
+            >
               <p>Nothing on the menu yet. Add a dish below.</p>
             </EmptyState>
           ) : (

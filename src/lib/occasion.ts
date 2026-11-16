@@ -21,22 +21,24 @@ export interface Occasion {
   label: string;
   /** The matching sticker from the scrapbook set. */
   sticker: StickerName;
+  /** The larger illustration used in a guest panel or success moment. */
+  hero: StickerName;
   /** Accent for the active event tab and small theme details. */
   accent: string;
 }
 
 export const OCCASIONS: Record<OccasionTheme, Occasion> = {
-  party: { label: "Party", sticker: "balloon", accent: "var(--ketchup)" },
-  cookout: { label: "Cookout", sticker: "burger", accent: "var(--ember)" },
-  birthday: { label: "Birthday", sticker: "cake", accent: "var(--mustard-deep)" },
-  pizzeria: { label: "Pizzeria", sticker: "pizza", accent: "var(--ketchup-deep)" },
-  fiesta: { label: "Fiesta", sticker: "taco", accent: "var(--mustard-deep)" },
-  toast: { label: "Toast", sticker: "glasses", accent: "var(--mustard-deep)" },
-  harvest: { label: "Harvest", sticker: "pumpkin", accent: "var(--ember)" },
-  holiday: { label: "Holiday", sticker: "tree", accent: "var(--pickle)" },
-  picnic: { label: "Picnic", sticker: "basket", accent: "var(--pickle)" },
-  brunch: { label: "Brunch", sticker: "mug", accent: "var(--ink-muted)" },
-  gamenight: { label: "Game night", sticker: "dice", accent: "var(--ketchup-deep)" },
+  party: { label: "Party", sticker: "balloon", hero: "popper", accent: "var(--ketchup)" },
+  cookout: { label: "Cookout", sticker: "burger", hero: "grill", accent: "var(--ember)" },
+  birthday: { label: "Birthday", sticker: "cake", hero: "cake", accent: "var(--mustard-deep)" },
+  pizzeria: { label: "Pizzeria", sticker: "pizza", hero: "pizza", accent: "var(--ketchup-deep)" },
+  fiesta: { label: "Fiesta", sticker: "taco", hero: "taco", accent: "var(--mustard-deep)" },
+  toast: { label: "Toast", sticker: "glasses", hero: "glasses", accent: "var(--mustard-deep)" },
+  harvest: { label: "Harvest", sticker: "pumpkin", hero: "pumpkin", accent: "var(--ember)" },
+  holiday: { label: "Holiday", sticker: "tree", hero: "tree", accent: "var(--pickle)" },
+  picnic: { label: "Picnic", sticker: "basket", hero: "basket", accent: "var(--pickle)" },
+  brunch: { label: "Brunch", sticker: "mug", hero: "mug", accent: "var(--ink-muted)" },
+  gamenight: { label: "Game night", sticker: "dice", hero: "dice", accent: "var(--ketchup-deep)" },
 };
 
 const THEME_BY_COVER: Record<string, OccasionTheme> = {
@@ -64,4 +66,8 @@ export function occasionAccent(theme: OccasionTheme): string {
 
 export function occasionSticker(theme: OccasionTheme): StickerName {
   return OCCASIONS[theme].sticker;
+}
+
+export function occasionHero(theme: OccasionTheme): StickerName {
+  return OCCASIONS[theme].hero;
 }

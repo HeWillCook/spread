@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { OccasionTheme } from "@/lib/occasion";
-import { occasionSticker } from "@/lib/occasion";
+import { occasionHero } from "@/lib/occasion";
 import { Sticker } from "@/components/scrapbook/Sticker";
 import { Bunting } from "@/components/scrapbook/Bunting";
 import { Embers } from "@/components/fire/Embers";
@@ -33,7 +33,7 @@ function makeBits(count: number, seed: number, small: boolean): Bit[] {
   return Array.from({ length: count }, () => ({
     x: between(rand, 4, 96),
     y: between(rand, 4, 86),
-    size: small ? between(rand, 3.5, 6.5) : between(rand, 7, 13),
+    size: small ? between(rand, 3.5, 7.5) : between(rand, 7, 15),
     dur: between(rand, 7, 13),
     delay: -between(rand, 0, 8),
     drift: between(rand, -12, 12),
@@ -72,6 +72,20 @@ function LeafGlyph({ colour }: { colour: string }) {
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
       <path d="M4 3c11 0 17 6 17 17C10 20 3 14 4 3Z" fill={colour} />
       <path d="M6 5c4 5 7 8 12 13" stroke="var(--paper)" strokeWidth="1" opacity=".55" fill="none" />
+    </svg>
+  );
+}
+
+function RibbonGlyph({ colour }: { colour: string }) {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="M2 12c3-9 6 9 9 0s6 9 9 0"
+        fill="none"
+        stroke={colour}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -116,8 +130,14 @@ function Confetti({ count, small }: { count: number; small: boolean }) {
         count,
         seed: 0xc0f7,
         small,
-        glyph: (tone, index) =>
-          index % 4 === 0 ? <StarGlyph colour={tone} /> : <span className="scene-confetti-fill" />,
+        glyph: (tone, index) => {
+          if (index % 5 === 0) return <StarGlyph colour={tone} />;
+          if (index % 5 === 1) return <RibbonGlyph colour={tone} />;
+          if (index % 5 === 2) {
+            return <span className="scene-confetti-fill" style={{ borderRadius: "50%" }} />;
+          }
+          return <span className="scene-confetti-fill" />;
+        },
       })}
     </>
   );
@@ -150,8 +170,8 @@ function Steam({ count = 3 }: { count?: number }) {
           className="scene-steam"
           style={
             {
-              "--x": `${round(between(rand, 62, 88), 1)}%`,
-              "--y": `${round(between(rand, 10, 30), 1)}%`,
+              "--x": `${round(between(rand, 55, 78), 1)}%`,
+              "--y": `${round(between(rand, 28, 55), 1)}%`,
               "--dur": `${round(between(rand, 6, 9), 2)}s`,
               "--delay": `${round(-between(rand, 0, 6), 2)}s`,
             } as CSSProperties
@@ -170,12 +190,26 @@ function Steam({ count = 3 }: { count?: number }) {
               d="M15 76c-8-11 8-16 0-29s6-17 0-28"
               fill="none"
               stroke="var(--ink-muted)"
-              strokeWidth="1.6"
+              strokeWidth="1.8"
               strokeLinecap="round"
-              opacity=".32"
+              opacity=".5"
             />
           </svg>
         </span>
+      ))}
+      {Array.from({ length: 4 }, (_, index) => (
+        <span
+          key={`puff-${index}`}
+          className="scene-puff"
+          style={
+            {
+              "--x": `${round(between(rand, 52, 80), 1)}%`,
+              "--y": `${round(between(rand, 12, 32), 1)}%`,
+              "--dur": `${round(between(rand, 5, 8), 2)}s`,
+              "--delay": `${round(-between(rand, 0, 5), 2)}s`,
+            } as CSSProperties
+          }
+        />
       ))}
     </>
   );
@@ -290,9 +324,8 @@ export function OccasionScene({
   className?: string;
 }) {
   const strip = size === "strip";
-  const count = strip ? 9 : 18;
-  const sticker = occasionSticker(theme);
-
+  const count = strip ? 22 : 54;
+  
   return (
     <span
       aria-hidden="true"
@@ -303,30 +336,32 @@ export function OccasionScene({
       {theme === "party" ? <Confetti count={count} small={strip} /> : null}
       {theme === "cookout" ? (
         <>
-          <Embers count={strip ? 7 : 12} rise={strip ? 60 : 120} />
-          <span className="scene-fire">
-            <Flames edge="bottom" size="sm" />
-          </span>
+          <Embers count={strip ? 12 : 30} rise={strip ? 70 : 720} />
+          {strip ? (
+            <span className="scene-fire">
+              <Flames edge="bottom" size="sm" />
+            </span>
+          ) : null}
         </>
       ) : null}
       {theme === "birthday" ? (
         <>
-          <Sprinkles count={strip ? 8 : 12} small={strip} />
-          <Candles />
+          <Sprinkles count={count} small={strip} />
+          {strip ? <Candles /> : null}
         </>
       ) : null}
-      {theme === "pizzeria" ? <Steam count={3} /> : null}
+      {theme === "pizzeria" ? <Steam count={strip ? 3 : 4} /> : null}
       {theme === "fiesta" ? (
         <>
-          <Confetti count={strip ? 6 : 10} small={strip} />
-          <Bunting count={strip ? 8 : 14} variant="picado" className="scene-bunting" />
+          <Confetti count={count} small={strip} />
+          <Bunting count={strip ? 10 : 16} variant="picado" className="scene-bunting" />
         </>
       ) : null}
       {theme === "toast" ? (
         <>
           <StringLights />
           {Particles({
-            count: strip ? 6 : 10,
+            count,
             seed: 0xb0bb1e,
             small: strip,
             glyph: (tone) => <span className="scene-bubble" style={{ borderColor: tone }} />,
@@ -336,7 +371,7 @@ export function OccasionScene({
       {theme === "harvest" ? (
         <>
           {Particles({
-            count: strip ? 8 : 12,
+            count,
             seed: 0x1eaf,
             small: strip,
             glyph: (tone) => <LeafGlyph colour={tone} />,
@@ -347,7 +382,7 @@ export function OccasionScene({
         <>
           <StringLights />
           {Particles({
-            count: strip ? 10 : 14,
+            count,
             seed: 0x5f0a,
             small: strip,
             glyph: () => <SnowGlyph colour="var(--paper)" />,
@@ -357,19 +392,33 @@ export function OccasionScene({
       {theme === "picnic" ? (
         <>
           <Butterfly />
-          <Ants count={strip ? 3 : 4} />
+          <Ants count={strip ? 4 : 4} />
         </>
       ) : null}
-      {theme === "brunch" ? <Steam count={3} /> : null}
-      {theme === "gamenight" ? <Dice /> : null}
+      {theme === "brunch" ? <Steam count={strip ? 3 : 4} /> : null}
+      {theme === "gamenight" ? (
+        <>
+          {Particles({
+            count,
+            seed: 0x9a3e,
+            small: strip,
+            glyph: (tone) => <StarGlyph colour={tone} />,
+          })}
+          {strip ? <Dice /> : null}
+        </>
+      ) : null}
 
       {!strip ? (
-        <Sticker
-          name={sticker}
-          size="lg"
-          className="scene-theme-sticker"
-          tilt={-5}
-        />
+        <span className={`scene-hero scene-hero-${theme}`}>
+          <Sticker name={occasionHero(theme)} size="xxl" tilt={-4} />
+          {theme === "birthday" ? (
+            <span className="scene-hero-flames" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : null}
+        </span>
       ) : null}
     </span>
   );

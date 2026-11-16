@@ -64,7 +64,9 @@ export default async function EventLayout({
 
         <div className="ticket event-ticket">
           <div className="event-scene" aria-hidden="true">
-            <OccasionScene theme={theme} size="strip" />
+            <span className="event-scene-inner">
+              <OccasionScene theme={theme} size="strip" />
+            </span>
             <Sticker
               name={occasionSticker(theme)}
               size="sm"

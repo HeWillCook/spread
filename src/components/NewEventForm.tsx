@@ -23,7 +23,13 @@ function useBrowserTimeZone(): string {
   );
 }
 
-export function NewEventForm({ action }: { action: NewEventAction }) {
+export function NewEventForm({
+  action,
+  onCoverChange,
+}: {
+  action: NewEventAction;
+  onCoverChange?: (emoji: string) => void;
+}) {
   const [state, formAction, pending] = useActionState(action, { error: null });
   // The date/time the host types is wall-clock time in THEIR zone; send the zone
   // along so guests see the same hour whatever zone the server runs in. The
@@ -54,7 +60,7 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
             required
             placeholder="Will's backyard"
           />
-          <CoverPicker />
+          <CoverPicker onEmojiChange={onCoverChange} />
 
           {state.error ? (
             <p

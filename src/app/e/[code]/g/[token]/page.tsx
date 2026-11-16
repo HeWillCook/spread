@@ -14,7 +14,7 @@ import type { RsvpStatus } from "@/domain/headcount";
 import { coverFor } from "@/lib/cover";
 import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
-import { occasionFor, occasionSticker } from "@/lib/occasion";
+import { occasionFor, occasionHero, occasionSticker } from "@/lib/occasion";
 import { relativeDateLabel } from "@/lib/relative-date";
 import { NotFoundError } from "@/services/errors";
 import { getGuestByToken, getPublicEvent } from "@/services/rsvp";
@@ -119,6 +119,13 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
                 className="success-banner rounded-2xl bg-mustard px-5 py-4 text-lg font-bold text-ink"
               >
                 <OccasionBurst theme={theme} />
+                <Sticker
+                  name={occasionHero(theme)}
+                  size="lg"
+                  peel
+                  delay={0.15}
+                  className="success-hero"
+                />
                 <div className="success-banner-copy">
                   <span className="flex items-center gap-2">
                     <Sticker name={occasionSticker(theme)} size="sm" />

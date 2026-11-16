@@ -14,14 +14,17 @@ export const dynamic = "force-dynamic";
 const explainers = [
   {
     title: "One link, no accounts.",
+    sticker: "ticket" as const,
     body: "Guests open your link and RSVP without signing up. Each person sees their own answer; names stay private from other guests.",
   },
   {
     title: "Maybes stay estimates.",
+    sticker: "balloon" as const,
     body: "Choose what share of maybes to expect. People who have not replied stay unknown, so the food plan does not quietly grow.",
   },
   {
     title: "Quantities, not guesswork.",
+    sticker: "basket" as const,
     body: "Replies become portion counts and a shopping list you can edit. Split the cost afterwards, and record payments yourself. A Venmo link does not confirm one.",
   },
 ];
@@ -168,21 +171,21 @@ export default async function Home() {
             <span className="ticket-stickers" aria-hidden="true">
               <Sticker
                 name="sun"
-                size="sm"
+                size="md"
                 peel
                 delay={0.15}
                 className="ticket-sticker ticket-sticker-sun"
               />
               <Sticker
                 name="balloon"
-                size="sm"
+                size="md"
                 peel
                 delay={0.3}
                 className="ticket-sticker ticket-sticker-balloon"
               />
               <Sticker
                 name="watermelon"
-                size="md"
+                size="lg"
                 peel
                 delay={0.45}
                 className="ticket-sticker ticket-sticker-watermelon"
@@ -194,13 +197,6 @@ export default async function Home() {
                 delay={0.6}
                 className="ticket-sticker ticket-sticker-cake"
               />
-              <Sticker
-                name="lantern"
-                size="sm"
-                peel
-                delay={0.75}
-                className="ticket-sticker ticket-sticker-lantern"
-              />
             </span>
           </div>
         </section>
@@ -210,7 +206,14 @@ export default async function Home() {
           <div className="explain-list">
             {explainers.map((item) => (
               <div key={item.title} className="explain-row">
-                <h3>{item.title}</h3>
+                <div className="explain-heading">
+                  <Sticker
+                    name={item.sticker}
+                    size="md"
+                    className="explain-sticker"
+                  />
+                  <h3>{item.title}</h3>
+                </div>
                 <p>{item.body}</p>
               </div>
             ))}
@@ -241,7 +244,7 @@ export default async function Home() {
                   </div>
                   <Sticker
                     name={occasionSticker(theme)}
-                    size="sm"
+                    size="md"
                     className="occasion-mini-sticker"
                   />
                 </li>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OCCASIONS, OCCASION_THEMES, occasionFor, occasionSticker } from "./occasion";
+import { OCCASIONS, OCCASION_THEMES, occasionFor, occasionHero, occasionSticker } from "./occasion";
 
 describe("occasionFor", () => {
   it("maps every cover to its occasion", () => {
@@ -28,6 +28,7 @@ describe("occasionFor", () => {
     for (const theme of OCCASION_THEMES) {
       expect(OCCASIONS[theme].label.length).toBeGreaterThan(0);
       expect(occasionSticker(theme).length).toBeGreaterThan(0);
+      expect(occasionHero(theme).length).toBeGreaterThan(0);
       expect(OCCASIONS[theme].accent).toMatch(/^var\(--/);
     }
   });

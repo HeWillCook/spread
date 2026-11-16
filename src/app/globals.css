@@ -1312,6 +1312,8 @@
     .scene-butterfly,
     .scene-die,
     .scene-steam,
+    .scene-puff,
+    .scene-hero-flames span,
     .scene-candle::after,
     .scene-light,
     .ant-parade,
@@ -1708,6 +1710,33 @@
     width: 100%;
     height: 100%;
     overflow: visible;
+  }
+
+  .scene-puff {
+    position: absolute;
+    left: var(--x);
+    bottom: var(--y);
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgb(255 250 244 / 0.78);
+    filter: blur(3px);
+    opacity: 0;
+    animation: puff-rise var(--dur, 6s) ease-in-out var(--delay, 0s) infinite;
+  }
+
+  @keyframes puff-rise {
+    0% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.6);
+    }
+    30% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-26px) scale(1.35);
+    }
   }
 
   .occasion-strip .scene-steam {
@@ -3066,6 +3095,593 @@
   }
 }
 
+@layer components {
+  /* ---- Composed two-pane spread --------------------------------------- */
+  .scrapbook-page {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: 1rem;
+  }
+
+  .scrapbook-panel-inner-base {
+    justify-content: flex-start;
+    gap: 1.1rem;
+    padding: 3rem 0.9rem 1rem;
+  }
+
+  .scrapbook-panel-inner-occasion {
+    justify-content: space-between;
+    padding: 1.1rem 1.3rem 1.3rem;
+  }
+
+  .scrapbook-base-copy {
+    position: relative;
+    z-index: 3;
+    width: min(100%, 25rem);
+    margin-top: 0.9rem;
+  }
+
+  .scrapbook-base-copy .scrapbook-label {
+    width: 100%;
+    max-width: 100%;
+    transform: rotate(-1.2deg);
+  }
+
+  .scrapbook-panel-inner-occasion .scrapbook-base-copy {
+    width: min(100%, 26rem);
+    margin-top: 0;
+  }
+
+  .occasion-label-sticker {
+    position: absolute;
+    top: -1.8rem;
+    right: -1.5rem;
+    z-index: 4;
+  }
+
+  .scrapbook-base-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .scrapbook-blanket {
+    position: absolute;
+    left: -8%;
+    right: -8%;
+    bottom: -16%;
+    height: 52%;
+    border-radius: 26px 26px 0 0;
+    transform: rotate(-2deg);
+    background-color: #e9f0dd;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(62 106 51 / 0.15) 0 9px, transparent 9px 18px),
+      repeating-linear-gradient(90deg, rgb(62 106 51 / 0.15) 0 9px, transparent 9px 18px);
+    box-shadow: 0 -2px 0 rgb(43 29 23 / 0.04);
+  }
+
+  .scrapbook-blanket::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: -11px;
+    height: 12px;
+    background: radial-gradient(circle at 12px 100%, #e9f0dd 0 11px, transparent 12px)
+      0 0 / 24px 12px repeat-x;
+  }
+
+  .scrapbook-hero {
+    position: absolute;
+    left: 50%;
+    bottom: 1.2rem;
+    translate: -50% 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .base-hero-main {
+    width: 9rem;
+  }
+
+  .scrapbook-hero-preview .base-hero-main {
+    width: 10.5rem;
+  }
+
+  .base-hero-small {
+    position: absolute;
+  }
+
+  .base-hero-small-left {
+    left: -2.8rem;
+    bottom: -0.2rem;
+    width: 6.7rem;
+  }
+
+  .base-hero-small-right {
+    right: -2.4rem;
+    bottom: 0.25rem;
+  }
+
+  .base-hero-small-top {
+    right: -1.9rem;
+    top: -1.2rem;
+  }
+
+  .base-hero-small-bottom {
+    left: -1.8rem;
+    bottom: -1.1rem;
+  }
+
+  .base-cluster-sticker {
+    position: absolute;
+    z-index: 4;
+  }
+
+  .base-cluster-sun {
+    top: -1.5rem;
+    right: -1.6rem;
+  }
+
+  .base-cluster-star {
+    bottom: -1.2rem;
+    left: -1.3rem;
+  }
+
+  .base-cluster-balloon {
+    top: 46%;
+    right: -2.5rem;
+  }
+
+  /* Stronger, warmer occasion grounds. */
+  .occasion-party {
+    background: radial-gradient(120% 100% at 50% 30%, #fff3df 0%, #f4d2b5 70%, #eec19f 100%);
+  }
+
+  .occasion-cookout {
+    background: linear-gradient(180deg, #fff0da 0%, #f3cda5 62%, #eab884 100%);
+  }
+
+  .occasion-birthday {
+    background: radial-gradient(100% 85% at 50% 32%, #fff4e1 0%, #f7d5c5 68%, #efb9a8 100%);
+  }
+
+  .occasion-pizzeria {
+    background-color: #f1d3c2;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(196 48 26 / 0.22) 0 10px, transparent 10px 20px),
+      repeating-linear-gradient(90deg, rgb(196 48 26 / 0.22) 0 10px, transparent 10px 20px);
+  }
+
+  .occasion-fiesta {
+    background: linear-gradient(180deg, #ffeeb8 0%, #f7d889 62%, #eec46c 100%);
+  }
+
+  .occasion-toast {
+    background: linear-gradient(180deg, #fff2dc 0%, #f4d5b4 62%, #e9bd93 100%);
+  }
+
+  .occasion-harvest {
+    background: linear-gradient(180deg, #fbd9b9 0%, #efb785 62%, #dfa06b 100%);
+  }
+
+  .occasion-holiday {
+    background: linear-gradient(180deg, #e6efda 0%, #cbdcbc 62%, #b6ccA5 100%);
+  }
+
+  .occasion-picnic {
+    background-color: #e4ecd4;
+    background-image:
+      repeating-linear-gradient(0deg, rgb(62 106 51 / 0.17) 0 10px, transparent 10px 20px),
+      repeating-linear-gradient(90deg, rgb(62 106 51 / 0.17) 0 10px, transparent 10px 20px);
+  }
+
+  .occasion-brunch {
+    background: linear-gradient(180deg, #fff1df 0%, #f0d3bd 62%, #e0bba2 100%);
+  }
+
+  .occasion-gamenight {
+    background: linear-gradient(180deg, #f3d8c5 0%, #e3b99f 62%, #d3a184 100%);
+  }
+
+  .occasion-strip {
+    height: 64px;
+  }
+
+  .scene-hero {
+    position: absolute;
+    inset-inline: 0;
+    top: 43%;
+    display: flex;
+    justify-content: center;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .scene-hero::before {
+    content: "";
+    position: absolute;
+    width: 15rem;
+    height: 15rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(255 250 244 / 0.62), transparent 68%);
+    filter: blur(3px);
+  }
+
+  .scene-hero .sticker {
+    position: relative;
+    z-index: 1;
+    width: 11.5rem;
+  }
+
+  .scene-hero-flames {
+    position: absolute;
+    top: 18%;
+    left: 33%;
+    right: 33%;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .scene-hero-flames span {
+    width: 0.4rem;
+    height: 0.75rem;
+    background: var(--ember);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    transform-origin: bottom center;
+    animation: candle-flicker 1.15s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 3px rgb(255 180 58 / 0.6));
+  }
+
+  .scene-hero-flames span:nth-child(2) {
+    animation-delay: -0.35s;
+  }
+
+  .scene-hero-flames span:nth-child(3) {
+    animation-delay: -0.7s;
+  }
+
+  /* ---- Compact dashboard tickets -------------------------------------- */
+  .dashboard-head-paper {
+    display: block;
+    flex: 1 1 auto;
+  }
+
+  .dashboard-head-paper .dashboard-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .dash-ticket {
+    position: relative;
+  }
+
+  .dash-ticket-head {
+    padding: 1rem 1.1rem 0.6rem;
+    gap: 0.6rem;
+  }
+
+  .event-card-title {
+    font-size: 1.35rem;
+    line-height: 1.05;
+  }
+
+  .event-card-meta {
+    margin-top: 0.15rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .dash-ticket .dash-glance {
+    margin-top: 0.4rem;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .dash-ticket .dash-glance > span {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.6875rem;
+  }
+
+  .dash-ticket-count .ticket-count-label {
+    font-size: 0.7rem;
+  }
+
+  .dash-ticket-count .ticket-count-number {
+    font-size: 2.4rem;
+  }
+
+  .dash-ticket-stub {
+    padding: 0.5rem 4.6rem 0.55rem 0.9rem;
+  }
+
+  .dash-tape {
+    width: 64px;
+    height: 16px;
+  }
+
+  .dash-tape-center {
+    left: 50%;
+    margin-left: -32px;
+  }
+
+  .dash-tape-right {
+    left: auto;
+    right: 1.4rem;
+  }
+
+  .dash-theme-sticker {
+    top: auto;
+    left: auto;
+    right: 0.65rem;
+    bottom: -1rem;
+    width: 4rem;
+  }
+
+  /* ---- Event masthead strip ------------------------------------------- */
+  .event-scene {
+    position: relative;
+    height: 64px;
+    z-index: 2;
+  }
+
+  .event-scene-inner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: var(--radius-ticket) var(--radius-ticket) 0 0;
+  }
+
+  .event-scene .occasion-scene {
+    height: 100%;
+  }
+
+  .event-scene-sticker {
+    position: absolute;
+    left: 1.1rem;
+    top: auto;
+    bottom: -0.75rem;
+    z-index: 3;
+    width: 2.75rem;
+  }
+
+  .scrapbook-scene-strip {
+    height: 64px;
+  }
+
+  /* ---- Empty state steps ---------------------------------------------- */
+  .empty-state-steps {
+    display: flex;
+    width: min(100%, 22rem);
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+  }
+
+  .empty-state-steps li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.42rem 0.6rem;
+    border-radius: 4px;
+    background: var(--cream);
+    box-shadow: inset 0 0 0 1px var(--divider);
+    color: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    transform: rotate(-0.35deg);
+  }
+
+  .empty-state-steps li:nth-child(2) {
+    transform: rotate(0.4deg);
+  }
+
+  .empty-state-steps li:nth-child(3) {
+    transform: rotate(-0.2deg);
+  }
+
+  .empty-state-step-number {
+    display: inline-flex;
+    width: 1.35rem;
+    height: 1.35rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ketchup);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  /* ---- Landing tightening --------------------------------------------- */
+  .landing-hero {
+    padding-block: clamp(1.75rem, 4.5vw, 3.25rem) clamp(1.25rem, 2.5vw, 2rem);
+  }
+
+  .explain-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .explain-sticker {
+    flex-shrink: 0;
+    margin-top: -0.55rem;
+  }
+
+  .ticket-sticker-sun {
+    top: -3.2rem;
+    left: -2.8rem;
+  }
+
+  .ticket-sticker-balloon {
+    top: -2rem;
+    right: -2.8rem;
+  }
+
+  .ticket-sticker-watermelon {
+    bottom: 1rem;
+    left: -3.4rem;
+  }
+
+  .ticket-sticker-cake {
+    bottom: -1.4rem;
+    right: -2.6rem;
+  }
+
+  .occasion-mini-scene {
+    height: 88px;
+  }
+
+  .occasion-mini-scene .occasion-scene {
+    height: 100%;
+  }
+
+  .occasion-mini-body {
+    padding: 0.65rem 0.8rem 0.7rem;
+    padding-right: 3rem;
+  }
+
+  .occasion-mini-name {
+    font-size: 1.2rem;
+    line-height: 1.05;
+  }
+
+  .occasion-mini-note {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .occasion-mini-sticker {
+    right: 0.45rem;
+    bottom: 0.35rem;
+  }
+
+  .success-hero {
+    position: absolute;
+    right: -1rem;
+    top: -1.5rem;
+    z-index: 1;
+    width: 6rem;
+  }
+
+  .success-banner-copy {
+    padding-right: 4.8rem;
+  }
+
+  @media (min-width: 64rem) {
+    .scrapbook-page {
+      display: grid;
+      grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+      align-items: stretch;
+      gap: 2.5rem;
+      min-height: auto;
+      padding: 1.5rem;
+    }
+
+    .scrapbook-rail {
+      position: static;
+      align-self: stretch;
+    }
+
+    .scrapbook-panel {
+      height: 100%;
+      min-height: 640px;
+    }
+
+    .scrapbook-panel-inner {
+      height: 100%;
+      min-height: 640px;
+    }
+
+    .scrapbook-panel-inner-base {
+      padding: 4.3rem 1.5rem 1.5rem;
+    }
+
+    .scrapbook-base-copy {
+      margin-top: clamp(1.5rem, 8%, 4.5rem);
+    }
+
+    .scrapbook-slip {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 0;
+    }
+
+    .scrapbook-slip-inner {
+      max-width: 34rem;
+      margin-inline: 0;
+    }
+
+    .occasion-mini-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 63.999rem) {
+    .scrapbook-base-scene,
+    .base-cluster-sticker,
+    .occasion-label-sticker {
+      display: none;
+    }
+
+    .scrapbook-base-copy {
+      width: 100%;
+      margin-top: 0.9rem;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .occasion-mini-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 47.999rem) {
+    .occasion-mini-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 39.999rem) {
+    .ticket-sticker-sun {
+      top: -1.4rem;
+      left: -0.5rem;
+    }
+
+    .ticket-sticker-balloon {
+      top: -0.9rem;
+      right: -0.5rem;
+    }
+
+    .ticket-sticker-watermelon {
+      bottom: 1.5rem;
+      left: -0.6rem;
+    }
+
+    .ticket-sticker-cake {
+      bottom: -0.4rem;
+      right: -0.4rem;
+    }
+  }
+}
 /*
  * Print strips the scrapbook: no stickers, tape, garlands or occasion motion.
  * Real content keeps its text on white paper.

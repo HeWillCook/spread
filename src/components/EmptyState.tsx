@@ -15,27 +15,27 @@ function Stickers({ art }: { art: EmptyStateArt }) {
     case "guests":
       return (
         <>
-          <Sticker name="ticket" size="lg" tilt={-6} />
+          <Sticker name="ticket" size="xl" tilt={-6} />
           <Sticker name="balloon" size="md" tilt={9} className="empty-sticker-lift" />
         </>
       );
     case "menu":
-      return <Sticker name="basket" size="lg" tilt={-4} />;
+      return <Sticker name="basket" size="xl" tilt={-4} />;
     case "shopping":
-      return <Sticker name="bag" size="lg" tilt={4} />;
+      return <Sticker name="bag" size="xl" tilt={4} />;
     case "split":
-      return <Sticker name="glasses" size="lg" tilt={-3} />;
+      return <Sticker name="glasses" size="xl" tilt={-3} />;
     case "today":
       return (
         <>
-          <Sticker name="sun" size="lg" tilt={-7} />
+          <Sticker name="sun" size="xl" tilt={-7} />
           <Sticker name="star" size="md" tilt={10} className="empty-sticker-lift" />
         </>
       );
     case "dashboard":
       return (
         <div className="flex flex-col items-center">
-          <Sticker name="basket" size="lg" tilt={-4} />
+          <Sticker name="basket" size="xl" tilt={-4} />
           <span className="empty-ants">
             {[0, 1, 2].map((index) => (
               <span
@@ -62,6 +62,7 @@ export function EmptyState({
   title,
   children,
   action,
+  steps,
   art = "menu",
   size = "md",
   inset = false,
@@ -70,6 +71,8 @@ export function EmptyState({
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  /** Small paper-label steps for the useful empty states. */
+  steps?: string[];
   art?: EmptyStateArt;
   size?: "sm" | "md";
   inset?: boolean;
@@ -93,6 +96,18 @@ export function EmptyState({
       <div className="empty-state-copy">
         <h3 className="empty-state-title">{title}</h3>
         {children ? <div className="empty-state-body">{children}</div> : null}
+        {steps?.length ? (
+          <ol className="empty-state-steps">
+            {steps.map((step, index) => (
+              <li key={step}>
+                <span className="empty-state-step-number" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
         {action ? <div className="empty-state-action">{action}</div> : null}
       </div>
     </div>
