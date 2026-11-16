@@ -95,7 +95,7 @@ describe("ShoppingPanel", () => {
   it("shows the headcount line, the buy quantity vs. the need, and the red total card", () => {
     renderPanel(planFor(12, 5));
     expect(screen.getByText("12 confirmed + ~3 from maybes · range 12–17")).toBeInTheDocument();
-    expect(screen.getByText("Shopping for ~15 people")).toBeInTheDocument();
+    expect(screen.queryByText("Shopping for ~15 people")).not.toBeInTheDocument();
     expect(screen.getByText("Buy 8 lb")).toBeInTheDocument();
     expect(screen.getByText("Buy 3 packs")).toBeInTheDocument();
     expect(screen.getByText("need 23 buns (packs of 8)")).toBeInTheDocument();
