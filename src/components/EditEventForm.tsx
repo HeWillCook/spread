@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { CoverPicker } from "./CoverPicker";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { Field } from "./ui/Field";
@@ -22,6 +23,9 @@ export interface EditEventInitial {
   location: string;
   /** IANA zone the time above is in; it stays the same when saving. */
   timezone: string;
+  /** Preset cover; null means the default (🎉 on mustard). */
+  coverEmoji: string | null;
+  coverColor: string | null;
 }
 
 export function EditEventForm({
@@ -68,6 +72,7 @@ export function EditEventForm({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
+        <CoverPicker initialEmoji={initial.coverEmoji} initialColor={initial.coverColor} />
 
         {state.error ? (
           <p

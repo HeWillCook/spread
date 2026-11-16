@@ -1,6 +1,9 @@
+import Link from "next/link";
+import { ChangeNotice } from "@/components/ChangeNotice";
 import { GuestsPanel } from "@/components/GuestsPanel";
 import { DevGuestTools } from "@/components/dev/DevGuestTools";
 import { getDb } from "@/db/client";
+import { formatWhen } from "@/lib/format";
 import { devToolsEnabled } from "@/server/dev-tools";
 import { requireHost } from "@/server/auth";
 import { loadHostEvent } from "@/server/host-event";
@@ -17,9 +20,11 @@ import { addInviteesAction, removeGuestAction, setMaybePercentAction } from "./a
 
 export const dynamic = "force-dynamic";
 
-export default async function GuestsTab({ params }: PageProps<"/host/events/[id]">) {
+export default async function GuestsTab({ params, searchParams }: PageProps<"/host/events/[id]">) {
   // Layouts and pages are authorised independently: check ownership here too.
   const { event } = await loadHostEvent((await params).id);
+  // Set by updateEventAction when the time, zone or place moved.
+  const changed = (await searchParams).changed === "1";
   const host = await requireHost();
   const db = await getDb();
   const overview = await getGuestsOverview(db, host.id, event.id);
@@ -30,6 +35,18 @@ export default async function GuestsTab({ params }: PageProps<"/host/events/[id]
 
   return (
     <>
+      {changed && !event.cancelledAt ? (
+        <div className="ticket-surface mb-6 flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-stub px-4 py-3">
+          <ChangeNotice
+            title={event.title}
+            when={formatWhen(event.startsAt, "", event.timezone)}
+            location={event.location}
+          />
+          <Link href={`/host/events/${encodeURIComponent(event.id)}`} className="quiet-link">
+            Dismiss
+          </Link>
+        </div>
+      ) : null}
       <GuestsPanel
         overview={overview}
         invitation={{ title: event.title, url: shareUrl(baseUrl, event.shareCode) }}

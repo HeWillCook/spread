@@ -20,6 +20,8 @@ export interface GuestView {
   status: RsvpStatus;
   plusOneNames: string[];
   foodNotes: string | null;
+  /** When this guest answered: an earlier details change is already known to them. */
+  createdAt: Date;
 }
 
 const MAX_NAME = 80;
@@ -71,6 +73,11 @@ export interface PublicEvent {
   cancelledAt: Date | null;
   /** Set while the event is in the bin: the page shows "no longer available". */
   deletedAt: Date | null;
+  /** Last time the time, zone or place moved; drives the guest "Updated" notice. */
+  detailsChangedAt: Date | null;
+  /** Preset cover; null means the default (🎉 on mustard). */
+  coverEmoji: string | null;
+  coverColor: string | null;
 }
 
 const RSVP_CLOSED_DELETED = "This event is no longer available.";
@@ -177,6 +184,7 @@ export async function getGuestByToken(
     status: guest.status,
     plusOneNames: pos.map((p) => p.name),
     foodNotes: guest.foodNotes,
+    createdAt: guest.createdAt,
   };
 }
 
@@ -199,6 +207,9 @@ export async function getPublicEvent(db: Db, shareCode: string): Promise<PublicE
       goingCount: 0,
       cancelledAt: event.cancelledAt,
       deletedAt: event.deletedAt,
+      detailsChangedAt: event.detailsChangedAt,
+      coverEmoji: event.coverEmoji,
+      coverColor: event.coverColor,
     };
   }
 
@@ -221,5 +232,8 @@ export async function getPublicEvent(db: Db, shareCode: string): Promise<PublicE
     goingCount: yesGuests + yesPlusOnes,
     cancelledAt: event.cancelledAt,
     deletedAt: event.deletedAt,
+    detailsChangedAt: event.detailsChangedAt,
+    coverEmoji: event.coverEmoji,
+    coverColor: event.coverColor,
   };
 }

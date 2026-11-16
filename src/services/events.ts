@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Db } from "@/db/client";
 import { events, guests, invitees, plusOnes } from "@/db/schema";
 import { computeHeadcount, type Headcount, type HeadcountGuest } from "@/domain/headcount";
+import { COVER_COLOR_KEYS, COVER_EMOJI } from "@/lib/cover";
 import { assertTimeZone, zonedLocalToDate } from "@/lib/zoned-time";
 import { NotFoundError, ValidationError } from "./errors";
 
@@ -17,6 +18,9 @@ export interface CreateEventInput {
   hostName: string;
   /** IANA zone the host chose the time in. Defaults to UTC. */
   timezone?: string;
+  /** Preset cover; null or omitted means the default (🎉 on mustard). */
+  coverEmoji?: string | null;
+  coverColor?: string | null;
 }
 
 export interface EventSummary {
@@ -30,6 +34,18 @@ export interface EventSummary {
   planFor: number;
   /** Set while the event is cancelled; the dashboard shows a badge (deleted events never list). */
   cancelledAt: Date | null;
+  /** Stored cover values; the dashboard resolves them with `coverFor`. */
+  coverEmoji: string | null;
+  coverColor: string | null;
+}
+
+/** "At a glance" answers for a dashboard card, batched for every event at once. */
+export interface EventGlance {
+  yes: number;
+  maybe: number;
+  no: number;
+  /** Invitees with no guest of the same trimmed, case-insensitive name. */
+  noReply: number;
 }
 
 const MAX_TITLE = 100;
@@ -45,8 +61,19 @@ const detailsShape = {
   location: z.string().trim().min(1, "Where is it?").max(MAX_LOCATION),
 };
 
+/**
+ * Cover values come from the picker's radio group. Unknown values are rejected
+ * (a crafted POST must not store an emoji or class Tailwind can't render); null
+ * or omitted means the default cover.
+ */
+const coverShape = {
+  coverEmoji: z.enum(COVER_EMOJI, { error: "Pick a cover from the list" }).nullish(),
+  coverColor: z.enum(COVER_COLOR_KEYS, { error: "Pick a cover colour from the list" }).nullish(),
+};
+
 const createSchema = z.object({
   ...detailsShape,
+  ...coverShape,
   hostName: z.string().trim().min(1).max(MAX_NAME),
   startsAt: z.date().refine((d) => !Number.isNaN(d.getTime()), "Pick a valid date and time"),
   timezone: z.string().min(1).default("UTC"),
@@ -75,7 +102,13 @@ export async function createEvent(
     const shareCode = newShareCode();
     const [row] = await db
       .insert(events)
-      .values({ ...data, hostId, shareCode })
+      .values({
+        ...data,
+        coverEmoji: data.coverEmoji ?? null,
+        coverColor: data.coverColor ?? null,
+        hostId,
+        shareCode,
+      })
       .onConflictDoNothing({ target: events.shareCode })
       .returning({ id: events.id });
     if (row) return { id: row.id, shareCode };
@@ -90,29 +123,62 @@ export interface UpdateEventInput {
   location: string;
   /** IANA zone the time was typed in. Defaults to the event's current zone. */
   timezone?: string;
+  /** Preset cover; null clears it to the default, omitted leaves it untouched. */
+  coverEmoji?: string | null;
+  coverColor?: string | null;
+}
+
+export interface UpdateEventResult {
+  /**
+   * True when the start time, time zone or location actually changed. Title-only
+   * edits and cover-only edits leave it false, so no "Updated" notice goes out.
+   */
+  detailsChanged: boolean;
 }
 
 /**
- * Edits an event's title, time and place with the same validation as createEvent.
- * The share code, host name, maybe percent and all RSVPs are left alone.
+ * Edits an event's title, time, place and cover with the same validation as
+ * createEvent. The share code, host name, maybe percent and all RSVPs are left
+ * alone. A change to the time, zone or place stamps `detailsChangedAt` so guest
+ * pages and the host's heads-up message know the details moved.
  */
 export async function updateEvent(
   db: Db,
   hostId: string,
   eventId: string,
   input: UpdateEventInput,
-): Promise<void> {
+  now: Date = new Date(),
+): Promise<UpdateEventResult> {
   const event = await getHostEvent(db, hostId, eventId);
-  const parsed = z.object(detailsShape).safeParse(input);
+  const parsed = z.object({ ...detailsShape, ...coverShape }).safeParse(input);
   if (!parsed.success) {
     throw new ValidationError(parsed.error.issues.map((i) => i.message).join("; "));
   }
   const timezone = input.timezone || event.timezone;
   const startsAt = zonedLocalToDate(input.startsAt, timezone);
+  const detailsChanged =
+    event.startsAt.getTime() !== startsAt.getTime() ||
+    event.timezone !== timezone ||
+    event.location !== parsed.data.location;
+
   await db
     .update(events)
-    .set({ ...parsed.data, startsAt, timezone })
+    .set({
+      title: parsed.data.title,
+      location: parsed.data.location,
+      startsAt,
+      timezone,
+      ...(detailsChanged ? { detailsChangedAt: now } : {}),
+      // Omitted cover fields belong to a caller that doesn't edit the cover.
+      ...(input.coverEmoji !== undefined
+        ? { coverEmoji: parsed.data.coverEmoji ?? null }
+        : {}),
+      ...(input.coverColor !== undefined
+        ? { coverColor: parsed.data.coverColor ?? null }
+        : {}),
+    })
     .where(and(eq(events.id, eventId), eq(events.hostId, hostId)));
+  return { detailsChanged };
 }
 
 /**
@@ -231,6 +297,8 @@ export async function listHostEvents(db: Db, hostId: string): Promise<EventSumma
     shareCode: r.shareCode,
     planFor: headcounts.get(r.id)?.planFor ?? 0,
     cancelledAt: r.cancelledAt,
+    coverEmoji: r.coverEmoji,
+    coverColor: r.coverColor,
   }));
 }
 
@@ -283,6 +351,61 @@ export async function headcountForEvents(
 }
 
 const nameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * Answer counts and "haven't replied" totals for every event in one go, so the
+ * dashboard never runs per-card queries. Deleted events are left out, matching
+ * `listHostEvents`; an unknown id simply has no entry. Three queries in total,
+ * whatever the number of events.
+ */
+export async function glanceForEvents(
+  db: Db,
+  eventIds: string[],
+): Promise<Map<string, EventGlance>> {
+  const result = new Map<string, EventGlance>();
+  if (eventIds.length === 0) return result;
+
+  const liveEvents = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(and(inArray(events.id, eventIds), isNull(events.deletedAt)));
+  const liveIds = liveEvents.map((event) => event.id);
+  if (liveIds.length === 0) return result;
+
+  const [guestRows, inviteeRows] = await Promise.all([
+    db
+      .select({ eventId: guests.eventId, name: guests.name, status: guests.status })
+      .from(guests)
+      .where(inArray(guests.eventId, liveIds)),
+    db
+      .select({ eventId: invitees.eventId, name: invitees.name })
+      .from(invitees)
+      .where(inArray(invitees.eventId, liveIds)),
+  ]);
+
+  const replied = new Map<string, Set<string>>();
+  for (const id of liveIds) {
+    result.set(id, { yes: 0, maybe: 0, no: 0, noReply: 0 });
+    replied.set(id, new Set());
+  }
+
+  for (const guest of guestRows) {
+    const glance = result.get(guest.eventId);
+    if (!glance) continue;
+    glance[guest.status] += 1;
+    replied.get(guest.eventId)?.add(nameKey(guest.name));
+  }
+
+  // Same rule as noReplyNames: an invitee counts as answered once a guest of the
+  // same trimmed, case-insensitive name exists, whatever that guest's status.
+  for (const invitee of inviteeRows) {
+    const glance = result.get(invitee.eventId);
+    if (!glance) continue;
+    if (!replied.get(invitee.eventId)?.has(nameKey(invitee.name))) glance.noReply += 1;
+  }
+
+  return result;
+}
 
 /** Adds expected invitees: trimmed, blanks dropped, no case-insensitive duplicates. */
 export async function addInvitees(

@@ -28,12 +28,15 @@ export async function updateEventAction(
   formData: FormData,
 ): Promise<EditEventState> {
   const host = await requireHost();
+  let result: { detailsChanged: boolean };
   try {
-    await updateEvent(await getDb(), host.id, eventId, {
+    result = await updateEvent(await getDb(), host.id, eventId, {
       title: text(formData, "title"),
       startsAt: text(formData, "startsAt"),
       location: text(formData, "location"),
       timezone: text(formData, "timezone") || undefined,
+      coverEmoji: text(formData, "coverEmoji") || null,
+      coverColor: text(formData, "coverColor") || null,
     });
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message };
@@ -43,7 +46,9 @@ export async function updateEventAction(
   // The title and time show in the layout header and on the dashboard.
   revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
   revalidatePath("/host");
-  redirect(`/host/events/${encodeURIComponent(eventId)}`);
+  // A moved time or place lands on the Guests tab with a copyable heads-up.
+  const query = result.detailsChanged ? "?changed=1" : "";
+  redirect(`/host/events/${encodeURIComponent(eventId)}${query}`);
 }
 
 /**

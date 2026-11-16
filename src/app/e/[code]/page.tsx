@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
 import { EventUnavailable } from "@/components/EventUnavailable";
 import { RsvpForm } from "@/components/RsvpForm";
+import { UpdatedDetailsNotice } from "@/components/UpdatedDetailsNotice";
 import { getDb } from "@/db/client";
+import { coverFor } from "@/lib/cover";
 import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
 import { guestCookieName } from "@/lib/guest-cookie";
 import { eventPreview, wantsBlankForm } from "@/lib/guest-page";
 import { calendarDetails, googleCalendarUrl } from "@/lib/ics";
+import { changedRecently, relativeDateLabel } from "@/lib/relative-date";
 import { getBaseUrl, shareUrl } from "@/server/base-url";
 import { NotFoundError } from "@/services/errors";
 import { getGuestByToken, getPublicEvent } from "@/services/rsvp";
@@ -47,6 +50,18 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
   if (state === "deleted") return <EventUnavailable hostName={event.hostName} />;
   const cancelled = state === "cancelled";
 
+  // Anonymous visitors have no RSVP date to compare with, so a recent move
+  // shows for two weeks. Cancelled events keep the cancellation banner instead.
+  const now = new Date();
+  const changedAt = cancelled ? null : event.detailsChangedAt;
+  const updated = changedAt && changedRecently(changedAt, now)
+    ? {
+        relative: relativeDateLabel(changedAt, now, event.timezone),
+        when: formatWhen(event.startsAt, "", event.timezone),
+        location: event.location,
+      }
+    : null;
+
   // A returning guest goes straight to their edit page. A missing, invalid or
   // stale cookie is ignored. `?new=1` ("Not you?") skips this and shows a blank form.
   const token = blank ? undefined : (await cookies()).get(guestCookieName(code))?.value;
@@ -77,10 +92,17 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
           when: formatWhen(event.startsAt, event.location, event.timezone),
           hostName: event.hostName,
           goingCount: event.goingCount,
+          cover: coverFor(event),
         }}
         action={submitGuestRsvp.bind(null, code)}
         readOnly={cancelled}
-        notice={cancelled ? <CancelledEventNotice hostName={event.hostName} /> : undefined}
+        notice={
+          cancelled ? (
+            <CancelledEventNotice hostName={event.hostName} />
+          ) : updated ? (
+            <UpdatedDetailsNotice {...updated} />
+          ) : undefined
+        }
       />
 
       {cancelled ? null : (

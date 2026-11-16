@@ -65,13 +65,27 @@ function form(over: Record<string, string> = {}) {
 
 describe("updateEventAction", () => {
   it("saves and redirects back to the Guests tab", async () => {
-    await expect(updateEventAction(eventId, { error: null }, form())).rejects.toThrow(
+    // Same time, zone and place: a title-only edit sends no change alert.
+    const titleOnly = form({
+      title: "Cookout 2",
+      startsAt: "2026-07-04T18:00",
+      location: "Backyard",
+      timezone: "UTC",
+    });
+    await expect(updateEventAction(eventId, { error: null }, titleOnly)).rejects.toThrow(
       `NEXT_REDIRECT:/host/events/${eventId}`,
     );
     expect(await getHostEvent(db, "host-1", eventId)).toMatchObject({
-      title: "Burger Night",
-      location: "The patio",
+      title: "Cookout 2",
+      location: "Backyard",
     });
+  });
+
+  it("redirects with changed=1 when the time or place moved", async () => {
+    await expect(updateEventAction(eventId, { error: null }, form())).rejects.toThrow(
+      `NEXT_REDIRECT:/host/events/${eventId}?changed=1`,
+    );
+    expect((await getHostEvent(db, "host-1", eventId)).detailsChangedAt).toBeInstanceOf(Date);
   });
 
   it("returns a friendly error for bad input and saves nothing", async () => {

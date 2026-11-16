@@ -7,6 +7,8 @@ const initial = {
   startsAt: "2026-11-14T19:00",
   location: "The patio",
   timezone: "America/Chicago",
+  coverEmoji: null,
+  coverColor: null,
 };
 
 describe("EditEventForm", () => {
@@ -44,5 +46,28 @@ describe("EditEventForm", () => {
     expect(screen.getByLabelText("What's the occasion?")).toHaveValue("Pizza Night");
     expect(screen.getByLabelText("Date and time")).toHaveValue("2026-11-14T19:00");
     expect(screen.getByLabelText("Where?")).toHaveValue("  ");
+  });
+
+  it("shows the event's cover and sends a newly picked one", async () => {
+    const action = vi.fn().mockResolvedValue({ error: null });
+    render(
+      <EditEventForm
+        initial={{ ...initial, coverEmoji: "🍕", coverColor: "pickle" }}
+        action={action}
+        backHref="/x"
+      />,
+    );
+    expect(screen.getByRole("group", { name: "Cover" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Pizza" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Pickle" })).toBeChecked();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Taco" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Ketchup" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const data = action.mock.calls[0][1] as FormData;
+    expect(data.get("coverEmoji")).toBe("🌮");
+    expect(data.get("coverColor")).toBe("ketchup");
   });
 });

@@ -30,4 +30,24 @@ describe("NewEventForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Where is it?");
   });
+
+  it("starts on the default cover and sends a picked one", async () => {
+    const action = vi.fn().mockResolvedValue({ error: null });
+    render(<NewEventForm action={action} />);
+
+    expect(screen.getByRole("radio", { name: "Party popper" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Mustard" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Pizza" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Sage" }));
+
+    fireEvent.change(screen.getByLabelText("What's the occasion?"), { target: { value: "Cookout" } });
+    fireEvent.change(screen.getByLabelText("Date and time"), { target: { value: "2026-11-14T19:00" } });
+    fireEvent.change(screen.getByLabelText("Where?"), { target: { value: "Backyard" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }));
+
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const data = action.mock.calls[0][1] as FormData;
+    expect(data.get("coverEmoji")).toBe("🍕");
+    expect(data.get("coverColor")).toBe("pickle-soft");
+  });
 });

@@ -27,6 +27,8 @@ export default async function EditEventPage({ params }: PageProps<"/host/events/
           startsAt: dateToZonedLocal(event.startsAt, event.timezone),
           location: event.location,
           timezone: event.timezone,
+          coverEmoji: event.coverEmoji,
+          coverColor: event.coverColor,
         }}
         action={updateEventAction.bind(null, event.id)}
         backHref={`/host/events/${encodeURIComponent(event.id)}`}

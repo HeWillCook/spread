@@ -30,6 +30,8 @@ export async function createEventAction(
       hostName: host.name,
       startsAt,
       timezone: text(formData, "timezone"),
+      coverEmoji: text(formData, "coverEmoji") || null,
+      coverColor: text(formData, "coverColor") || null,
     }));
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message };

@@ -15,6 +15,7 @@ import {
   deleteEvent,
   findDeletedHostEvent,
   getHostEvent,
+  glanceForEvents,
   headcountForEvents,
   listHostEvents,
   noReplyNames,
@@ -101,6 +102,75 @@ describe("createEvent", () => {
   });
 });
 
+describe("event covers", () => {
+  it("stores a preset emoji and colour, and leaves the default when none is given", async () => {
+    const { id } = await createEvent(db, "host-1", {
+      ...input,
+      coverEmoji: "🍕",
+      coverColor: "pickle",
+    });
+    expect(await getHostEvent(db, "host-1", id)).toMatchObject({
+      coverEmoji: "🍕",
+      coverColor: "pickle",
+    });
+
+    const plain = await createEvent(db, "host-1", { ...input, title: "Plain" });
+    expect(await getHostEvent(db, "host-1", plain.id)).toMatchObject({
+      coverEmoji: null,
+      coverColor: null,
+    });
+    const summary = (await listHostEvents(db, "host-1")).find((e) => e.id === plain.id);
+    expect(summary).toMatchObject({ coverEmoji: null, coverColor: null });
+  });
+
+  it("rejects emoji and colours outside the presets", async () => {
+    await expect(
+      createEvent(db, "host-1", { ...input, coverEmoji: "🚀" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      createEvent(db, "host-1", { ...input, coverColor: "neon" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+
+    const { id } = await createEvent(db, "host-1", input);
+    await expect(
+      updateEvent(db, "host-1", id, {
+        title: "Cookout",
+        startsAt: "2026-07-04T18:00",
+        location: "Backyard",
+        timezone: "UTC",
+        coverEmoji: "🚀",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect((await getHostEvent(db, "host-1", id)).coverEmoji).toBeNull();
+  });
+
+  it("changes the cover without marking the details as changed, and leaves it alone when omitted", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const edit = {
+      title: "Fourth of July",
+      startsAt: "2026-07-04T18:00",
+      location: "Backyard",
+      timezone: "UTC",
+    };
+
+    const changed = await updateEvent(db, "host-1", id, {
+      ...edit,
+      coverEmoji: "🌮",
+      coverColor: "ketchup",
+    });
+    expect(changed.detailsChanged).toBe(false);
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event).toMatchObject({ coverEmoji: "🌮", coverColor: "ketchup" });
+    expect(event.detailsChangedAt).toBeNull();
+
+    await updateEvent(db, "host-1", id, edit);
+    expect(await getHostEvent(db, "host-1", id)).toMatchObject({
+      coverEmoji: "🌮",
+      coverColor: "ketchup",
+    });
+  });
+});
+
 describe("listHostEvents", () => {
   it("returns only that host's events, soonest first, with a headcount", async () => {
     const later = await createEvent(db, "host-1", {
@@ -143,6 +213,38 @@ describe("headcountForEvents", () => {
     await submitRsvp(db, { shareCode, name: "B", status: "maybe", plusOneNames: ["C"] });
     // 1 confirmed + 2 maybe heads at 50% = 2
     expect((await headcountForEvents(db, [id])).get(id)?.planFor).toBe(2);
+  });
+});
+
+describe("glanceForEvents", () => {
+  it("counts answers and unreplied invitees per event", async () => {
+    const a = await createEvent(db, "host-1", { ...input, title: "A" });
+    const b = await createEvent(db, "host-1", {
+      ...input,
+      title: "B",
+      startsAt: new Date("2026-08-01T18:00:00Z"),
+    });
+    await addInvitees(db, "host-1", a.id, ["Alex", "Sam", "Jo"]);
+    await submitRsvp(db, { shareCode: a.shareCode, name: " alex ", status: "yes", plusOneNames: [] });
+    await submitRsvp(db, { shareCode: a.shareCode, name: "Bea", status: "maybe", plusOneNames: [] });
+    await submitRsvp(db, { shareCode: a.shareCode, name: "Cy", status: "no", plusOneNames: [] });
+    await addInvitees(db, "host-1", b.id, ["Dee"]);
+    await submitRsvp(db, { shareCode: b.shareCode, name: "Dee", status: "yes", plusOneNames: [] });
+
+    const glance = await glanceForEvents(db, [a.id, b.id]);
+    // Alex's reply matches the invitee case-insensitively; Sam and Jo are silent.
+    expect(glance.get(a.id)).toEqual({ yes: 1, maybe: 1, no: 1, noReply: 2 });
+    expect(glance.get(b.id)).toEqual({ yes: 1, maybe: 0, no: 0, noReply: 0 });
+  });
+
+  it("leaves deleted events and unknown ids out", async () => {
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: [] });
+    await deleteEvent(db, "host-1", id);
+
+    const glance = await glanceForEvents(db, [id, "missing"]);
+    expect(glance.size).toBe(0);
+    expect(await glanceForEvents(db, [])).toEqual(new Map());
   });
 });
 
@@ -250,6 +352,60 @@ describe("updateEvent", () => {
     }
     const event = await getHostEvent(db, "host-1", id);
     expect(event).toMatchObject({ title: "Fourth of July", location: "Backyard" });
+  });
+});
+
+describe("updateEvent details change alerts", () => {
+  const unchanged = {
+    title: "Fourth of July",
+    startsAt: "2026-07-04T18:00",
+    location: "Backyard",
+    timezone: "UTC",
+  };
+
+  it("does not count a title-only edit", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const result = await updateEvent(db, "host-1", id, { ...unchanged, title: "July Cookout" });
+    expect(result).toEqual({ detailsChanged: false });
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event.title).toBe("July Cookout");
+    expect(event.detailsChangedAt).toBeNull();
+  });
+
+  it("stamps detailsChangedAt when the start time changes", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const result = await updateEvent(db, "host-1", id, {
+      ...unchanged,
+      startsAt: "2026-07-04T19:00",
+    });
+    expect(result).toEqual({ detailsChanged: true });
+    expect((await getHostEvent(db, "host-1", id)).detailsChangedAt).toBeInstanceOf(Date);
+  });
+
+  it("stamps detailsChangedAt when the time zone changes", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const result = await updateEvent(db, "host-1", id, {
+      ...unchanged,
+      timezone: "America/Chicago",
+    });
+    expect(result).toEqual({ detailsChanged: true });
+    expect((await getHostEvent(db, "host-1", id)).timezone).toBe("America/Chicago");
+  });
+
+  it("stamps detailsChangedAt when the location changes", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const result = await updateEvent(db, "host-1", id, { ...unchanged, location: "The park" });
+    expect(result).toEqual({ detailsChanged: true });
+    expect((await getHostEvent(db, "host-1", id)).location).toBe("The park");
+  });
+
+  it("leaves an earlier stamp alone when saving the same details again", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    const stamp = new Date("2026-06-01T12:00:00Z");
+    await updateEvent(db, "host-1", id, { ...unchanged, location: "The park" }, stamp);
+    const result = await updateEvent(db, "host-1", id, { ...unchanged, location: "The park" });
+    expect(result).toEqual({ detailsChanged: false });
+    expect((await getHostEvent(db, "host-1", id)).detailsChangedAt).toEqual(stamp);
   });
 });
 

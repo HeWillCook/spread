@@ -185,6 +185,7 @@ describe("getGuestByToken", () => {
       status: "yes",
       plusOneNames: ["Sam"],
       foodNotes: "no nuts",
+      createdAt: expect.any(Date),
     });
   });
 
@@ -210,6 +211,9 @@ describe("getPublicEvent", () => {
       goingCount: 4,
       cancelledAt: null,
       deletedAt: null,
+      detailsChangedAt: null,
+      coverEmoji: null,
+      coverColor: null,
     });
     const json = JSON.stringify(result);
     for (const secret of ["Alex", "Sam", "Jo", "Bea", "secret allergy", "Cy", "Dee"]) {
