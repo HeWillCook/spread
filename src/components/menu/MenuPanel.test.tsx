@@ -148,7 +148,8 @@ describe("MenuPanel dish card", () => {
   });
 
   it("says so when a dish has no instructions yet", () => {
-    renderPanel();
+    const bare = { ...burgers, description: undefined, prepMinutes: undefined, cookMinutes: undefined, steps: [], tips: [], equipment: [] };
+    renderPanel({ dishes: [{ ...dish, recipe: bare }] });
     expandCard();
     expect(screen.getByText(/No instructions yet/)).toBeInTheDocument();
   });

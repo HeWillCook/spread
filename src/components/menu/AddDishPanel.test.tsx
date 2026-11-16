@@ -47,7 +47,7 @@ describe("AddDishPanel picker", () => {
   });
 
   it("matches ingredient names and says which ingredient matched", () => {
-    const greens: Recipe = { ...burgers, id: "own-greens", name: "Garden Salad", items: [] };
+    const greens: Recipe = { id: "own-greens", name: "Garden Salad", emoji: "🥗", defaultServingsPerPerson: 1, items: [] };
     render(<AddDishPanel recipes={[burgers, greens]} action={ok} />);
 
     fireEvent.change(screen.getByLabelText("Find a dish"), { target: { value: "onion" } });
