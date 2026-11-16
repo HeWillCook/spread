@@ -11,7 +11,7 @@ function current() {
 }
 
 describe("EventTabs", () => {
-  it("links the four tabs under the event", () => {
+  it("links the five tabs under the event", () => {
     usePathname.mockReturnValue("/host/events/ev1");
     render(<EventTabs eventId="ev1" />);
     const links = screen.getAllByRole("link");
@@ -20,6 +20,7 @@ describe("EventTabs", () => {
       ["Menu", "/host/events/ev1/menu"],
       ["Shopping", "/host/events/ev1/shopping"],
       ["Split", "/host/events/ev1/split"],
+      ["Today", "/host/events/ev1/today"],
     ]);
   });
 
@@ -33,6 +34,7 @@ describe("EventTabs", () => {
     ["/host/events/ev1/menu", "Menu"],
     ["/host/events/ev1/shopping", "Shopping"],
     ["/host/events/ev1/split", "Split"],
+    ["/host/events/ev1/today", "Today"],
     ["/host/events/ev1/menu/", "Menu"],
     ["/host/events/ev1/prep", "Menu"],
     ["/host/events/ev1/prep/", "Menu"],

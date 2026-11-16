@@ -36,6 +36,13 @@
       "when": 1794372497075,
       "tag": "0004_cold_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794797697309,
+      "tag": "0005_event_lifecycle",
+      "breakpoints": true
     }
   ]
 }

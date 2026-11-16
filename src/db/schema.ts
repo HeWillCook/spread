@@ -33,6 +33,15 @@ export const events = pgTable("events", {
   maybePercent: integer("maybe_percent").notNull().default(50),
   venmoUsername: text("venmo_username"),
   hostCoverCents: integer("host_cover_cents").notNull().default(0),
+  // Soft delete: hidden everywhere, restorable for 30 days, then purged.
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  // Cancelled events stay visible (with a banner) but take no RSVPs.
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  // Last time the time, timezone or location changed; drives guest "Updated" notices.
+  detailsChangedAt: timestamp("details_changed_at", { withTimezone: true }),
+  // Cover: one of the preset emoji / palette keys; null means the default.
+  coverEmoji: text("cover_emoji"),
+  coverColor: text("cover_color"),
 });
 
 export const recipes = pgTable("recipes", {
