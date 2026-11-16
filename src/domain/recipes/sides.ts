@@ -197,7 +197,7 @@ export const sideRecipes: CompleteStarterRecipe[] = [
       "Melt the butter in a small saucepan over medium heat, whisk in the flour, and cook for 1 minute until it smells toasty.",
       "Pour in the milk in a steady stream, whisking constantly, and simmer for 3 to 4 minutes, until thick enough to coat the back of a spoon.",
       "Off the heat, stir in the shredded cheddar one handful at a time until smooth, then season with salt and pepper.",
-      "Fold the macaroni into the cheese sauce and scrape everything into the baking dish.",
+      "Fold the macaroni into the cheddar sauce and scrape everything into the baking dish.",
       "Toss the bread crumbs with 1 tbsp melted butter and scatter them over the top.",
       "Bake for 20 to 25 minutes, until bubbling at the edges and golden brown on top.",
     ],

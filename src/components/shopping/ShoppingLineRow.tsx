@@ -2,7 +2,7 @@
 
 import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { formatCents } from "@/domain/money";
-import { formatBuyQty, formatNeed } from "@/lib/shopping-text";
+import { formatBuyLabel, formatBuyQty, formatNeed } from "@/lib/shopping-text";
 import type { ShoppingPlan } from "@/services/shopping";
 import { FormError } from "../menu/menuForm";
 import {
@@ -124,7 +124,9 @@ export function ShoppingLineRow({
         <p className={`font-bold leading-tight ${line.checked ? "line-through opacity-60" : ""}`}>
           {line.name}
         </p>
-        <p className="text-sm font-bold text-ink/80">Buy {formatBuyQty(line.buyQty, line.buyUnit)}</p>
+        <p className="text-sm font-bold text-ink/80">
+          Buy {formatBuyLabel(line.buyQty, line.buyUnit)}
+        </p>
         <p className="text-xs text-ink/70">
           need {formatNeed(line.needed, line.neededUnit, line.buyUnit, line.unitsPerBuy)}
         </p>

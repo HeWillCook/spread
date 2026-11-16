@@ -26,11 +26,17 @@ import { FormError, INITIAL_MENU_FORM_STATE, type MenuFormAction } from "./menuF
 function RemoveForm({ action, name }: { action: MenuFormAction; name: string }) {
   const [state, formAction, pending] = useActionState(action, INITIAL_MENU_FORM_STATE);
   return (
-    <form action={formAction} className="flex flex-col gap-2">
-      <FormError message={state.error} />
-      <Button variant="outline" type="submit" disabled={pending}>
-        {pending ? "Removing..." : `Remove ${name} from the menu`}
+    <form action={formAction} className="flex flex-col gap-1">
+      <Button
+        variant="outline"
+        type="submit"
+        disabled={pending}
+        aria-label={`Remove ${name} from the menu`}
+        className="min-h-11 px-4 py-2 text-sm"
+      >
+        {pending ? "Removing..." : "Remove"}
       </Button>
+      <FormError message={state.error} />
     </form>
   );
 }
@@ -93,51 +99,39 @@ export function DishCard({
       className="scroll-mt-24 focus:outline-none"
     >
       <Card className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="min-w-0 truncate text-xl font-bold leading-tight">
-                <span aria-hidden="true">{recipe.emoji}</span> {recipe.name}
-              </h2>
-              {dish.isStarter ? (
-                <Pill tone="cream">Starter recipe</Pill>
-              ) : recipe.category ? (
-                <Pill tone="cream">{recipe.category}</Pill>
-              ) : null}
-            </div>
-
-            <p className="text-sm font-bold text-ink/85">
-              {appetiteRowText(dish.servingsPerPerson, recipe.name)}
-              {planFor !== undefined && planFor > 0
-                ? ` · ${formatBuyQty(servingsMade, servingWord(recipe.name))} for ${planFor} ${
-                    planFor === 1 ? "guest" : "guests"
-                  }`
-                : ""}
-            </p>
-
-            <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-ink/75">
-              {totalTime ? <span className="font-bold">{totalTime}</span> : null}
-              {planFor !== undefined && planFor > 0 ? (
-                <span>
-                  About {formatCents(estCostCents)} for {planFor}{" "}
-                  {planFor === 1 ? "guest" : "guests"} ·{" "}
-                  {formatCents(Math.round(estCostCents / planFor))} per person
-                </span>
-              ) : null}
-            </p>
-
-            <p className="line-clamp-2 text-xs text-ink/70">{ingredientSummary(recipe.items)}</p>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 className="line-clamp-2 min-w-0 text-xl font-bold leading-tight">
+              <span aria-hidden="true">{recipe.emoji}</span> {recipe.name}
+            </h2>
+            {dish.isStarter ? (
+              <Pill tone="cream">Starter recipe</Pill>
+            ) : recipe.category ? (
+              <Pill tone="cream">{recipe.category}</Pill>
+            ) : null}
           </div>
 
-          <Button
-            variant="outline"
-            aria-expanded={open}
-            aria-controls={panelId}
-            onClick={onToggle}
-            className="shrink-0"
-          >
-            {open ? "Hide details" : "Edit details"}
-          </Button>
+          <p className="text-sm font-bold text-ink/85">
+            {appetiteRowText(dish.servingsPerPerson, recipe.name)}
+            {planFor !== undefined && planFor > 0
+              ? ` · ${formatBuyQty(servingsMade, servingWord(recipe.name))} for ${planFor} ${
+                  planFor === 1 ? "guest" : "guests"
+                }`
+              : ""}
+          </p>
+
+          <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-ink/75">
+            {totalTime ? <span className="font-bold">{totalTime}</span> : null}
+            {planFor !== undefined && planFor > 0 ? (
+              <span>
+                About {formatCents(estCostCents)} for {planFor}{" "}
+                {planFor === 1 ? "guest" : "guests"} ·{" "}
+                {formatCents(Math.round(estCostCents / planFor))} per person
+              </span>
+            ) : null}
+          </p>
+
+          <p className="line-clamp-2 text-xs text-ink/70">{ingredientSummary(recipe.items)}</p>
         </div>
 
         <div id={panelId} hidden={!open}>
@@ -286,7 +280,18 @@ export function DishCard({
           ) : null}
         </div>
 
-        <RemoveForm action={removeAction} name={recipe.name} />
+        <div className="flex flex-wrap items-center gap-2 border-t border-dashed border-divider pt-3">
+          <Button
+            variant="outline"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={onToggle}
+            className="min-h-11 px-4 py-2 text-sm"
+          >
+            {open ? "Hide details" : "Edit details"}
+          </Button>
+          <RemoveForm action={removeAction} name={recipe.name} />
+        </div>
       </Card>
     </div>
   );

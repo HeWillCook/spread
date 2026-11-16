@@ -3,8 +3,22 @@ import type { Headcount } from "@/domain/headcount";
 import { buildShoppingList, type ShoppingLine } from "@/domain/shopping";
 import type { MenuDish } from "@/services/menu";
 
-// Units that read the same for one or many ("8 lb", "4 each").
-const INVARIANT_UNITS = new Set(["lb", "lbs", "oz", "g", "kg", "ml", "l", "gal", "each", "dozen"]);
+// Units that read the same for one or many ("8 lb", "4 each", "2 tbsp").
+const INVARIANT_UNITS = new Set([
+  "lb",
+  "lbs",
+  "oz",
+  "g",
+  "kg",
+  "ml",
+  "l",
+  "gal",
+  "qt",
+  "each",
+  "dozen",
+  "tbsp",
+  "tsp",
+]);
 
 function pluralize(unit: string): string {
   const lower = unit.toLowerCase();
@@ -14,9 +28,19 @@ function pluralize(unit: string): string {
   return `${unit}s`;
 }
 
-/** "8 lb", "1 pack", "3 packs". */
+/** "8 lb", "1 pack", "3 packs", "1 1/2 tbsp". Abbreviations never take an "s". */
 export function formatBuyQty(qty: number, buyUnit: string): string {
-  return `${qty} ${qty === 1 ? buyUnit : pluralize(buyUnit)}`;
+  // One or less stays singular ("1/2 bunch"); zero reads as plural ("0 packs").
+  const plural = qty > 1 || qty === 0;
+  return `${formatQty(qty)} ${plural ? pluralize(buyUnit) : buyUnit}`;
+}
+
+/**
+ * The amount to buy when the row already names the item: "Buy 7" for countable
+ * things (no "each"), "Buy 2 packs" otherwise.
+ */
+export function formatBuyLabel(qty: number, buyUnit: string): string {
+  return buyUnit.trim().toLowerCase() === "each" ? formatQty(qty) : formatBuyQty(qty, buyUnit);
 }
 
 // Small fractions people read at a glance. Anything else falls back to two decimals.
@@ -50,7 +74,8 @@ export function formatQty(qty: number): string {
 /** "1 1/2 lb", "0.17 onion", "18 buns" — quantity plus a correctly pluralised unit. */
 export function formatNeededQty(qty: number, unit: string): string {
   const label = formatQty(qty);
-  return `${label} ${label === "1" ? unit : pluralize(unit)}`;
+  // One or less stays singular ("1/2 lemon"); zero reads as plural ("0 onions").
+  return `${label} ${qty > 1 || qty === 0 ? pluralize(unit) : unit}`;
 }
 
 /**
@@ -120,7 +145,7 @@ export interface CopyListLine {
 
 /** "3" for countable things, "3 packs" otherwise. */
 function copyQty(line: CopyListLine): string {
-  return line.buyUnit === "each" ? formatQty(line.buyQty) : formatBuyQty(line.buyQty, line.buyUnit);
+  return formatBuyLabel(line.buyQty, line.buyUnit);
 }
 
 /**
