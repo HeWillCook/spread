@@ -1,44 +1,35 @@
-.superpowers/
+# dependencies
 node_modules/
-.next/
-.env*
-.claude/worktrees/
-
-# testing
-/coverage
 
 # next.js
-/.next/
-/out/
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
 
-# production
-/build
+# env files (opt in to committing with a ! rule)
+.env*
+!.env.example
+
+# local databases (PGlite)
+.data/
+
+# testing
+coverage/
+test-results/
+playwright-report/
+
+# deploy and tool state
+.vercel
+.neon
+.superpowers/
+.claude/worktrees/
 
 # misc
 .DS_Store
 *.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# local database
-.data/
-
-# playwright
-/test-results/
-/playwright-report/
-.neon
