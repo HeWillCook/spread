@@ -1,4 +1,4 @@
-import type { StarterRecipe } from "./types";
+import type { CompleteStarterRecipe } from "./types";
 
 /**
  * Grill and mains. Every amount is per serving of the dish; `defaultServingsPerPerson`
@@ -7,13 +7,32 @@ import type { StarterRecipe } from "./types";
  * Keep the totals realistic at 10 people: a main is usually 0.25–0.5 lb of raw protein
  * per person, and a starchy side is 0.3–0.5 lb per person.
  */
-export const grillRecipes: StarterRecipe[] = [
+export const grillRecipes: CompleteStarterRecipe[] = [
   {
     id: "starter-burgers",
     name: "Burgers",
     emoji: "🍔",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Smash-style beef patties with melted cheese and sharp onion.",
+    prepMinutes: 15,
+    cookMinutes: 10,
+    equipment: ["Grill", "Instant-read thermometer", "Large mixing bowl", "Sheet pan"],
+    steps: [
+      "Divide the Ground beef into loose portions of about 1/3 lb each and shape them into patties about 3/4 inch thick, pressing a shallow dimple into the center of each one so it cooks flat.",
+      "Season both sides of every patty with salt and pepper, then leave them on a Sheet pan at room temperature for 10 minutes while the grill heats.",
+      "Heat the grill to medium-high, about 450°F, and oil the grates with a folded paper towel held with tongs.",
+      "Grill the patties with the lid closed for 3 to 4 minutes per side, until the internal temperature reads 160°F on an instant-read thermometer.",
+      "Lay 1 slice from the Cheese slices pack on each patty for the last minute and close the lid until it melts.",
+      "Split the Burger buns and toast them cut side down on the grill for 30 to 60 seconds, until lightly golden.",
+      "Slice the Onion and Jalapeño thinly and set them out in small bowls.",
+      "Rest the patties for 2 minutes, then build each burger on a toasted bun with onion and jalapeño.",
+    ],
+    tips: [
+      "Shape the patties up to a day ahead and stack them with parchment between; pull them out 15 minutes before grilling.",
+      "Keep raw beef and cooked burgers on separate plates, and never leave either sitting in direct sun.",
+      "For a crowd, grill in batches and hold finished patties in a 200°F oven in a single layer.",
+    ],
     items: [
       {
         id: "starter-burgers-beef",
@@ -73,6 +92,23 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🌭",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Classic grilled dogs with ketchup, mustard, relish and onion.",
+    prepMinutes: 5,
+    cookMinutes: 8,
+    equipment: ["Grill", "Tongs", "Small serving bowls"],
+    steps: [
+      "Heat the grill to medium, about 375°F, and oil the grates lightly with a folded paper towel.",
+      "Grill the Hot dog sausages for 6 to 8 minutes, turning every 2 minutes, until browned all over and steaming hot.",
+      "Split the Hot dog buns and grill them cut side down for about 30 seconds, until just toasted.",
+      "Spoon the Ketchup, Yellow mustard and Relish into separate small bowls so guests can serve themselves.",
+      "Slice the Onion thin and add it to the topping line.",
+      "Set each sausage in a toasted bun and let guests finish with their own toppings.",
+    ],
+    tips: [
+      "Grill the sausages an hour ahead and hold them in a covered pan at 150°F, then toast buns to order.",
+      "Set opened condiments in a cooler with ice if the table sits in direct sun.",
+      "Plant-based sausages grill the same way; give them their own tongs and spot on the grill.",
+    ],
     items: [
       {
         id: "starter-hot-dogs-sausage",
@@ -106,13 +142,13 @@ export const grillRecipes: StarterRecipe[] = [
       },
       {
         id: "starter-hot-dogs-mustard",
-        name: "Mustard",
+        name: "Yellow mustard",
         emoji: "🥫",
-        perServing: 1,
-        unit: "tsp",
+        perServing: 1 / 3,
+        unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 90,
-        priceCents: 250,
+        unitsPerBuy: 16,
+        priceCents: 200,
       },
       {
         id: "starter-hot-dogs-relish",
@@ -142,6 +178,24 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🍗",
     category: "Grill",
     defaultServingsPerPerson: 2,
+    description: "Lemon-garlic chicken thighs with smoky paprika and charred edges.",
+    prepMinutes: 20,
+    cookMinutes: 15,
+    equipment: ["Grill", "Instant-read thermometer", "Large bowl", "Tongs"],
+    steps: [
+      "Mince the Garlic and stir it in a large bowl with the juice of 1 Lemon, 1 tbsp Olive oil per pound of chicken, and 1/2 tsp Paprika per pound until it forms a loose paste.",
+      "Pat the Chicken thighs (boneless) dry, add them to the bowl, and turn until every piece is coated; let them marinate for 20 minutes at room temperature.",
+      "Heat the grill to medium-high, about 425°F, and oil the grates well.",
+      "Grill the thighs smooth side down for 5 to 6 minutes, until they release easily and have dark grill marks.",
+      "Flip and cook 5 to 7 minutes more, until the thickest part reads 165°F on an instant-read thermometer.",
+      "Rest the chicken on a cutting board for 5 minutes, then slice against the grain.",
+      "Squeeze the remaining Lemon over the sliced chicken just before serving.",
+    ],
+    tips: [
+      "The marinade can go in a zip-top bag in the fridge for up to 4 hours; don't leave it longer or the lemon starts to cure the meat.",
+      "Hold cooked thighs on a sheet pan in a 200°F oven for up to 30 minutes without drying out.",
+      "Boneless chicken breast works in place of thighs at the same 165°F, but pull it 2 minutes sooner.",
+    ],
     items: [
       {
         id: "starter-chicken-thighs-chicken",
@@ -180,8 +234,8 @@ export const grillRecipes: StarterRecipe[] = [
         perServing: 1 / 2,
         unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 64,
-        priceCents: 800,
+        unitsPerBuy: 33,
+        priceCents: 550,
       },
       {
         id: "starter-chicken-thighs-paprika",
@@ -190,8 +244,8 @@ export const grillRecipes: StarterRecipe[] = [
         perServing: 1 / 4,
         unit: "tsp",
         buyUnit: "jar",
-        unitsPerBuy: 48,
-        priceCents: 400,
+        unitsPerBuy: 24,
+        priceCents: 300,
       },
     ],
   },
@@ -201,6 +255,23 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🌭",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Grilled brats piled with tangy sauerkraut, mustard and sweet onion.",
+    prepMinutes: 10,
+    cookMinutes: 20,
+    equipment: ["Grill", "Large pot", "Tongs", "Instant-read thermometer"],
+    steps: [
+      "Heat the grill to medium, about 375°F, while you simmer the sausages.",
+      "Put the Bratwurst in a large pot, cover them with water, and simmer over medium heat for 8 to 10 minutes, until firm and heated through.",
+      "Transfer the brats to the grill and cook 6 to 8 minutes, turning every 2 minutes, until browned and 160°F inside.",
+      "Warm the Sauerkraut in a small pot over low heat for 5 minutes, then drain off the extra liquid.",
+      "Split the Hot dog buns and toast them cut side down on the grill for 30 seconds.",
+      "Slice the Onion thin, then set out the brats with buns, sauerkraut, onion and Yellow mustard.",
+    ],
+    tips: [
+      "Simmer the brats the day before, chill them, and finish on the grill to order so they never sit dry.",
+      "A slow cooker on low keeps sauerkraut warm for hours without scorching it.",
+      "Vegetarian brats can be simmered and grilled the same way; cook them to 165°F.",
+    ],
     items: [
       {
         id: "starter-bratwurst-sausage",
@@ -234,13 +305,13 @@ export const grillRecipes: StarterRecipe[] = [
       },
       {
         id: "starter-bratwurst-mustard",
-        name: "Mustard",
+        name: "Yellow mustard",
         emoji: "🥫",
-        perServing: 1,
-        unit: "tsp",
+        perServing: 1 / 3,
+        unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 90,
-        priceCents: 250,
+        unitsPerBuy: 16,
+        priceCents: 200,
       },
       {
         id: "starter-bratwurst-onion",
@@ -260,6 +331,23 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🍔",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Grilled veggie patties with avocado, tomato and melted cheese.",
+    prepMinutes: 15,
+    cookMinutes: 10,
+    equipment: ["Grill", "Wide spatula", "Sheet pan", "Instant-read thermometer"],
+    steps: [
+      "Heat the grill to medium, about 375°F, and brush the grates with oil so the patties don't stick.",
+      "Grill the Veggie burger patties for 4 to 5 minutes per side, until heated through to 165°F and marked with grill lines.",
+      "Lay 1 slice from the Cheese slices pack on each patty in the last minute and close the lid so it melts.",
+      "Split the Burger buns and toast them cut side down for 30 to 60 seconds, until golden.",
+      "Separate the Lettuce into leaves, slice the Tomatoes, and slice the Avocado.",
+      "Build each burger with lettuce on the bottom bun, then a patty, tomato and avocado.",
+    ],
+    tips: [
+      "Veggie patties are fragile, so use a wide spatula and turn them only once.",
+      "Slice the avocado last and press plastic wrap onto the cut surface so it doesn't brown.",
+      "For a vegan burger, skip the cheese or use a dairy-free slice and check the patty label.",
+    ],
     items: [
       {
         id: "starter-veggie-burgers-patties",
@@ -329,6 +417,24 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🐟",
     category: "Grill",
     defaultServingsPerPerson: 1,
+    description: "Buttery grilled salmon with lemon, dill and charred asparagus.",
+    prepMinutes: 15,
+    cookMinutes: 12,
+    equipment: ["Grill", "Instant-read thermometer", "Fish spatula", "Small saucepan"],
+    steps: [
+      "Heat the grill to medium-high, about 400°F, and oil the grates well.",
+      "Melt the Butter in a small saucepan over low heat with the minced Garlic and chopped Dill, then keep it warm.",
+      "Pat the Salmon fillet dry, cut it into portions about 6 oz each, and season both sides with salt and pepper.",
+      "Grill the salmon skin side down for 5 to 7 minutes without moving it, until the skin releases cleanly from the grates.",
+      "Turn the fillets and cook 2 to 3 minutes more, until the center is opaque and reads 145°F on an instant-read thermometer.",
+      "Grill the Asparagus alongside the salmon for 4 to 6 minutes, turning once, until just tender and lightly charred.",
+      "Serve each portion with a squeeze of Lemon and a spoonful of the warm dill butter.",
+    ],
+    tips: [
+      "Salmon carries over, so pull it at 145°F and let it rest 3 minutes before serving.",
+      "Salmon is good at room temperature; grill it up to 30 minutes ahead and keep it covered away from the sun.",
+      "Lay a sheet of foil on the grates for very thin fillets that might fall through.",
+    ],
     items: [
       {
         id: "starter-grilled-salmon-fillet",
@@ -356,9 +462,9 @@ export const grillRecipes: StarterRecipe[] = [
         emoji: "🧈",
         perServing: 1 / 2,
         unit: "tbsp",
-        buyUnit: "pack",
-        unitsPerBuy: 32,
-        priceCents: 500,
+        buyUnit: "stick",
+        unitsPerBuy: 8,
+        priceCents: 150,
       },
       {
         id: "starter-grilled-salmon-garlic",
@@ -398,6 +504,24 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🍢",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Marinated sirloin skewers with peppers, onion and mushrooms.",
+    prepMinutes: 25,
+    cookMinutes: 10,
+    equipment: ["Grill", "Wooden skewers", "Large bowl", "Instant-read thermometer"],
+    steps: [
+      "Soak the wooden skewers in water for 20 minutes so they don't burn over the fire.",
+      "Whisk the minced Garlic, 1 tbsp Olive oil per pound of steak, 1/2 tsp salt and 1/4 tsp pepper in a large bowl.",
+      "Cut the Sirloin steak into 1-inch cubes, add them to the bowl, and toss to coat; marinate for 20 minutes.",
+      "Cut the Bell pepper and Onion into 1-inch pieces and halve the Mushrooms.",
+      "Thread steak and vegetables onto the skewers, alternating them and leaving a small gap between pieces so they cook evenly.",
+      "Grill over medium-high heat, about 425°F, for 8 to 10 minutes, turning every 2 to 3 minutes, until the beef reads 145°F for medium-rare.",
+      "Rest the skewers on a platter for 5 minutes before serving.",
+    ],
+    tips: [
+      "Don't crowd the skewers; a packed skewer steams instead of browning.",
+      "For medium, cook to 150°F, and pull them by 160°F before the meat turns dry.",
+      "Metal skewers skip the soaking step but get hot, so hand them out with a folded towel.",
+    ],
     items: [
       {
         id: "starter-steak-skewers-steak",
@@ -446,8 +570,8 @@ export const grillRecipes: StarterRecipe[] = [
         perServing: 1 / 2,
         unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 64,
-        priceCents: 800,
+        unitsPerBuy: 33,
+        priceCents: 550,
       },
       {
         id: "starter-steak-skewers-garlic",
@@ -467,6 +591,24 @@ export const grillRecipes: StarterRecipe[] = [
     emoji: "🍖",
     category: "Grill",
     defaultServingsPerPerson: 1.5,
+    description: "Slow-cooked pork shoulder piled on buns with cool slaw and pickles.",
+    prepMinutes: 20,
+    cookMinutes: 300,
+    equipment: ["Dutch oven", "Two forks", "Instant-read thermometer", "Rimmed baking sheet"],
+    steps: [
+      "Heat the oven to 300°F and cut the Pork shoulder into 4 equal chunks, then season all over with 1 tsp salt per pound.",
+      "Sear the pork in a Dutch oven over medium-high heat for 3 to 4 minutes per side, until deeply browned.",
+      "Add 1/2 cup water per 3 lb of pork, cover tightly, and cook in the oven for 4 to 5 hours, until the meat shreds with no resistance and reads at least 200°F.",
+      "Shred the pork with two forks, discard the large pieces of fat, and toss the meat with the BBQ sauce.",
+      "Toss the Coleslaw mix with the Mayonnaise and a pinch of salt, then refrigerate it until serving.",
+      "Split the Burger buns and warm them on a sheet pan in the oven for 5 minutes.",
+      "Pile pork onto each bun and top with slaw and Pickles.",
+    ],
+    tips: [
+      "Shredded pork holds for 2 hours in a 200°F oven with a splash of water, so it's a safe make-ahead main.",
+      "Sauce half the pork and leave the rest plain so guests can choose.",
+      "Keep the slaw in a cooler or over ice; mayonnaise-based salads shouldn't sit in the sun.",
+    ],
     items: [
       {
         id: "starter-pulled-pork-pork",
@@ -510,13 +652,13 @@ export const grillRecipes: StarterRecipe[] = [
       },
       {
         id: "starter-pulled-pork-mayo",
-        name: "Mayo",
+        name: "Mayonnaise",
         emoji: "🫙",
         perServing: 1 / 2,
         unit: "tbsp",
         buyUnit: "jar",
-        unitsPerBuy: 60,
-        priceCents: 400,
+        unitsPerBuy: 30,
+        priceCents: 250,
       },
       {
         id: "starter-pulled-pork-pickles",

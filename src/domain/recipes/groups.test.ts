@@ -4,7 +4,7 @@ import { grillRecipes } from "./grill";
 import { handheldRecipes } from "./handhelds";
 import { sideRecipes } from "./sides";
 import { dessertDrinkRecipes } from "./desserts-drinks";
-import type { StarterRecipe } from "./types";
+import type { CompleteStarterRecipe } from "./types";
 
 /**
  * Per-recipe checks that any one group can run on its own, before every group is filled.
@@ -14,7 +14,10 @@ const MAX_ITEM_AMOUNT = 50;
 const MAX_BUY_UNITS = 500;
 const MAX_PRICE_CENTS = 10_000;
 
-const GROUPS: Record<string, StarterRecipe[]> = {
+/** Any pictograph (emoji, dingbat, symbol) that has no place in a cooking instruction. */
+const EMOJI = /\p{Extended_Pictographic}/u;
+
+const GROUPS: Record<string, CompleteStarterRecipe[]> = {
   grill: grillRecipes,
   handhelds: handheldRecipes,
   sides: sideRecipes,
@@ -60,6 +63,36 @@ describe("recipe groups", () => {
           const perPerson = cents / 10;
           expect(perPerson, recipe.id).toBeGreaterThanOrEqual(60);
           expect(perPerson, recipe.id).toBeLessThanOrEqual(1500);
+        }
+      });
+
+      it("ships instructions a first-time cook can follow", () => {
+        for (const recipe of recipes) {
+          const where = recipe.id;
+          expect(recipe.description.trim().length, where).toBeGreaterThan(20);
+          expect(recipe.description.length, where).toBeLessThan(90);
+          expect(Number.isInteger(recipe.prepMinutes), where).toBe(true);
+          expect(recipe.prepMinutes, where).toBeGreaterThanOrEqual(0);
+          expect(Number.isInteger(recipe.cookMinutes), where).toBe(true);
+          expect(recipe.cookMinutes, where).toBeGreaterThanOrEqual(0);
+          expect(recipe.steps.length, where).toBeGreaterThanOrEqual(5);
+          expect(recipe.steps.length, where).toBeLessThanOrEqual(10);
+          expect(recipe.tips.length, where).toBeGreaterThanOrEqual(2);
+          expect(recipe.tips.length, where).toBeLessThanOrEqual(4);
+          expect(recipe.equipment.length, where).toBeGreaterThanOrEqual(2);
+          expect(recipe.equipment.length, where).toBeLessThanOrEqual(6);
+
+          for (const step of recipe.steps) {
+            expect(step.trim().length, where).toBeGreaterThan(20);
+            expect(EMOJI.test(step), `${where}: ${step}`).toBe(false);
+          }
+          for (const tip of recipe.tips) {
+            expect(tip.trim().length, where).toBeGreaterThan(10);
+            expect(EMOJI.test(tip), `${where}: ${tip}`).toBe(false);
+          }
+          for (const tool of recipe.equipment) {
+            expect(tool.trim().length, where).toBeGreaterThan(1);
+          }
         }
       });
 

@@ -1,4 +1,4 @@
-import type { StarterRecipe } from "./types";
+import type { CompleteStarterRecipe } from "./types";
 
 /**
  * Tacos, sliders, gyros and other food you eat with your hands.
@@ -8,13 +8,30 @@ import type { StarterRecipe } from "./types";
  * Keep the totals realistic at 10 people: 0.2–0.4 lb of raw protein per person,
  * 2–3 tortillas per person for a taco bar, and enough toppings for every portion.
  */
-export const handheldRecipes: StarterRecipe[] = [
+export const handheldRecipes: CompleteStarterRecipe[] = [
   {
     id: "starter-beef-tacos",
     name: "Beef taco bar",
     emoji: "🌮",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 3,
+    description: "Build-your-own tacos with seasoned beef, crunchy lettuce and lime.",
+    prepMinutes: 15,
+    cookMinutes: 10,
+    equipment: ["Large skillet", "Wooden spoon", "Small serving bowls", "Instant-read thermometer"],
+    steps: [
+      "Heat a large skillet over medium-high heat, add the Ground beef, and cook for 6 to 8 minutes, breaking it into small crumbles with a spoon, until no pink remains and it reads 160°F.",
+      "Stir in the Taco seasoning plus 1/4 cup water per pound of beef and simmer for 2 to 3 minutes, until the liquid thickens and coats the meat.",
+      "Warm the Corn tortillas in a dry skillet for 20 to 30 seconds per side, then stack them in a clean towel so they stay soft.",
+      "Shred the Lettuce, dice the Tomatoes, and cut the Lime into wedges.",
+      "Spoon the Shredded Mexican cheese, Sour cream and Salsa into separate bowls.",
+      "Set everything out in a line, meat first, so guests can build their own tacos.",
+    ],
+    tips: [
+      "Keep the beef warm in a slow cooker on low, and add a splash of water if it starts to look dry.",
+      "Set the cheese, sour cream and lettuce over a bowl of ice if the table is in the sun.",
+      "Ground turkey works in place of beef; cook it to 165°F.",
+    ],
     items: [
       {
         id: "starter-beef-tacos-beef",
@@ -114,6 +131,25 @@ export const handheldRecipes: StarterRecipe[] = [
     emoji: "🌯",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 2.5,
+    description: "Sizzling chicken, peppers and onions in warm flour tortillas.",
+    prepMinutes: 20,
+    cookMinutes: 12,
+    equipment: ["Large skillet", "Tongs", "Instant-read thermometer", "Large bowl"],
+    steps: [
+      "Slice the Chicken breast, Bell pepper and Onion into strips about 1/4 inch thick.",
+      "Toss the chicken with 1 tbsp Olive oil per pound, 1/2 tsp salt and 1/4 tsp pepper, and let it sit for 10 minutes.",
+      "Heat a large skillet over medium-high until a drop of water sizzles, then add the chicken in a single layer.",
+      "Cook the chicken for 4 to 5 minutes, turning once, until browned and 165°F inside, then move it to a plate.",
+      "Add the peppers and onion to the same pan and cook 4 to 5 minutes, until softened with browned edges.",
+      "Return the chicken to the pan and squeeze half of a Lime over the top.",
+      "Warm the Flour tortillas in the pan for 20 seconds per side and stack them under a towel.",
+      "Serve with the Sour cream and the remaining Lime cut into wedges.",
+    ],
+    tips: [
+      "Cook the chicken in two batches so it browns instead of steaming.",
+      "Slice the chicken and peppers the night before and refrigerate them in separate bags.",
+      "Swap the chicken for the same weight of large shrimp and cook just 1 to 2 minutes per side, to 145°F.",
+    ],
     items: [
       {
         id: "starter-chicken-fajitas-chicken",
@@ -162,8 +198,8 @@ export const handheldRecipes: StarterRecipe[] = [
         perServing: 1 / 4,
         unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 64,
-        priceCents: 800,
+        unitsPerBuy: 33,
+        priceCents: 550,
       },
       {
         id: "starter-chicken-fajitas-sour-cream",
@@ -193,6 +229,24 @@ export const handheldRecipes: StarterRecipe[] = [
     emoji: "🍔",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 2.5,
+    description: "Tender BBQ pork and crunchy slaw on soft slider buns.",
+    prepMinutes: 20,
+    cookMinutes: 300,
+    equipment: ["Dutch oven", "Two forks", "Instant-read thermometer", "Rimmed baking sheet"],
+    steps: [
+      "Heat the oven to 300°F, cut the Pork shoulder into 4 chunks, and season all over with 1 tsp salt per pound.",
+      "Sear the pork in a Dutch oven over medium-high heat for 3 to 4 minutes per side, until browned all over.",
+      "Add 1/2 cup water per 3 lb of pork, cover, and cook in the oven for 4 to 5 hours, until the meat pulls apart easily and reads 200°F.",
+      "Shred the pork with two forks and toss it with the BBQ sauce.",
+      "Toss the Coleslaw mix with a pinch of salt and let it sit for 10 minutes so the cabbage softens slightly.",
+      "Split the Slider buns and warm them on a baking sheet for 5 minutes in the oven.",
+      "Fill each bun with pork, a spoonful of slaw and a Pickles slice.",
+    ],
+    tips: [
+      "The pork can be cooked and shredded a day ahead; reheat it gently with 2 tbsp water per pound.",
+      "Keep the slaw cold and undressed until the last minute so the buns don't go soggy.",
+      "Slider buns dry out fast, so warm them right before the party starts.",
+    ],
     items: [
       {
         id: "starter-pork-sliders-pork",
@@ -252,6 +306,23 @@ export const handheldRecipes: StarterRecipe[] = [
     emoji: "🥙",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 1.5,
+    description: "Garlicky chicken in warm pita with cool cucumber-yogurt sauce.",
+    prepMinutes: 25,
+    cookMinutes: 15,
+    equipment: ["Grill or grill pan", "Instant-read thermometer", "Box grater", "Small bowl"],
+    steps: [
+      "Grate the Cucumber on the large holes of a box grater, squeeze the shreds dry in a clean towel, and stir them into the Greek yogurt with 1 minced Garlic clove and a pinch of salt.",
+      "Slice the Chicken thighs (boneless) into 1-inch strips and toss them with the remaining Garlic, 1/2 tsp salt and 1/4 tsp pepper per pound.",
+      "Heat the grill or grill pan to medium-high, then cook the chicken for 5 to 6 minutes per side, until browned and 165°F inside.",
+      "Slice the Tomatoes and Onion thin and crumble the Feta.",
+      "Warm the Pita bread for 20 seconds per side in a dry pan, then wrap the stack in a towel.",
+      "Fill each pita with chicken, tomato, onion, feta and a spoonful of the yogurt sauce.",
+    ],
+    tips: [
+      "The yogurt sauce keeps for 3 days in the fridge, so make it the night before.",
+      "Grilled chicken can be served warm or at room temperature; hold it covered for up to 30 minutes.",
+      "For a vegetarian version, replace the chicken with chickpeas tossed in the same garlic and salt.",
+    ],
     items: [
       {
         id: "starter-gyros-chicken",
@@ -341,6 +412,24 @@ export const handheldRecipes: StarterRecipe[] = [
     emoji: "🧆",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 1.5,
+    description: "Crispy chickpea patties stuffed into pita with tahini and crunch.",
+    prepMinutes: 30,
+    cookMinutes: 15,
+    equipment: ["Food processor", "Large bowl", "Heavy skillet", "Slotted spoon"],
+    steps: [
+      "Drain and rinse the Chickpeas, then pulse them in a food processor with the Garlic, Parsley, Cumin, Flour and 1/2 tsp salt until the mixture holds together when squeezed, about 30 seconds.",
+      "Chill the mixture for 15 minutes so it firms up, then shape it into patties about 2 inches wide and 1/2 inch thick.",
+      "Heat 1 inch of neutral oil in a heavy skillet to 350°F.",
+      "Fry the patties in batches for 3 to 4 minutes per side, until deep golden and crisp, then drain them on paper towels.",
+      "Whisk the Tahini with the juice of 1 Lemon and 1 tbsp water per 1/4 cup tahini until the sauce pours easily.",
+      "Slice the Cucumber, Tomatoes and Onion thin.",
+      "Warm the Pita bread and fill each one with 2 or 3 falafel, the vegetables and a spoonful of tahini sauce.",
+    ],
+    tips: [
+      "Fried falafel stays crisp for about an hour; reheat it at 400°F for 8 minutes if you fry ahead.",
+      "To skip the oil, bake the patties at 400°F for 20 minutes, flipping once, until firm and browned.",
+      "Pat the chickpeas very dry before processing, or the mixture turns wet and the patties fall apart.",
+    ],
     items: [
       {
         id: "starter-falafel-pitas-chickpeas",
@@ -406,7 +495,7 @@ export const handheldRecipes: StarterRecipe[] = [
         id: "starter-falafel-pitas-garlic",
         name: "Garlic",
         emoji: "🧄",
-        perServing: 0.5,
+        perServing: 1 / 2,
         unit: "clove",
         buyUnit: "head",
         unitsPerBuy: 10,
@@ -416,10 +505,10 @@ export const handheldRecipes: StarterRecipe[] = [
         id: "starter-falafel-pitas-cumin",
         name: "Cumin",
         emoji: "🌿",
-        perServing: 0.25,
+        perServing: 1 / 3,
         unit: "tsp",
         buyUnit: "jar",
-        unitsPerBuy: 48,
+        unitsPerBuy: 24,
         priceCents: 300,
       },
       {
@@ -429,8 +518,8 @@ export const handheldRecipes: StarterRecipe[] = [
         perServing: 0.02,
         unit: "cup",
         buyUnit: "bag",
-        unitsPerBuy: 20,
-        priceCents: 300,
+        unitsPerBuy: 18,
+        priceCents: 350,
       },
       {
         id: "starter-falafel-pitas-parsley",
@@ -438,7 +527,7 @@ export const handheldRecipes: StarterRecipe[] = [
         emoji: "🌿",
         perServing: 0.1,
         unit: "bunch",
-        buyUnit: "each",
+        buyUnit: "bunch",
         unitsPerBuy: 1,
         priceCents: 100,
       },
@@ -460,6 +549,23 @@ export const handheldRecipes: StarterRecipe[] = [
     emoji: "🍤",
     category: "Tacos & handhelds",
     defaultServingsPerPerson: 3,
+    description: "Chili-lime shrimp tacos with crunchy cabbage and cool crema.",
+    prepMinutes: 15,
+    cookMinutes: 6,
+    equipment: ["Large skillet", "Tongs", "Small bowl", "Instant-read thermometer"],
+    steps: [
+      "Pat the Shrimp (raw, peeled) dry and toss them with the juice of 1 Lime, 1/2 tsp salt and 1/4 tsp pepper per pound.",
+      "Stir the Sour cream with the juice of half a Lime and a pinch of salt to make a quick crema.",
+      "Shred the Cabbage very thin and chop the Cilantro.",
+      "Heat a large skillet over medium-high heat until a drop of water sizzles.",
+      "Cook the shrimp in a single layer for 1 to 2 minutes per side, until pink, opaque and 145°F on an instant-read thermometer.",
+      "Warm the Corn tortillas and fill them with shrimp, cabbage, cilantro, crema and sliced Avocado.",
+    ],
+    tips: [
+      "Shrimp turn rubbery fast, so pull them as soon as they curl into a loose C.",
+      "Keep the crema in the cooler until serving, and set the avocado out last.",
+      "Thaw frozen shrimp overnight in the fridge, never on the counter.",
+    ],
     items: [
       {
         id: "starter-shrimp-tacos-shrimp",
@@ -468,8 +574,8 @@ export const handheldRecipes: StarterRecipe[] = [
         perServing: 0.1,
         unit: "lb",
         buyUnit: "bag",
-        unitsPerBuy: 1,
-        priceCents: 900,
+        unitsPerBuy: 2,
+        priceCents: 1400,
       },
       {
         id: "starter-shrimp-tacos-tortillas",
@@ -507,7 +613,7 @@ export const handheldRecipes: StarterRecipe[] = [
         emoji: "🌿",
         perServing: 1 / 16,
         unit: "bunch",
-        buyUnit: "each",
+        buyUnit: "bunch",
         unitsPerBuy: 1,
         priceCents: 100,
       },

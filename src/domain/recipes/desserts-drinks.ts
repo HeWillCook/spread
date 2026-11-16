@@ -1,4 +1,4 @@
-import type { StarterRecipe } from "./types";
+import type { CompleteStarterRecipe } from "./types";
 
 /**
  * Sweet things, drinks and brunch dishes.
@@ -8,13 +8,30 @@ import type { StarterRecipe } from "./types";
  * Keep the totals realistic at 10 people: about 1 dessert portion per person,
  * 2 drinks per person (12–16 oz each), and 2–3 pancakes per person.
  */
-export const dessertDrinkRecipes: StarterRecipe[] = [
+export const dessertDrinkRecipes: CompleteStarterRecipe[] = [
   {
     id: "starter-smores",
     name: "S'mores",
     emoji: "🍫",
     category: "Desserts",
     defaultServingsPerPerson: 2,
+    description: "Toasted marshmallow and chocolate sandwiched in graham crackers.",
+    prepMinutes: 10,
+    cookMinutes: 5,
+    equipment: ["Campfire or grill", "Long roasting sticks", "Small tray"],
+    steps: [
+      "Break the Chocolate bars into squares and set them out on a small tray.",
+      "Break each Graham crackers sheet in half to make two squares.",
+      "Toast the Marshmallows over medium coals for 30 to 60 seconds, turning often, until golden and soft.",
+      "Slide a hot marshmallow onto one graham square and lay a square broken from a Chocolate bars bar on top.",
+      "Cap with a second graham square and press gently for 10 seconds so the chocolate softens.",
+      "Repeat with the remaining pieces and serve while everything is still warm.",
+    ],
+    tips: [
+      "Keep the Chocolate bars in the shade or a cooler; they melt fast on a sunny table.",
+      "Over a gas grill, use low heat and turn the marshmallows constantly so they don't catch fire.",
+      "Set out a board of graham squares, marshmallows and chocolate so guests can build their own.",
+    ],
     items: [
       {
         id: "starter-smores-graham-crackers",
@@ -54,6 +71,23 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🍉",
     category: "Desserts",
     defaultServingsPerPerson: 1,
+    description: "Juicy summer fruit tossed with lime and a drizzle of honey.",
+    prepMinutes: 20,
+    cookMinutes: 0,
+    equipment: ["Large bowl", "Chef's knife", "Cutting board", "Citrus juicer"],
+    steps: [
+      "Cut the Watermelon into 1-inch cubes, discarding the rind and any seeds.",
+      "Hull and quarter the Strawberries and rinse the Blueberries under cold water.",
+      "Peel and slice the Bananas 1/2 inch thick, but add them last so they don't bruise.",
+      "Whisk the juice of 1 Lime with 1 tbsp Honey per 4 cups of fruit.",
+      "Fold the watermelon, strawberries and blueberries into the dressing with a rubber spatula, then chill for 30 minutes.",
+      "Fold in the Bananas and spoon the salad into bowls just before serving.",
+    ],
+    tips: [
+      "Cut the melon and berries the morning of the party and keep them in separate containers.",
+      "Drain any juice that collects before serving so the salad doesn't turn soupy.",
+      "Swap the Honey for maple syrup to make the salad vegan.",
+    ],
     items: [
       {
         id: "starter-fruit-salad-watermelon",
@@ -71,7 +105,7 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         emoji: "🍓",
         perServing: 1 / 10,
         unit: "lb",
-        buyUnit: "pack",
+        buyUnit: "container",
         unitsPerBuy: 1,
         priceCents: 400,
       },
@@ -112,8 +146,8 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         perServing: 1 / 2,
         unit: "tbsp",
         buyUnit: "bottle",
-        unitsPerBuy: 32,
-        priceCents: 600,
+        unitsPerBuy: 24,
+        priceCents: 500,
       },
     ],
   },
@@ -123,6 +157,23 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🍰",
     category: "Desserts",
     defaultServingsPerPerson: 1,
+    description: "Fudgy one-bowl brownies with a shiny crackly top.",
+    prepMinutes: 10,
+    cookMinutes: 30,
+    equipment: ["9x13 baking dish", "Large bowl", "Whisk", "Toothpick"],
+    steps: [
+      "Heat the oven to 350°F and grease a 9x13 baking dish, or line it with parchment.",
+      "Whisk the Brownie mix, Eggs and melted Butter in a large bowl for about 40 strokes, until just combined with no dry streaks.",
+      "Spread the batter evenly in the prepared dish.",
+      "Bake for 25 to 30 minutes, until a toothpick inserted 2 inches from the edge comes out with a few moist crumbs.",
+      "Cool completely in the pan, about 1 hour, before cutting into 2-inch squares.",
+      "Cut with a plastic knife for clean edges and lift the squares out with a spatula.",
+    ],
+    tips: [
+      "Pull the brownies while the center still looks slightly underdone; they set as they cool.",
+      "Bake a day ahead and store them covered at room temperature, then cut just before serving.",
+      "Use the Butter in place of the oil the box calls for and the brownies taste richer.",
+    ],
     items: [
       {
         id: "starter-brownies-mix",
@@ -150,9 +201,9 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         emoji: "🧈",
         perServing: 1 / 3,
         unit: "tbsp",
-        buyUnit: "pack",
-        unitsPerBuy: 32,
-        priceCents: 500,
+        buyUnit: "stick",
+        unitsPerBuy: 8,
+        priceCents: 150,
       },
     ],
   },
@@ -162,20 +213,37 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🍋",
     category: "Drinks",
     defaultServingsPerPerson: 2,
+    description: "Fresh-squeezed lemonade with just the right sweet-tart balance.",
+    prepMinutes: 15,
+    cookMinutes: 0,
+    equipment: ["Large pitcher", "Citrus juicer", "Long spoon", "Cutting board"],
+    steps: [
+      "Empty 1 can of Lemonade concentrate into a large pitcher and add 3 cans of cold water, then stir until the concentrate dissolves completely.",
+      "Roll each Lemon on the counter, cut it in half, and squeeze in 1 tbsp fresh juice per serving.",
+      "Stir in 2 tsp Sugar per serving until it dissolves, then taste and add more Sugar or lemon juice.",
+      "Chill for at least 1 hour, or pour the lemonade over Ice in glasses.",
+      "Float the remaining Lemon slices in the pitcher just before serving.",
+      "Keep the pitcher in the shade and top it up with Ice as it melts.",
+    ],
+    tips: [
+      "Stir the Sugar into 1 cup of warm water first so it dissolves, then chill the syrup before mixing.",
+      "Freeze lemon slices in an ice cube tray so the drinks stay cold without watering down.",
+      "Swap half the water for sparkling water just before serving for a fizzy version.",
+    ],
     items: [
       {
         id: "starter-lemonade-concentrate",
         name: "Lemonade concentrate",
         emoji: "🥤",
-        perServing: 9 / 4,
+        perServing: 12,
         unit: "oz",
         buyUnit: "can",
-        unitsPerBuy: 12,
-        priceCents: 300,
+        unitsPerBuy: 48,
+        priceCents: 150,
       },
       {
         id: "starter-lemonade-lemons",
-        name: "Lemons",
+        name: "Lemon",
         emoji: "🍋",
         perServing: 1 / 4,
         unit: "lemon",
@@ -190,8 +258,8 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         perServing: 1 / 16,
         unit: "cup",
         buyUnit: "bag",
-        unitsPerBuy: 16,
-        priceCents: 300,
+        unitsPerBuy: 4,
+        priceCents: 200,
       },
       {
         id: "starter-lemonade-ice",
@@ -211,6 +279,23 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🧊",
     category: "Drinks",
     defaultServingsPerPerson: 2,
+    description: "Smooth, lightly sweet iced tea with fresh lemon.",
+    prepMinutes: 10,
+    cookMinutes: 10,
+    equipment: ["Large pot", "Large pitcher", "Long spoon", "Fine-mesh strainer"],
+    steps: [
+      "Bring 1 quart of water to a boil in a large pot for every Iced tea bag you plan to steep.",
+      "Remove the pot from the heat, add the Iced tea bags, cover, and steep for 5 minutes.",
+      "Lift out the bags without squeezing them, then stir in 2 tsp Sugar per cup of tea until it dissolves.",
+      "Let the tea cool for 15 minutes, then pour it into a pitcher and refrigerate for at least 1 hour.",
+      "Cut the Lemon into wedges and add half of them to the pitcher.",
+      "Fill glasses with Ice, pour the tea over, and garnish with the remaining lemon wedges.",
+    ],
+    tips: [
+      "Don't steep longer than 5 minutes or the tea turns bitter and cloudy.",
+      "Make it the night before and keep the pitcher in the fridge so you don't need as much ice.",
+      "For unsweet tea, skip the Sugar and set a small bowl of it out for guests.",
+    ],
     items: [
       {
         id: "starter-iced-tea-bags",
@@ -224,7 +309,7 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
       },
       {
         id: "starter-iced-tea-lemons",
-        name: "Lemons",
+        name: "Lemon",
         emoji: "🍋",
         perServing: 1 / 4,
         unit: "lemon",
@@ -239,8 +324,8 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         perServing: 1 / 16,
         unit: "cup",
         buyUnit: "bag",
-        unitsPerBuy: 16,
-        priceCents: 300,
+        unitsPerBuy: 4,
+        priceCents: 200,
       },
       {
         id: "starter-iced-tea-ice",
@@ -260,6 +345,24 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🥞",
     category: "Brunch",
     defaultServingsPerPerson: 1,
+    description: "Fluffy pancakes with blueberries and warm maple syrup.",
+    prepMinutes: 10,
+    cookMinutes: 20,
+    equipment: ["Large griddle", "Whisk", "Mixing bowl", "Ladle", "Spatula"],
+    steps: [
+      "Whisk the Pancake mix, Eggs, Milk and melted Butter in a mixing bowl just until combined; a few small lumps are fine.",
+      "Rest the batter for 5 minutes while the griddle heats over medium, about 350°F.",
+      "Grease the griddle lightly and ladle 1/4 cup of batter per pancake.",
+      "Scatter a few Blueberries onto each pancake before the surface sets.",
+      "Cook for 2 to 3 minutes, until bubbles pop on top and the edges look dry, then flip and cook 1 to 2 minutes more.",
+      "Stack the finished pancakes on a sheet pan in a 200°F oven while you cook the rest.",
+      "Serve with the Butter and warmed Maple syrup.",
+    ],
+    tips: [
+      "Overmixing makes pancakes tough, so stop stirring while streaks of mix still show.",
+      "The batter holds for 1 hour in the fridge; thin it with a splash of Milk if it thickens.",
+      "Freeze extra pancakes with parchment between them and reheat in the toaster.",
+    ],
     items: [
       {
         id: "starter-pancakes-mix",
@@ -287,9 +390,9 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         emoji: "🥛",
         perServing: 1 / 8,
         unit: "cup",
-        buyUnit: "gallon",
-        unitsPerBuy: 16,
-        priceCents: 400,
+        buyUnit: "quart",
+        unitsPerBuy: 4,
+        priceCents: 200,
       },
       {
         id: "starter-pancakes-butter",
@@ -297,9 +400,9 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
         emoji: "🧈",
         perServing: 1 / 4,
         unit: "tbsp",
-        buyUnit: "pack",
-        unitsPerBuy: 32,
-        priceCents: 500,
+        buyUnit: "stick",
+        unitsPerBuy: 8,
+        priceCents: 150,
       },
       {
         id: "starter-pancakes-syrup",
@@ -329,6 +432,24 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🌯",
     category: "Brunch",
     defaultServingsPerPerson: 1.5,
+    description: "Egg, sausage and potato burritos with melted cheddar and salsa.",
+    prepMinutes: 15,
+    cookMinutes: 20,
+    equipment: ["Large skillet", "Large bowl", "Whisk", "Aluminum foil", "Instant-read thermometer"],
+    steps: [
+      "Cook the Breakfast sausage in a large skillet over medium heat for 8 to 10 minutes, turning, until browned and 160°F inside.",
+      "Add the Hash browns to the same skillet and cook for 6 to 8 minutes, stirring, until golden and crisp.",
+      "Whisk the Eggs with a pinch of salt in a large bowl, then scramble them in a second skillet over low heat until just set but still glossy.",
+      "Warm the Flour tortillas in a dry pan for 20 seconds per side so they fold without cracking.",
+      "Layer eggs, sausage, hash browns, Shredded cheddar and Salsa down the center of each tortilla.",
+      "Fold in the sides, roll each burrito tightly, and wrap it in foil to keep it warm.",
+      "Serve with extra Salsa on the side.",
+    ],
+    tips: [
+      "Let the fillings cool for 5 minutes before rolling so the tortillas don't tear.",
+      "Rolled burritos freeze well; reheat wrapped in foil at 350°F for 20 minutes.",
+      "Cook the eggs a little softer than you like them since they keep cooking in the wrap.",
+    ],
     items: [
       {
         id: "starter-breakfast-burritos-tortillas",
@@ -398,6 +519,23 @@ export const dessertDrinkRecipes: StarterRecipe[] = [
     emoji: "🥯",
     category: "Brunch",
     defaultServingsPerPerson: 1.5,
+    description: "Bagels with cream cheese, smoked salmon, capers and fresh veg.",
+    prepMinutes: 20,
+    cookMinutes: 0,
+    equipment: ["Cutting board", "Serrated knife", "Serving platter", "Small bowls"],
+    steps: [
+      "Slice the Bagels in half with a serrated knife and arrange them cut side up on a serving platter.",
+      "Spread each half with a thick layer of Cream cheese.",
+      "Separate the Smoked salmon into thin ribbons and drape it over half of the bagels.",
+      "Slice the Tomatoes and Cucumber into thin rounds and the Onion into paper-thin slices.",
+      "Scatter the Capers over the salmon and arrange the vegetables around the platter.",
+      "Let guests add their own toppings and finish with black pepper.",
+    ],
+    tips: [
+      "Assemble the platter up to 30 minutes ahead and keep it covered in the fridge.",
+      "Keep the Cream cheese and salmon cold; set the platter over a tray of ice if it sits out in the sun.",
+      "Toast the bagels first if you like crunch, but the platter holds up better untoasted.",
+    ],
     items: [
       {
         id: "starter-bagel-platter-bagels",
