@@ -2,12 +2,18 @@ import { dessertDrinkRecipes } from "./desserts-drinks";
 import { grillRecipes } from "./grill";
 import { handheldRecipes } from "./handhelds";
 import { sideRecipes } from "./sides";
-import type { Recipe, StarterRecipe } from "./types";
+import type { CompleteStarterRecipe, Recipe } from "./types";
 
-export type { Recipe, RecipeCategory, RecipeItem, StarterRecipe } from "./types";
+export type {
+  CompleteStarterRecipe,
+  Recipe,
+  RecipeCategory,
+  RecipeItem,
+  StarterRecipe,
+} from "./types";
 
 /** Every built-in recipe, in picker order. */
-export const STARTER_RECIPES: StarterRecipe[] = [
+export const STARTER_RECIPES: CompleteStarterRecipe[] = [
   ...grillRecipes,
   ...handheldRecipes,
   ...sideRecipes,
