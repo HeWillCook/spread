@@ -168,6 +168,18 @@ describe("addDishToEvent", () => {
 
 describe("updateDish", () => {
   it("first edit of a starter clones it for the host and leaves the starter untouched", async () => {
+    // Instructions live on the row, so set them the way the seed would before copying.
+    await db
+      .update(recipes)
+      .set({
+        description: "Smash-style patties",
+        prepMinutes: 15,
+        cookMinutes: 20,
+        steps: ["Form the patties.", "Grill 4 minutes a side."],
+        tips: ["Toast the buns."],
+        equipment: ["Grill"],
+      })
+      .where(eq(recipes.id, BURGERS));
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
     await updateDish(db, "host-1", eventId, dishId, {
       servingsPerPerson: 2,
@@ -179,7 +191,29 @@ describe("updateDish", () => {
     expect(dish.servingsPerPerson).toBe(2);
 
     const [copy] = await db.select().from(recipes).where(eq(recipes.id, dish.recipeId));
-    expect(copy).toMatchObject({ ownerId: "host-1", name: "Burgers", emoji: "🍔" });
+    expect(copy).toMatchObject({
+      ownerId: "host-1",
+      name: "Burgers",
+      emoji: "🍔",
+      // The how-to text and the starter it came from travel with the copy.
+      description: "Smash-style patties",
+      prepMinutes: 15,
+      cookMinutes: 20,
+      steps: ["Form the patties.", "Grill 4 minutes a side."],
+      tips: ["Toast the buns."],
+      equipment: ["Grill"],
+      originRecipeId: BURGERS,
+    });
+    // The copy stays in its starter's picker section and keeps the "Starter recipe" pill.
+    const menu = await getMenu(db, "host-1", eventId);
+    expect(menu.dishes[0].recipe.category).toBe("Grill");
+    expect(menu.dishes[0].isStarter).toBe(true);
+    expect(menu.dishes[0].recipe.steps).toEqual([
+      "Form the patties.",
+      "Grill 4 minutes a side.",
+    ]);
+    // ...and the starter it came from never shows twice in the picker.
+    expect(menu.available.map((r) => r.id)).not.toContain(BURGERS);
     const copyItems = await itemsOf(copy.id);
     expect(copyItems.map((i) => i.name)).toEqual(STARTER_RECIPES[0].items.map((i) => i.name));
     expect(copyItems[0].perServing).toBe(0.5);
@@ -423,9 +457,9 @@ describe("updateDish", () => {
     expect(await db.select().from(recipes)).toHaveLength(LIBRARY);
   });
 
-  it("rejects perServing <= 0 or not finite, and changes nothing", async () => {
+  it("accepts 0 to skip an ingredient but rejects negatives and junk", async () => {
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
-    for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
       await expect(
         updateDish(db, "host-1", eventId, dishId, {
           servingsPerPerson: 1,
@@ -433,20 +467,25 @@ describe("updateDish", () => {
         }),
       ).rejects.toBeInstanceOf(ValidationError);
     }
-    expect((await dishRow(dishId)).recipeId).toBe(BURGERS);
-    expect((await dishRow(dishId)).servingsPerPerson).toBe(1.5);
-    expect(await db.select().from(recipes)).toHaveLength(LIBRARY);
+    await updateDish(db, "host-1", eventId, dishId, {
+      servingsPerPerson: 1,
+      itemAmounts: starterAmounts(0),
+    });
+    const copy = (await db.select().from(recipes).where(eq(recipes.ownerId, "host-1")))[0];
+    expect((await itemsOf(copy.id))[0].perServing).toBe(0);
+    expect((await dishRow(dishId)).recipeId).toBe(copy.id);
   });
 
-  it("rejects servingsPerPerson outside 0..20 (0 and 20 are allowed)", async () => {
+  it("rejects servingsPerPerson of 0 or less with a clear message, and over 20", async () => {
     const { dishId } = await addDishToEvent(db, "host-1", eventId, BURGERS);
-    for (const bad of [-0.5, 20.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const bad of [0, -0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       await expect(
         updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: bad, itemAmounts: {} }),
-      ).rejects.toBeInstanceOf(ValidationError);
+      ).rejects.toThrow("Set at least a little per person, or remove the dish");
     }
-    await updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: 0, itemAmounts: {} });
-    expect((await dishRow(dishId)).servingsPerPerson).toBe(0);
+    await expect(
+      updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: 20.5, itemAmounts: {} }),
+    ).rejects.toBeInstanceOf(ValidationError);
     await updateDish(db, "host-1", eventId, dishId, { servingsPerPerson: 20, itemAmounts: {} });
     expect((await dishRow(dishId)).servingsPerPerson).toBe(20);
   });
@@ -507,7 +546,6 @@ describe("createCustomRecipe", () => {
       { emoji: "" },
       { unit: " " },
       { buyUnit: "" },
-      { perServing: 0 },
       { perServing: -1 },
       { perServing: Number.POSITIVE_INFINITY },
       { unitsPerBuy: 0 },
@@ -524,6 +562,55 @@ describe("createCustomRecipe", () => {
       ).rejects.toBeInstanceOf(ValidationError);
     }
     expect(await db.select().from(recipes)).toHaveLength(LIBRARY); // only the starter
+  });
+
+  it("saves optional steps, tips, times and description", async () => {
+    const { recipeId } = await createCustomRecipe(db, "host-1", {
+      name: "Coleslaw",
+      emoji: "🥗",
+      defaultServingsPerPerson: 1,
+      items: [slaw],
+      description: "  Crunchy and sharp  ",
+      prepMinutes: 10,
+      cookMinutes: 0,
+      steps: [" Shred the cabbage. ", "", "Toss with dressing."],
+      tips: ["Make it ahead."],
+      equipment: ["Big bowl"],
+    });
+    const [row] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
+    expect(row).toMatchObject({
+      description: "Crunchy and sharp",
+      prepMinutes: 10,
+      cookMinutes: 0,
+      steps: ["Shred the cabbage.", "Toss with dressing."],
+      tips: ["Make it ahead."],
+      equipment: ["Big bowl"],
+      originRecipeId: null,
+    });
+    const menu = await getMenu(db, "host-1", eventId);
+    expect(menu.available.find((r) => r.id === recipeId)?.steps).toEqual([
+      "Shred the cabbage.",
+      "Toss with dressing.",
+    ]);
+  });
+
+  it("rejects a bad minute count and keeps a blank time as no estimate", async () => {
+    const base = { name: "Slaw", emoji: "🥗", defaultServingsPerPerson: 1, items: [slaw] };
+    for (const prepMinutes of [-1, 1.5, 24 * 60 + 1]) {
+      await expect(
+        createCustomRecipe(db, "host-1", { ...base, prepMinutes }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    const { recipeId } = await createCustomRecipe(db, "host-1", {
+      ...base,
+      prepMinutes: null,
+      cookMinutes: undefined,
+      steps: [],
+    });
+    const [row] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
+    expect(row.prepMinutes).toBeNull();
+    expect(row.cookMinutes).toBeNull();
+    expect(row.steps).toEqual([]);
   });
 
   it("accepts a free item (priceCents 0) such as ice", async () => {
@@ -595,10 +682,12 @@ describe("getMenu", () => {
       itemAmounts: starterAmounts(0.4),
     });
     menu = await getMenu(db, "host-1", eventId);
-    expect(menu.dishes[0].isStarter).toBe(false);
+    // A copy of a starter keeps the pill and its section, and hides the original from the picker.
+    expect(menu.dishes[0].isStarter).toBe(true);
+    expect(menu.dishes[0].recipe.category).toBe("Grill");
     expect(menu.dishes[0].recipe.items[0].perServing).toBe(0.4);
-    // The starter is addable again once the event's dish points at the copy.
-    expect(menu.available.map((r) => r.id)).toContain(BURGERS);
+    expect(menu.available.map((r) => r.id)).not.toContain(BURGERS);
+    expect(menu.available.some((r) => r.id === menu.dishes[0].recipe.id)).toBe(false);
   });
 
   it("throws NotFoundError for another host's event", async () => {

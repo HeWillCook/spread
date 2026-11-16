@@ -43,6 +43,13 @@
       "when": 1794797697309,
       "tag": "0005_event_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794862847889,
+      "tag": "0006_recipe_instructions",
+      "breakpoints": true
     }
   ]
 }

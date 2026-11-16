@@ -82,6 +82,30 @@ describe("buildPrepSheet", () => {
     ]);
   });
 
+  it("carries the recipe's times and steps into the sheet and its text", () => {
+    const withSteps: MenuDish = {
+      ...burgers,
+      recipe: {
+        ...burgers.recipe,
+        prepMinutes: 15,
+        cookMinutes: 20,
+        steps: ["Form the patties.", "Grill 4 minutes a side."],
+      },
+    };
+    const sheet = buildPrepSheet({
+      event,
+      dishes: [withSteps],
+      headcount: computeHeadcount(yesGuests(3), 0.5),
+      guests: [],
+    });
+
+    expect(sheet.dishes[0].timeLabel).toBe("Prep 15 min · Cook 20 min · Total 35 min");
+    expect(sheet.dishes[0].steps).toEqual(["Form the patties.", "Grill 4 minutes a side."]);
+    const text = prepSheetText(sheet);
+    expect(text).toContain("Prep 15 min · Cook 20 min · Total 35 min");
+    expect(text).toContain("1. Form the patties.\n2. Grill 4 minutes a side.");
+  });
+
   it("keeps dishes but leaves shopping empty when nobody is counted yet", () => {
     const sheet = buildPrepSheet({
       event,

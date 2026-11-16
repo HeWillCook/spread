@@ -12,6 +12,15 @@ import { recipeItems, recipes } from "./schema";
  */
 export async function seedStarterRecipes(db: Db): Promise<void> {
   for (const recipe of STARTER_RECIPES) {
+    // A starter may be filled in group by group, so treat unfinished text as empty.
+    const instructions = {
+      description: recipe.description ?? null,
+      prepMinutes: recipe.prepMinutes ?? null,
+      cookMinutes: recipe.cookMinutes ?? null,
+      steps: recipe.steps ?? [],
+      tips: recipe.tips ?? [],
+      equipment: recipe.equipment ?? [],
+    };
     await db
       .insert(recipes)
       .values({
@@ -20,6 +29,7 @@ export async function seedStarterRecipes(db: Db): Promise<void> {
         name: recipe.name,
         emoji: recipe.emoji,
         defaultServingsPerPerson: recipe.defaultServingsPerPerson,
+        ...instructions,
       })
       .onConflictDoUpdate({
         target: recipes.id,
@@ -28,6 +38,7 @@ export async function seedStarterRecipes(db: Db): Promise<void> {
           name: recipe.name,
           emoji: recipe.emoji,
           defaultServingsPerPerson: recipe.defaultServingsPerPerson,
+          ...instructions,
         },
       });
 

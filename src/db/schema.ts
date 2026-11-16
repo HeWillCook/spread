@@ -2,6 +2,7 @@ import {
   boolean,
   doublePrecision,
   integer,
+  jsonb,
   pgEnum,
   index,
   pgTable,
@@ -51,6 +52,15 @@ export const recipes = pgTable("recipes", {
   name: text("name").notNull(),
   emoji: text("emoji").notNull(),
   defaultServingsPerPerson: doublePrecision("default_servings_per_person").notNull(),
+  // How-to-make-it text, optional for host recipes. Starters ship it from code.
+  description: text("description"),
+  prepMinutes: integer("prep_minutes"),
+  cookMinutes: integer("cook_minutes"),
+  steps: jsonb("steps").$type<string[]>().notNull().default([]),
+  tips: jsonb("tips").$type<string[]>().notNull().default([]),
+  equipment: jsonb("equipment").$type<string[]>().notNull().default([]),
+  // The starter (or host) recipe a per-event copy was made from; null for originals.
+  originRecipeId: text("origin_recipe_id"),
 });
 
 export const recipeItems = pgTable("recipe_items", {

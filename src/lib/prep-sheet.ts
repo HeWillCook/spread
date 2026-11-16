@@ -1,6 +1,6 @@
 import type { Headcount } from "@/domain/headcount";
 import { formatWhen } from "@/lib/format";
-import { servingWord } from "@/lib/menu-text";
+import { servingWord, timeRow } from "@/lib/menu-text";
 import { buildShoppingList, type ShoppingLine } from "@/domain/shopping";
 import { formatBuyQty, headcountLine } from "@/lib/shopping-text";
 import type { GuestRow } from "@/services/guestsOverview";
@@ -35,6 +35,10 @@ export interface PrepDish {
   servingsPerPerson: number;
   /** e.g. "12 burgers". */
   servingsLabel: string;
+  /** "Prep 15 min · Cook 20 min · Total 35 min"; null when the recipe has no times. */
+  timeLabel: string | null;
+  /** Ordered how-to steps, so the sheet doubles as a recipe card. */
+  steps: string[];
   ingredients: PrepIngredient[];
 }
 
@@ -139,6 +143,8 @@ export function buildPrepSheet({
       servings,
       servingsPerPerson: dish.servingsPerPerson,
       servingsLabel: formatBuyQty(servings, servingWord(dish.recipe.name)),
+      timeLabel: timeRow(dish.recipe),
+      steps: dish.recipe.steps ?? [],
       ingredients: lines.map((line) => ({
         itemId: line.itemId,
         name: line.name,
@@ -193,7 +199,8 @@ export function buildPrepSheet({
 
 /**
  * Plain text for copy/paste and a plain-language print backup. Saved data only:
- * no links, invitation codes, emails, payment details or cooking instructions.
+ * no links, invitation codes, emails or payment details. Cooking steps come straight
+ * from the saved recipe, never from anything invented here.
  */
 export function prepSheetText(sheet: PrepSheet): string {
   const lines: string[] = [
@@ -214,6 +221,10 @@ export function prepSheetText(sheet: PrepSheet): string {
       lines.push(`${dish.name} — ${dish.servingsLabel}`);
       for (const ingredient of dish.ingredients) {
         lines.push(`- ${ingredient.name}: ${ingredient.neededLabel}`);
+      }
+      if (dish.timeLabel) lines.push(dish.timeLabel);
+      for (const [stepIndex, step] of dish.steps.entries()) {
+        lines.push(`${stepIndex + 1}. ${step}`);
       }
     }
   }

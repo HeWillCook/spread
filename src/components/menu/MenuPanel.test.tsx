@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { STARTER_RECIPES } from "@/domain/recipes";
-import type { MenuDish } from "@/services/menu";
+import type { MenuDish, MenuRecipe } from "@/services/menu";
 import { MenuPanel } from "./MenuPanel";
 import type { MenuFormAction } from "./menuForm";
 
@@ -18,7 +18,7 @@ const ok: MenuFormAction = async (prev) => ({ error: null, saves: prev.saves + 1
 function renderPanel(
   props: Partial<{
     dishes: MenuDish[];
-    available: typeof STARTER_RECIPES;
+    available: MenuRecipe[];
     update: MenuFormAction;
     remove: MenuFormAction;
     add: MenuFormAction;
@@ -40,29 +40,123 @@ function renderPanel(
   );
 }
 
+function expandCard() {
+  fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+}
+
 describe("MenuPanel dish card", () => {
-  it("shows the emoji, name, appetite and per-item amounts with units", () => {
+  it("is collapsed by default and summarises the dish", () => {
     renderPanel();
+
     expect(screen.getByRole("heading", { name: /Burgers/ })).toHaveTextContent("🍔");
-    expect(screen.getByLabelText("burgers per person")).toHaveValue(1.5);
-    // The beef amount is the patty weight.
-    expect(screen.getByLabelText("Ground beef (lb per burger)")).toHaveValue(0.3333);
-    expect(screen.getByLabelText("Burger buns (bun per burger)")).toHaveValue(1);
-    expect(screen.getByLabelText("Onion (onion per burger)")).toHaveValue(0.1667);
     expect(screen.getByText("Starter recipe")).toBeInTheDocument();
+    expect(
+      screen.getByText("1.5 burgers per person · 6 burgers for 4 guests"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Ground beef, Burger buns, Cheese slices +2 more"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/About \$.* for 4 guests · \$.* per person/)).toBeInTheDocument();
+    // Editing inputs stay hidden until the host asks for them.
+    expect(screen.queryByLabelText("burgers per person")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ground beef (lb per burger)")).not.toBeInTheDocument();
+    expect(screen.queryByText("How to make it")).not.toBeInTheDocument();
+  });
+
+  it("expands to the portion inputs and the how-to section, and flips aria-expanded", () => {
+    renderPanel();
+    const toggle = screen.getByRole("button", { name: "Edit details" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    expandCard();
+
+    expect(screen.getByRole("button", { name: "Hide details" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByLabelText("burgers per person")).toHaveValue(1.5);
+    expect(screen.getByLabelText("Ground beef (lb per burger)")).toHaveValue(0.333);
+    expect(screen.getByLabelText("Burger buns (bun per burger)")).toHaveValue(1);
+    expect(screen.getByLabelText("Onion (onion per burger)")).toHaveValue(0.167);
+    expect(screen.getByText("How to make it")).toBeInTheDocument();
+  });
+
+  it("keeps the card expanded after a save", async () => {
+    const update = vi.fn<MenuFormAction>().mockResolvedValue({ error: null, saves: 1 });
+    renderPanel({ update });
+    expandCard();
+
+    fireEvent.change(screen.getByLabelText("burgers per person"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Burgers" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(screen.getByLabelText("burgers per person")).toHaveValue(2);
+  });
+
+  it("opens a newly added dish so the host can tune it", async () => {
+    const add = vi.fn<MenuFormAction>().mockResolvedValue({
+      error: null,
+      saves: 1,
+      added: { dishId: "dish-1", name: "Burgers" },
+    });
+    renderPanel({ available: [burgers], add });
+    expect(screen.queryByLabelText("burgers per person")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Burgers" }));
+
+    expect(await screen.findByLabelText("burgers per person")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide details" })).toBeInTheDocument();
   });
 
   it("shows the scaled prep quantities for the saved headcount and appetite", () => {
     renderPanel();
+    expandCard();
     const prep = screen.getByRole("region", { name: "Burgers prep quantities" });
     expect(prep).toHaveTextContent("6 burgers for ~4 people");
     expect(prep).toHaveTextContent("6 bun");
     expect(prep).toHaveTextContent("Burger buns");
   });
 
+  it("shows numbered steps and the time row when the recipe has them", () => {
+    const withSteps: MenuRecipe = {
+      ...burgers,
+      id: "own-steps",
+      name: "My Burgers",
+      category: "Grill",
+      prepMinutes: 15,
+      cookMinutes: 20,
+      steps: ["Form the patties.", "Grill 4 minutes a side."],
+      equipment: ["Grill"],
+      tips: ["Toast the buns."],
+    };
+    renderPanel({
+      dishes: [{ ...dish, dishId: "dish-steps", recipe: withSteps, isStarter: false }],
+    });
+
+    expect(screen.getByText("35 min")).toBeInTheDocument();
+    expect(screen.getByText("Grill")).toBeInTheDocument();
+    expandCard();
+
+    const steps = screen.getByText("Form the patties.").closest("ol");
+    expect(steps?.tagName).toBe("OL");
+    expect(within(steps as HTMLElement).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Form the patties.",
+      "Grill 4 minutes a side.",
+    ]);
+    expect(screen.getByText("Prep 15 min · Cook 20 min · Total 35 min")).toBeInTheDocument();
+    expect(screen.getByText("Toast the buns.")).toBeInTheDocument();
+  });
+
+  it("says so when a dish has no instructions yet", () => {
+    renderPanel();
+    expandCard();
+    expect(screen.getByText(/No instructions yet/)).toBeInTheDocument();
+  });
+
   it("submits the appetite and amounts keyed by recipe item id", async () => {
     const update = vi.fn<MenuFormAction>().mockResolvedValue({ error: null, saves: 1 });
     renderPanel({ update });
+    expandCard();
 
     fireEvent.change(screen.getByLabelText("burgers per person"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Ground beef (lb per burger)"), {
@@ -80,15 +174,16 @@ describe("MenuPanel dish card", () => {
   it("shows a friendly error and keeps what the host typed", async () => {
     const update = vi
       .fn<MenuFormAction>()
-      .mockResolvedValue({ error: "Servings per person must be a number from 0 to 20", saves: 0 });
+      .mockResolvedValue({ error: "Set at least a little per person, or remove the dish", saves: 0 });
     renderPanel({ update });
+    expandCard();
 
     const input = screen.getByLabelText("burgers per person");
     fireEvent.change(input, { target: { value: "7" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Burgers" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Servings per person must be a number from 0 to 20",
+      "Set at least a little per person, or remove the dish",
     );
     expect(screen.getByLabelText("burgers per person")).toHaveValue(7);
   });
@@ -175,6 +270,30 @@ describe("MenuPanel create your own dish", () => {
     expect(form.getAll("itemPerServing")).toEqual(["0.25", "2"]);
     expect(form.getAll("itemUnitsPerBuy")).toEqual(["1", "1"]);
     expect(form.getAll("itemPrice")).toEqual(["3.00", "4.50"]);
+  });
+
+  it("submits optional steps, tips and times", async () => {
+    const create = vi.fn<MenuFormAction>().mockResolvedValue({ error: null, saves: 1 });
+    renderPanel({ create });
+
+    fireEvent.change(screen.getByLabelText("Dish name"), { target: { value: "Coleslaw" } });
+    fillFirstIngredient();
+    fireEvent.change(screen.getByLabelText("Prep minutes"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("Cook minutes"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("Steps (one per line)"), {
+      target: { value: "Shred the cabbage.\n\nToss with dressing. " },
+    });
+    fireEvent.change(screen.getByLabelText("Tips (one per line)"), {
+      target: { value: "Make it ahead." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create dish" }));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    const form = create.mock.calls[0][1];
+    expect(form.get("prepMinutes")).toBe("10");
+    expect(form.get("cookMinutes")).toBe("0");
+    expect(form.get("steps")).toBe("Shred the cabbage.\n\nToss with dressing. ");
+    expect(form.get("tips")).toBe("Make it ahead.");
   });
 
   it("removes an ingredient row but keeps at least one", () => {
