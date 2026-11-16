@@ -72,11 +72,11 @@ describe("SplitPanel", () => {
   });
   it("warns before collecting money while shopping quantities need review", () => {
     renderPanel(view([], { totalIsProvisional: true }));
-    expect(screen.getByText(/Review changed quantities on Shopping before collecting money/)).toBeInTheDocument();
+    expect(screen.getByText("Total is provisional. Recheck Shopping.")).toBeInTheDocument();
   });
   it("shows the empty state, the total and a tick box per guest when nobody is ticked", () => {
     renderPanel(view([row({ guestId: "a", name: "Ann" }), row({ guestId: "b", name: "Bo", heads: 3 })]));
-    expect(screen.getByText("Tick who came to see what everyone owes")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tick who came" })).toBeInTheDocument();
     expect(screen.getByText("$75.50")).toBeInTheDocument();
     expect(screen.queryByText(/about/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Ann came")).not.toBeChecked();
@@ -105,7 +105,7 @@ describe("SplitPanel", () => {
       ),
     );
     expect(screen.queryByText(/Tick who came to see/)).not.toBeInTheDocument();
-    expect(screen.getByText("$75.50 total · about $37.75 each")).toBeInTheDocument();
+    expect(screen.getByText("≈ $37.75 each")).toBeInTheDocument();
     expect(screen.getAllByText("$37.75")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Send Venmo link to Ann" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open link for Ann/ })).toHaveAttribute("href", url);

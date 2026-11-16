@@ -34,7 +34,7 @@ export function SignOutButton() {
         type="button"
         onClick={signOut}
         disabled={pending}
-        className="min-h-10 text-sm font-bold text-ketchup underline disabled:opacity-50"
+        className="min-h-11 text-sm font-bold text-ketchup underline disabled:opacity-50"
       >
         {pending ? "Signing out..." : "Sign out"}
       </button>

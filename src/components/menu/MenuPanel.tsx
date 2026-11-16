@@ -77,7 +77,6 @@ export function MenuPanel({
           <summary>
             <span className="menu-exploration-intro">
               <strong>Try a different crowd</strong>
-              <span>See what changes if the guest count moves.</span>
             </span>
             <span className="menu-exploration-action">
               <span className="menu-explore-label">Explore</span>

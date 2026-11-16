@@ -40,7 +40,7 @@ export function NewEventForm({
     <div className="flex flex-col gap-5">
       <div className="ticket slip">
         <header className="slip-head">
-          <h2 className="text-[2.25rem] leading-none">New event</h2>
+          <h2 className="text-3xl leading-none">New event</h2>
           <p className="text-sm text-ink-muted">You&apos;ll get a link to share with your guests.</p>
         </header>
         <form action={formAction} className="slip-body">
@@ -83,7 +83,7 @@ export function NewEventForm({
       </div>
 
       <p className="text-center text-sm">
-        <Link href="/host" className="font-bold text-ketchup underline">
+        <Link href="/host" className="inline-flex min-h-11 items-center px-1 font-bold text-ketchup underline">
           Back to my events
         </Link>
       </p>

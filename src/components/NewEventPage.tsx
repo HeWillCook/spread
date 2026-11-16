@@ -13,6 +13,7 @@ export function NewEventPage({ action }: { action: NewEventAction }) {
       headline="What are we celebrating?"
       detail="Name the night, set the time, and Spread turns the replies into portions, a shopping list and a split."
       previewTheme={theme}
+      className="new-event-page"
     >
       <NewEventForm action={action} onCoverChange={(emoji) => setTheme(occasionFor(emoji))} />
     </ScrapbookPage>

@@ -76,7 +76,7 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
       {cancelled ? null : (
         <Link
           href={`/e/${encodeURIComponent(code)}?new=1`}
-          className="font-bold text-ketchup underline"
+          className="inline-flex min-h-11 items-center font-bold text-ketchup underline"
         >
           Not you? Answer as someone else
         </Link>

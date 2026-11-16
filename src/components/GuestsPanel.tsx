@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { duplicateGuestIds } from "@/lib/guest-names";
 import type { GuestsOverview, GuestRow } from "@/services/guestsOverview";
+import { CopyLinkButton } from "./CopyLinkButton";
 import { CopyReminderButton } from "./CopyReminderButton";
 import { EmptyState } from "./EmptyState";
 import { FoodNotesSummary } from "./FoodNotesSummary";
@@ -115,7 +116,7 @@ function RemoveGuest({ guest, action }: { guest: GuestRow; action: GuestsFormAct
         type="button"
         aria-label={`Remove ${guest.name}`}
         onClick={() => setConfirming(true)}
-        className="min-h-9 text-sm font-medium text-ink-muted underline decoration-ink/30 underline-offset-4 hover:text-ketchup hover:decoration-ketchup"
+        className="min-h-11 px-1 text-sm font-medium text-ink-muted underline decoration-ink/30 underline-offset-4 hover:text-ketchup hover:decoration-ketchup"
       >
         Remove
       </button>
@@ -201,8 +202,18 @@ export function GuestsPanel({
   const duplicates = duplicateGuestIds(guests);
   return (
     <div className="flex flex-col gap-6">
+      {invitation ? (
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-xl">Invite your guests</h2>
+          <p className="text-sm leading-relaxed text-ink-muted">
+            Guests RSVP from this link. No account needed.
+          </p>
+          <CopyLinkButton url={invitation.url} />
+        </Card>
+      ) : null}
+
       <div className="flex flex-col gap-3">
-        <h2 className="text-[1.75rem] leading-tight">Make room at the table.</h2>
+        <h2 className="text-[1.75rem] leading-tight">Guests</h2>
         <p className="max-w-[62ch] text-[1.0625rem] font-semibold leading-snug">{breakdownLine(headcount)}</p>
         <div className="flex flex-wrap gap-2">
           <Pill tone="pickle">{counts.yes} yes</Pill>
@@ -210,13 +221,26 @@ export function GuestsPanel({
           <Pill tone="quiet">{counts.no} no</Pill>
           {noReply ? <Pill tone="quiet">{noReply.length} no reply</Pill> : null}
         </div>
-        <p className="max-w-[62ch] text-sm leading-relaxed text-ink-muted">Includes named plus-ones. People who haven&apos;t replied aren&apos;t included in the food plan. As answers come in, quantities update on the Menu and Shopping tabs.</p>
+        <p className="max-w-[62ch] text-sm leading-relaxed text-ink-muted">Plus-ones included; no-reply guests aren&apos;t counted.</p>
       </div>
 
       <FoodNotesSummary guests={guests} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex min-w-0 flex-col gap-6">
+      {noReply && noReply.length > 0 ? (
+        <Card>
+          <h2 className="mb-3 text-xl">No reply yet</h2>
+          {noReply.map((name) => (
+            <CardRow key={name} className="flex-col items-stretch">
+              <span className="break-words font-bold">{name}</span>
+              {invitation ? <CopyReminderButton name={name} title={invitation.title} url={invitation.url} /> : null}
+            </CardRow>
+          ))}
+          <p className="mt-4 text-xs leading-relaxed text-ink-muted">Names are matched by spelling. Someone who replied under a different name may still appear here.</p>
+        </Card>
+      ) : null}
+
       {guests.length === 0 ? (
         <EmptyState
           art="guests"
@@ -245,26 +269,11 @@ export function GuestsPanel({
           ))}
         </Card>
       )}
-
-      {noReply && noReply.length > 0 ? (
-        <Card>
-          <h2 className="mb-3 text-xl">No reply yet</h2>
-          <p className="mb-4 text-sm leading-relaxed text-ink-muted">A quick nudge helps you shop with a clearer headcount. Copy a personal reminder and send it in your usual chat.</p>
-          {noReply.map((name) => (
-            <CardRow key={name} className="flex-col items-stretch">
-              <span className="break-words font-bold">{name}</span>
-              {invitation ? <CopyReminderButton name={name} title={invitation.title} url={invitation.url} /> : null}
-            </CardRow>
-          ))}
-          <p className="mt-4 text-xs leading-relaxed text-ink-muted">Names are matched by spelling. Someone who replied under a different name may still appear here.</p>
-        </Card>
-      ) : null}
       </div>
 
       <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-[4.25rem] lg:self-start">
       <Card>
         <h2 className="mb-2 text-xl">Plan for the maybes</h2>
-        <p className="mb-4 text-sm leading-relaxed text-ink-muted">You know your crowd. Choose how many tentative guests to include when calculating food.</p>
         <MaybePercentForm key={maybePercent} action={setMaybePercentAction} percent={maybePercent} />
       </Card>
       <Card>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Button } from "./Button";
 import { Card, CardRow } from "./Card";
@@ -31,6 +31,25 @@ describe("TabBar", () => {
     expect(
       screen.getAllByRole("link").some((a) => a.hasAttribute("aria-current")),
     ).toBe(false);
+  });
+
+  it("renders a bottom bar with one current section and icons", () => {
+    const icons = tabs.map(() => <svg key="icon" aria-hidden="true" />);
+    render(
+      <TabBar
+        tabs={tabs.map((tab, index) => ({ ...tab, icon: icons[index] }))}
+        activeHref="/guests"
+        variant="bottom"
+        label="Event sections"
+      />,
+    );
+    const nav = screen.getByRole("navigation", { name: "Event sections" });
+    expect(nav.querySelectorAll(".tab-icon")).toHaveLength(3);
+    const current = within(nav)
+      .getAllByRole("link")
+      .filter((a) => a.getAttribute("aria-current") === "page");
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveTextContent("Guests");
   });
 });
 

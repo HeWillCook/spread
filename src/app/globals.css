@@ -636,7 +636,14 @@
     max-width: 64rem;
     margin-inline: auto;
     padding-inline: clamp(1rem, 4vw, 2.5rem);
-    padding-block: 0.5rem 4rem;
+    /* Leave room for the fixed phone tab bar and the home indicator. */
+    padding-block: 0 calc(5.25rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 64rem) {
+    .event-shell {
+      padding-block: 0.5rem 4rem;
+    }
   }
 
   .event-top {
@@ -648,7 +655,161 @@
   }
 
   .event-masthead {
-    padding-bottom: 1.75rem;
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .event-masthead {
+      display: block;
+      padding-bottom: 1.75rem;
+    }
+  }
+
+  /* ---- Phone header: one compact sticky bar ---------------------------- */
+  .event-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    margin-inline: calc(-1 * clamp(1rem, 4vw, 2.5rem));
+    background-color: var(--cream);
+    background-image: var(--grain);
+  }
+
+  @media (min-width: 64rem) {
+    .event-bar {
+      display: none;
+    }
+  }
+
+  .event-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 3.5rem;
+    padding: 0.35rem clamp(0.6rem, 3vw, 1rem);
+    border-bottom: 3px solid var(--bar-accent, var(--ink));
+  }
+
+  .event-bar-back,
+  .event-bar-action {
+    display: inline-flex;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .event-bar-back:active,
+  .event-bar-action:active {
+    background: rgb(43 29 23 / 0.08);
+  }
+
+  .event-bar-back:focus-visible,
+  .event-bar-action:focus-visible,
+  .event-bar-menu-item:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .event-bar-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .event-bar-cover {
+    display: inline-flex;
+    width: 1.7rem;
+    height: 1.7rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    line-height: 1;
+    box-shadow: inset 0 0 0 1px rgb(43 29 23 / 0.12);
+  }
+
+  .event-bar-title {
+    overflow: hidden;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    font-weight: 400;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .event-bar-meta {
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .event-bar-share {
+    padding-inline: 0.7rem;
+    border: 1.5px solid var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
+  .event-bar-more {
+    padding: 0;
+  }
+
+  .event-bar-sheet {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    padding: 0.9rem clamp(1rem, 4vw, 1.5rem) 1.1rem;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+    box-shadow: 0 14px 24px -18px rgb(43 29 23 / 0.55);
+  }
+
+  .event-bar-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .event-bar-menu-item {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    width: 100%;
+    padding-inline: clamp(1rem, 4vw, 1.5rem);
+    border-top: 1px dashed var(--divider);
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .event-bar-menu > :first-child > .event-bar-menu-item,
+  .event-bar-menu > .event-bar-menu-item:first-child {
+    border-top: 0;
+  }
+
+  .event-cancelled {
+    margin-block: 0.75rem 1rem;
+  }
+
+  @media (min-width: 64rem) {
+    .event-cancelled {
+      margin-block: 0 1.5rem;
+    }
   }
 
   /*
@@ -761,6 +922,13 @@
 
   .event-main {
     min-width: 0;
+    padding-top: 0.75rem;
+  }
+
+  @media (min-width: 64rem) {
+    .event-main {
+      padding-top: 0;
+    }
   }
 
   /* The running total, printed like the bottom of a receipt. */
@@ -889,13 +1057,42 @@
 
   /* Tabs: a row of labels with a ketchup bar under the current one. */
   .event-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--ink);
-    background-color: var(--cream);
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .event-tabs {
+      display: flex;
+      gap: 0.25rem;
+      overflow-x: auto;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--ink);
+      background-color: var(--cream);
+      background-image: var(--grain);
+    }
+  }
+
+  /* Phones: a fixed bottom bar, one icon and short label per section. */
+  .event-tab-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 2px solid var(--ink);
+    background-color: var(--paper);
     background-image: var(--grain);
+  }
+
+  @media (min-width: 64rem) {
+    .event-tab-bar {
+      display: none;
+    }
   }
 
   .tab-link {
@@ -914,6 +1111,46 @@
     text-decoration: none;
     white-space: nowrap;
     transition: color 150ms ease;
+  }
+
+  .tab-link-bottom {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-height: 3.5rem;
+    padding: 0.45rem 0.15rem 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .tab-link-bottom::after {
+    display: none;
+  }
+
+  .tab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tab-link-bottom .tab-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+
+  .tab-link-bottom[aria-current="page"] {
+    color: var(--ketchup-deep);
+  }
+
+  .tab-link-bottom[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    inset-inline: 24%;
+    top: 0;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--tab-accent, var(--ketchup));
   }
 
   .tab-link::after {
@@ -945,7 +1182,7 @@
   }
 
   @media (min-width: 40rem) {
-    .tab-link {
+    .event-tabs .tab-link {
       flex: 0 0 auto;
       padding-inline: 1.25rem;
     }
@@ -1032,6 +1269,14 @@
   .kitchen-meta {
     font-size: 0.875rem;
     line-height: 1.6;
+  }
+
+  /* The event title and time already sit in the event header on screen. */
+  @media screen {
+    .kitchen-sheet-head .kitchen-event-name,
+    .kitchen-sheet-head .kitchen-meta {
+      display: none;
+    }
   }
 
   .kitchen-summary {
@@ -1975,6 +2220,40 @@
     z-index: 1;
   }
 
+  /* ---- New event on a phone: a short plaque so the first field is close --- */
+  @media (max-width: 63.999rem) {
+    .new-event-page {
+      padding: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .new-event-page .scrapbook-panel {
+      min-height: 0;
+    }
+
+    .new-event-page .scrapbook-panel-inner-base {
+      gap: 0.55rem;
+      padding: 2.2rem 0.8rem 0.8rem;
+    }
+
+    .new-event-page .scrapbook-label {
+      padding: 0.65rem 0.8rem 0.7rem;
+    }
+
+    .new-event-page .scrapbook-headline {
+      font-size: 1.4rem;
+    }
+
+    .new-event-page .scrapbook-slip {
+      padding-top: 0;
+    }
+
+    .new-event-page .slip-head {
+      gap: 0.35rem;
+      padding: 1.1rem 1.1rem 1rem;
+    }
+  }
+
   .scrapbook-sticker-sun {
     top: 4.3rem;
     right: 1.2rem;
@@ -2409,6 +2688,49 @@
       repeating-linear-gradient(90deg, rgb(242 176 30 / 0.13) 0 9px, transparent 9px 18px);
   }
 
+  /* Phones: a short band so the event cards, not the header, fill the first screen. */
+  @media (max-width: 63.999rem) {
+    .dashboard-head-band {
+      margin-top: 0.25rem;
+      padding: 2.5rem 0.55rem 0.55rem;
+    }
+
+    .dashboard-bunting {
+      height: 38px;
+    }
+
+    .dashboard-head-paper {
+      padding: 0.75rem 0.95rem 0.8rem;
+    }
+
+    .dashboard-title {
+      font-size: 1.9rem;
+    }
+
+    .dashboard-sub {
+      margin-top: 0.2rem;
+      font-size: 0.9375rem;
+    }
+  }
+
+  .dashboard-create-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 1.1rem;
+    border: 1.5px solid var(--ink);
+    border-radius: 0.75rem;
+    color: var(--ink);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .dashboard-create-link:hover {
+    background: var(--paper);
+  }
+
   .dashboard-bunting {
     position: absolute;
     inset-inline: 0.5rem;
@@ -2705,6 +3027,8 @@
   }
 
   .event-shell:has(.kitchen-sheet) .event-masthead,
+  .event-shell:has(.kitchen-sheet) .event-bar,
+  .event-shell:has(.kitchen-sheet) .event-tab-bar,
   .event-shell:has(.kitchen-sheet) .event-invite,
   .event-shell:has(.kitchen-sheet) .event-tabs,
   .kitchen-sheet .kitchen-actions {
@@ -3365,7 +3689,7 @@
   }
 
   .dash-ticket-head {
-    padding: 1rem 1.1rem 0.6rem;
+    padding: 1rem 0.9rem 0.6rem;
     gap: 0.6rem;
   }
 
@@ -3382,9 +3706,9 @@
 
   .dash-ticket .dash-glance {
     margin-top: 0.4rem;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 0.25rem;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .dash-ticket .dash-glance > span {
@@ -3397,11 +3721,11 @@
   }
 
   .dash-ticket-count .ticket-count-number {
-    font-size: 2.4rem;
+    font-size: 2.2rem;
   }
 
   .dash-ticket-stub {
-    padding: 0.5rem 4.6rem 0.55rem 0.9rem;
+    padding: 0.5rem 0.9rem 0.55rem;
   }
 
   .dash-tape {
@@ -3425,6 +3749,13 @@
     right: 0.65rem;
     bottom: -1rem;
     width: 4rem;
+  }
+
+  /* On a phone the sticker would sit on top of the copy-link button. */
+  @media (max-width: 63.999rem) {
+    .dash-theme-sticker {
+      display: none;
+    }
   }
 
   /* ---- Event masthead strip ------------------------------------------- */
@@ -4148,6 +4479,8 @@
  * Real content keeps its text on white paper.
  */
 @media print {
+  .event-tab-bar,
+  .event-bar,
   .embers,
   .ember-burst,
   .flames,
