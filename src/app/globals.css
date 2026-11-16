@@ -4001,73 +4001,143 @@
     transform: translateX(35%) rotate(22deg);
   }
 
-  /* ---- Mobile guest: compact hero band --------------------------------- */
-  .scrapbook-compact-scene {
-    display: block;
-    width: 100%;
-    height: 8rem;
-    overflow: hidden;
-    border-radius: 6px;
-    margin-top: 0.15rem;
+  .scene-lanterns {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
   }
 
-  .occasion-compact {
-    height: 8rem;
+  .scene-bunting {
+    z-index: 1;
   }
 
-  .occasion-compact .scene-floor {
-    height: 26%;
+  .scene-lantern {
+    position: absolute;
+    top: var(--y, 2.5rem);
+    left: var(--x, 50%);
+    transform-origin: top center;
+    animation: lantern-sway var(--dur, 7s) ease-in-out var(--delay, 0s) infinite alternate;
   }
 
-  .occasion-compact .scene-hero {
-    bottom: 26%;
+  .scene-lantern::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 1px;
+    height: var(--y, 2.5rem);
+    background: rgb(43 29 23 / 0.28);
   }
 
-  .occasion-compact .scene-hero .sticker {
-    width: 7rem;
+  .scene-lantern .sticker {
+    width: 2.9rem;
   }
 
-  .occasion-compact .scene-hero::before {
-    width: 8rem;
-    height: 8rem;
+  @keyframes lantern-sway {
+    from {
+      transform: rotate(-3deg);
+    }
+    to {
+      transform: rotate(3deg);
+    }
   }
 
-  .occasion-compact .scene-hero::after {
-    width: 6rem;
-    height: 0.7rem;
-    margin-left: -3rem;
-    bottom: -0.3rem;
-  }
-
-  .occasion-compact .scene-hero-flames {
+  /* ---- Mobile guest: scene and title merge into one band --------------- */
+  .scrapbook-scene-compact,
+  .scrapbook-compact-hero {
     display: none;
   }
 
-  .occasion-compact .scene-balloon .sticker {
-    width: 2rem;
-  }
-
   @media (max-width: 63.999rem) {
+    .scrapbook-scene-compact {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+
+    .occasion-compact {
+      height: 100%;
+    }
+
+    .occasion-compact .scene-floor {
+      height: 20%;
+    }
+
+    .occasion-compact .scene-balloon .sticker {
+      width: 2rem;
+    }
+
     .scrapbook-panel-inner-occasion {
-      justify-content: flex-start;
-      gap: 0.55rem;
-      padding: 0.8rem 0.9rem 1rem;
+      position: relative;
+      min-height: 10rem;
+      justify-content: space-between;
+      gap: 0.45rem;
+      padding: 0.7rem 0.8rem 0.9rem;
     }
 
+    /* The label keeps a clear right column for the hero, so long titles wrap beside it. */
     .scrapbook-panel-inner-occasion .scrapbook-base-copy {
-      width: 100%;
-      margin-top: 0.2rem;
+      width: calc(100% - 6.1rem);
+      margin-top: 0;
     }
-  }
 
-  @media (min-width: 64rem) {
-    .scrapbook-compact-scene {
-      display: none;
+    .scrapbook-panel-inner-occasion .scrapbook-label {
+      padding: 0.7rem 0.8rem 0.75rem;
+    }
+
+    .scrapbook-panel-inner-occasion .scrapbook-headline {
+      font-size: clamp(1.4rem, 6.1vw, 1.9rem);
+      line-height: 1.02;
+    }
+
+    .scrapbook-compact-hero {
+      position: absolute;
+      right: 0.55rem;
+      bottom: 20%;
+      z-index: 4;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    .scrapbook-compact-hero .sticker {
+      width: 5.5rem;
+    }
+
+    .scrapbook-compact-hero::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -32%;
+      z-index: -1;
+      width: 7.5rem;
+      height: 7.5rem;
+      margin-left: -3.75rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgb(255 250 244 / 0.55), transparent 68%);
+    }
+
+    .scrapbook-compact-hero::after {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: -0.35rem;
+      z-index: -1;
+      height: 0.7rem;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgb(43 29 23 / 0.3), transparent 70%);
+      filter: blur(3px);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .scene-balloon {
+    .scene-balloon,
+    .scene-lantern {
       animation: none !important;
     }
   }

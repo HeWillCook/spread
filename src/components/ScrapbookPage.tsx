@@ -48,9 +48,14 @@ export function ScrapbookPage({
           }`}
         >
           {occasion ? (
-            <span className="scrapbook-scene-panel">
-              <OccasionScene theme={theme} size="panel" />
-            </span>
+            <>
+              <span className="scrapbook-scene-panel">
+                <OccasionScene theme={theme} size="panel" />
+              </span>
+              <span className="scrapbook-scene-compact">
+                <OccasionScene theme={theme} size="compact" />
+              </span>
+            </>
           ) : (
             <>
               <Bunting count={14} className="scrapbook-bunting" />
@@ -122,8 +127,8 @@ export function ScrapbookPage({
             </Link>
 
             {occasion ? (
-              <span className="scrapbook-compact-scene">
-                <OccasionScene theme={theme} size="compact" />
+              <span className="scrapbook-compact-hero" aria-hidden="true">
+                <Sticker name={occasionHero(theme)} size="xxl" tilt={-4} />
               </span>
             ) : null}
 

@@ -90,6 +90,17 @@ function RibbonGlyph({ colour }: { colour: string }) {
   );
 }
 
+function HeartGlyph({ colour }: { colour: string }) {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="M12 21C5 16 2 12.2 2 8.6 2 5.7 4.4 3.6 7 3.6c2 0 3.8 1.2 5 3 1.2-1.8 3-3 5-3 2.6 0 5 2.1 5 5 0 3.6-3 7.4-10 12.4Z"
+        fill={colour}
+      />
+    </svg>
+  );
+}
+
 function SnowGlyph({ colour }: { colour: string }) {
   return (
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -375,8 +386,38 @@ export function OccasionScene({
       ) : null}
       {theme === "cookout" ? (
         <>
-          <Embers count={strip ? 14 : 46} rise={strip ? 70 : 640} />
-          <Steam count={strip ? 2 : 5} />
+          <Embers count={strip ? 14 : 52} rise={strip ? 70 : 900} />
+          <Steam count={strip ? 2 : 7} />
+          <Bunting count={strip ? 10 : 18} className="scene-bunting" />
+          {!strip ? (
+            <span className="scene-lanterns" aria-hidden="true">
+              {[
+                { x: "38%", y: "8.6rem", size: "sm", tilt: 6, dur: "7.8s", delay: "-4.1s" },
+                { x: "52%", y: "4.2rem", size: "md", tilt: -5, dur: "6.5s", delay: "-1s" },
+                { x: "71%", y: "7.5rem", size: "sm", tilt: 5, dur: "7.5s", delay: "-3.5s" },
+                { x: "87%", y: "5.4rem", size: "sm", tilt: -8, dur: "6s", delay: "-2.2s" },
+              ].map((lantern) => (
+                <span
+                  key={lantern.x}
+                  className="scene-lantern"
+                  style={
+                    {
+                      "--x": lantern.x,
+                      "--y": lantern.y,
+                      "--dur": lantern.dur,
+                      "--delay": lantern.delay,
+                    } as CSSProperties
+                  }
+                >
+                  <Sticker
+                    name="lantern"
+                    size={lantern.size as "sm" | "md"}
+                    tilt={lantern.tilt}
+                  />
+                </span>
+              ))}
+            </span>
+          ) : null}
           <span className="scene-fire">
             <Flames edge="bottom" size="sm" />
           </span>
@@ -435,7 +476,19 @@ export function OccasionScene({
           <Ants count={strip ? 4 : 4} />
         </>
       ) : null}
-      {theme === "brunch" ? <Steam count={strip ? 3 : 4} /> : null}
+      {theme === "brunch" ? (
+        <>
+          <Steam count={strip ? 3 : 5} />
+          <Bunting count={strip ? 10 : 18} className="scene-bunting" />
+          {Particles({
+            count: strip ? 3 : 13,
+            seed: 0x4ea7,
+            small: strip,
+            scale: 1.7,
+            glyph: (tone) => <HeartGlyph colour={tone} />,
+          })}
+        </>
+      ) : null}
       {theme === "gamenight" ? (
         <>
           {Particles({
@@ -450,7 +503,7 @@ export function OccasionScene({
 
       {!strip ? <span className={`scene-floor scene-floor-${theme}`} /> : null}
 
-      {!strip ? (
+      {!strip && !compact ? (
         <span className={`scene-hero scene-hero-${theme}`}>
           <Sticker name={occasionHero(theme)} size={compact ? "lg" : "xxl"} tilt={-4} />
           {theme === "birthday" ? (
