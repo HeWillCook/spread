@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { computeHeadcount } from "@/domain/headcount";
@@ -82,6 +82,24 @@ describe("KitchenSheet", () => {
       "href",
       "/host/events/ev1/menu",
     );
+  });
+
+  it("shows the dish time and numbered steps", () => {
+    const withSteps: MenuDish = {
+      ...dish,
+      recipe: {
+        ...dish.recipe,
+        prepMinutes: 15,
+        cookMinutes: 20,
+        steps: ["Form the patties.", "Grill 4 minutes a side."],
+      },
+    };
+    render(<KitchenSheet sheet={sheet([withSteps])} />);
+
+    expect(screen.getByText("Prep 15 min · Cook 20 min · Total 35 min")).toBeInTheDocument();
+    const steps = screen.getByText("Form the patties.").closest("ol");
+    expect(steps?.tagName).toBe("OL");
+    expect(within(steps as HTMLElement).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("explains zero saved portions without implying guests have not been counted", () => {

@@ -56,7 +56,11 @@ function form(entries: [string, string][]) {
 describe("menu actions", () => {
   it("addDishAction adds the dish, and reports a duplicate as a friendly error", async () => {
     const fd = form([["recipeId", "starter-burgers"]]);
-    expect(await addDishAction(eventId, initial, fd)).toEqual({ error: null, saves: 1 });
+    expect(await addDishAction(eventId, initial, fd)).toEqual({
+      error: null,
+      saves: 1,
+      added: { dishId: expect.any(String), name: "Burgers" },
+    });
     expect(await addDishAction(eventId, initial, fd)).toEqual({
       error: "Burgers is already on the menu",
       saves: 0,
@@ -66,14 +70,14 @@ describe("menu actions", () => {
 
   it("updateDishAction keeps an untouched rounded amount exact and saves edited ones", async () => {
     const { dishId } = await addDishToEvent(db, "host-1", eventId, "starter-burgers");
-    // Beef untouched ("0.3333" is how 1/3 is shown), buns edited, servings edited.
+    // Beef untouched ("0.333" is how 1/3 is shown), buns edited, servings edited.
     const result = await updateDishAction(
       eventId,
       dishId,
       initial,
       form([
         ["servings", "2"],
-        ["amount:starter-burgers-beef", "0.3333"],
+        ["amount:starter-burgers-beef", "0.333"],
         ["amount:starter-burgers-buns", "2"],
       ]),
     );
@@ -96,7 +100,7 @@ describe("menu actions", () => {
         ["amount:starter-burgers-beef", ""],
       ]),
     );
-    expect(result.error).toMatch(/greater than 0/);
+    expect(result.error).toMatch(/must be 0 or more/);
     expect((await db.select().from(recipes)).length).toBe(STARTER_RECIPES.length);
   });
 
@@ -141,6 +145,38 @@ describe("menu actions", () => {
     expect(dish.servingsPerPerson).toBe(0.5);
     const [item] = await db.select().from(recipeItems).where(eq(recipeItems.recipeId, dish.recipeId));
     expect(item).toMatchObject({ name: "Cabbage", priceCents: 350, perServing: 0.25 });
+  });
+
+  it("createDishAction saves optional steps, tips and times", async () => {
+    const result = await createDishAction(
+      eventId,
+      initial,
+      form([
+        ["name", "Coleslaw"],
+        ["emoji", "🥗"],
+        ["servings", "0.5"],
+        ["prepMinutes", "10"],
+        ["cookMinutes", ""],
+        ["steps", "Shred the cabbage.\n\nToss with dressing."],
+        ["tips", "Make it ahead."],
+        ["itemName", "Cabbage"],
+        ["itemEmoji", "🥬"],
+        ["itemPerServing", "0.25"],
+        ["itemUnit", "head"],
+        ["itemBuyUnit", "head"],
+        ["itemUnitsPerBuy", "1"],
+        ["itemPrice", "3.50"],
+      ]),
+    );
+    expect(result).toEqual({ error: null, saves: 1 });
+    const [dish] = await db.select().from(eventDishes);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, dish.recipeId));
+    expect(recipe).toMatchObject({
+      prepMinutes: 10,
+      cookMinutes: null,
+      steps: ["Shred the cabbage.", "Toss with dressing."],
+      tips: ["Make it ahead."],
+    });
   });
 
   it("createDishAction rejects a bad price with a friendly error and creates nothing", async () => {
