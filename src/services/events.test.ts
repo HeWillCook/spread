@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { eventDishes, events, guests, invitees, plusOnes } from "@/db/schema";
 import { seedStarterRecipes } from "@/db/seed";
@@ -9,15 +10,22 @@ import { zonedLocalToDate } from "@/lib/zoned-time";
 import { NotFoundError, ValidationError } from "./errors";
 import {
   addInvitees,
+  cancelEvent,
   createEvent,
   deleteEvent,
+  findDeletedHostEvent,
   getHostEvent,
   headcountForEvents,
   listHostEvents,
   noReplyNames,
+  PURGE_AFTER_DAYS,
+  purgeDeletedEvents,
+  restoreEvent,
+  uncancelEvent,
   updateEvent,
 } from "./events";
 import { addDishToEvent } from "./menu";
+import { getGuestsOverview } from "./guestsOverview";
 import { getPublicEvent, submitRsvp } from "./rsvp";
 
 let db: Db;
@@ -114,7 +122,13 @@ describe("listHostEvents", () => {
     const list = await listHostEvents(db, "host-1");
     expect(list.map((e) => e.title)).toEqual(["Sooner", "Later"]);
     expect(list[0]).toMatchObject({ id: sooner.id, shareCode: sooner.shareCode, planFor: 3 });
-    expect(list[1]).toMatchObject({ id: later.id, planFor: 0 });
+    expect(list[1]).toMatchObject({ id: later.id, planFor: 0, cancelledAt: null });
+  });
+
+  it("leaves a deleted event out of the list", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await deleteEvent(db, "host-1", id);
+    expect(await listHostEvents(db, "host-1")).toEqual([]);
   });
 
   it("returns an empty list for a host with no events", async () => {
@@ -240,7 +254,7 @@ describe("updateEvent", () => {
 });
 
 describe("deleteEvent", () => {
-  it("deletes the host's event and cascades its guests, plus-ones, invitees and dishes", async () => {
+  it("hides the host's event from every host read path but keeps its data", async () => {
     await seedStarterRecipes(db);
     const { id, shareCode } = await createEvent(db, "host-1", input);
     await submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: ["Sam", "Jo"] });
@@ -250,12 +264,36 @@ describe("deleteEvent", () => {
 
     expect(await deleteEvent(db, "host-1", id)).toEqual({ title: "Fourth of July" });
 
-    expect((await db.select().from(events)).map((e) => e.title)).toEqual(["Not mine"]);
-    expect(await db.select().from(guests)).toHaveLength(0);
-    expect(await db.select().from(plusOnes)).toHaveLength(0);
-    expect(await db.select().from(invitees)).toHaveLength(0);
-    expect(await db.select().from(eventDishes)).toHaveLength(0);
-    await expect(getPublicEvent(db, shareCode)).rejects.toBeInstanceOf(NotFoundError);
+    // The row is still there: a soft delete, so it can be restored.
+    expect((await db.select().from(events)).map((e) => e.title).sort()).toEqual([
+      "Fourth of July",
+      "Not mine",
+    ]);
+    expect(await db.select().from(guests)).toHaveLength(1);
+    expect(await db.select().from(plusOnes)).toHaveLength(2);
+    expect(await db.select().from(invitees)).toHaveLength(1);
+    expect(await db.select().from(eventDishes)).toHaveLength(1);
+
+    // No host read path finds it any more.
+    await expect(getHostEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await listHostEvents(db, "host-1")).map((e) => e.title)).toEqual([]);
+    expect((await headcountForEvents(db, [id])).has(id)).toBe(false);
+    await expect(getGuestsOverview(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+
+    // Host writes are rejected too, so nothing can change behind the Undo link.
+    await expect(updateEvent(db, "host-1", id, {
+      title: "Nope",
+      startsAt: "2026-11-14T19:00",
+      location: "Nowhere",
+    })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(addInvitees(db, "host-1", id, ["Cy"])).rejects.toBeInstanceOf(NotFoundError);
+    await expect(cancelEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+
+    expect(await findDeletedHostEvent(db, "host-1", id)).toMatchObject({
+      title: "Fourth of July",
+    });
+    // Another host can't see that it exists, deleted or not.
+    expect(await findDeletedHostEvent(db, "host-2", id)).toBeNull();
   });
 
   it("is a NotFoundError for another host's event and leaves it in place", async () => {
@@ -267,7 +305,135 @@ describe("deleteEvent", () => {
   it("is a NotFoundError for an unknown id", async () => {
     await expect(deleteEvent(db, "host-1", "missing")).rejects.toBeInstanceOf(NotFoundError);
   });
+
+  it("is a NotFoundError the second time", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await deleteEvent(db, "host-1", id);
+    await expect(deleteEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+  });
 });
+
+describe("restoreEvent", () => {
+  it("brings a deleted event and all its data back", async () => {
+    await seedStarterRecipes(db);
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: ["Sam"] });
+    await deleteEvent(db, "host-1", id);
+
+    await restoreEvent(db, "host-1", id);
+
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event.deletedAt).toBeNull();
+    expect((await listHostEvents(db, "host-1")).map((e) => e.id)).toEqual([id]);
+    expect((await headcountForEvents(db, [id])).get(id)?.confirmed).toBe(2);
+    expect((await getGuestsOverview(db, "host-1", id)).guests.map((g) => g.name)).toEqual([
+      "Alex",
+    ]);
+    expect((await getPublicEvent(db, shareCode)).deletedAt).toBeNull();
+  });
+
+  it("is a NotFoundError for a live event, another host's event or an unknown id", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await expect(restoreEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+
+    await deleteEvent(db, "host-1", id);
+    await expect(restoreEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(restoreEvent(db, "host-1", "missing")).rejects.toBeInstanceOf(NotFoundError);
+    await expect(getHostEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("purgeDeletedEvents", () => {
+  const backdate = async (id: string, days: number) => {
+    await db
+      .update(events)
+      .set({ deletedAt: new Date(Date.now() - days * 24 * 60 * 60 * 1000) })
+      .where(eq(events.id, id));
+  };
+
+  it("hard-deletes only this host's events deleted more than 30 days ago", async () => {
+    const { id: old } = await createEvent(db, "host-1", { ...input, title: "Old" });
+    const { id: recent } = await createEvent(db, "host-1", { ...input, title: "Recent" });
+    const { id: otherHosts } = await createEvent(db, "host-2", { ...input, title: "Theirs" });
+    await deleteEvent(db, "host-1", old);
+    await deleteEvent(db, "host-1", recent);
+    await deleteEvent(db, "host-2", otherHosts);
+    await backdate(old, PURGE_AFTER_DAYS + 1);
+    await backdate(recent, PURGE_AFTER_DAYS - 1);
+    await backdate(otherHosts, PURGE_AFTER_DAYS + 1);
+
+    expect(await purgeDeletedEvents(db, "host-1")).toBe(1);
+
+    expect((await db.select().from(events)).map((e) => e.title).sort()).toEqual([
+      "Recent",
+      "Theirs",
+    ]);
+    // Purged means gone, even from the Undo lookup.
+    expect(await findDeletedHostEvent(db, "host-1", old)).toBeNull();
+    expect(await findDeletedHostEvent(db, "host-2", otherHosts)).not.toBeNull();
+  });
+
+  it("purges a 30-day-old deleted event and cascades its children", async () => {
+    await seedStarterRecipes(db);
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: ["Sam"] });
+    await deleteEvent(db, "host-1", id);
+    await backdate(id, PURGE_AFTER_DAYS + 1);
+
+    expect(await purgeDeletedEvents(db, "host-1")).toBe(1);
+    expect(await db.select().from(events)).toHaveLength(0);
+    expect(await db.select().from(guests)).toHaveLength(0);
+    expect(await db.select().from(plusOnes)).toHaveLength(0);
+  });
+
+  it("leaves live events alone", async () => {
+    await createEvent(db, "host-1", input);
+    expect(await purgeDeletedEvents(db, "host-1")).toBe(0);
+    expect((await listHostEvents(db, "host-1"))).toHaveLength(1);
+  });
+});
+
+describe("cancelEvent / uncancelEvent", () => {
+  it("cancels without deleting: the event still lists and guests still see it", async () => {
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await cancelEvent(db, "host-1", id);
+
+    const event = await getHostEvent(db, "host-1", id);
+    expect(event.cancelledAt).toBeInstanceOf(Date);
+    expect((await listHostEvents(db, "host-1"))[0].cancelledAt).toBeInstanceOf(Date);
+    const guestView = await getPublicEvent(db, shareCode);
+    expect(guestView.cancelledAt).toBeInstanceOf(Date);
+    expect(guestView.deletedAt).toBeNull();
+  });
+
+  it("uncancels and reopens RSVPs", async () => {
+    const { id, shareCode } = await createEvent(db, "host-1", input);
+    await cancelEvent(db, "host-1", id);
+    await uncancelEvent(db, "host-1", id);
+
+    expect((await getHostEvent(db, "host-1", id)).cancelledAt).toBeNull();
+    expect((await getPublicEvent(db, shareCode)).cancelledAt).toBeNull();
+    await expect(
+      submitRsvp(db, { shareCode, name: "Alex", status: "yes", plusOneNames: [] }),
+    ).resolves.toBeDefined();
+  });
+
+  it("is a NotFoundError for another host, an unknown id or a deleted event", async () => {
+    const { id } = await createEvent(db, "host-1", input);
+    await expect(cancelEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(uncancelEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(cancelEvent(db, "host-1", "missing")).rejects.toBeInstanceOf(NotFoundError);
+
+    await cancelEvent(db, "host-1", id);
+    await expect(uncancelEvent(db, "host-2", id)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await getHostEvent(db, "host-1", id)).cancelledAt).toBeInstanceOf(Date);
+
+    await deleteEvent(db, "host-1", id);
+    await expect(cancelEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(uncancelEvent(db, "host-1", id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
 
 describe("event time zone", () => {
   const originalTz = process.env.TZ;

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CancelledEventNotice } from "@/components/CancelledEventNotice";
+import { CopyCancellationButton } from "@/components/CopyCancellationButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { EventTabs } from "@/components/EventTabs";
 import { Wordmark } from "@/components/ui/Wordmark";
@@ -36,6 +38,23 @@ export default async function EventLayout({
           </Link>
         </div>
 
+        {event.cancelledAt ? (
+          <div className="mb-4">
+            <CancelledEventNotice>
+              <p className="text-sm leading-relaxed text-ink-muted">
+                Guests see this event as cancelled and can&apos;t RSVP. Everything is still here,
+                so you can reinstate it from Edit details.
+              </p>
+              <div className="mt-1">
+                <CopyCancellationButton
+                  title={event.title}
+                  when={formatWhen(event.startsAt, "", event.timezone)}
+                />
+              </div>
+            </CancelledEventNotice>
+          </div>
+        ) : null}
+
         <div className="ticket event-ticket">
           <div className="event-heading">
             <div className="min-w-0">
@@ -66,13 +85,16 @@ export default async function EventLayout({
             </div>
           </div>
 
-          <section className="event-invite" aria-labelledby="invite-title">
-            <div>
-              <h2 id="invite-title">Invite your guests</h2>
-              <p>Guests RSVP from this link. No account needed.</p>
-            </div>
-            <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
-          </section>
+          {/* A cancelled event takes no RSVPs, so don't invite anyone to it. */}
+          {event.cancelledAt ? null : (
+            <section className="event-invite" aria-labelledby="invite-title">
+              <div>
+                <h2 id="invite-title">Invite your guests</h2>
+                <p>Guests RSVP from this link. No account needed.</p>
+              </div>
+              <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
+            </section>
+          )}
         </div>
       </header>
 

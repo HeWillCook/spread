@@ -155,4 +155,36 @@ describe("RsvpForm", () => {
       "Please use a shorter name.",
     );
   });
+
+  it("read-only mode shows the event and the guest's answer, with nothing to submit", () => {
+    render(
+      <RsvpForm
+        event={event}
+        action={noopAction}
+        readOnly
+        initial={{
+          id: "g1",
+          name: "Dana",
+          status: "maybe",
+          plusOneNames: ["Sam", "Alex"],
+          foodNotes: "no peanuts",
+        }}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Burger Night 🍔" })).toBeInTheDocument();
+    expect(screen.getByText("Dana · Maybe")).toBeInTheDocument();
+    expect(screen.getByText(/Sam, Alex/)).toBeInTheDocument();
+    expect(screen.getByText(/no peanuts/)).toBeInTheDocument();
+    expect(screen.getByText(/RSVPs are closed/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Your name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Count me in|Update my answer/ })).not.toBeInTheDocument();
+  });
+
+  it("read-only mode without a saved answer says nothing is needed", () => {
+    render(<RsvpForm event={event} action={noopAction} readOnly />);
+    expect(
+      screen.getByText("You can close this page. Nothing else is needed from you."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Count me in" })).not.toBeInTheDocument();
+  });
 });

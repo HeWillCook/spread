@@ -6,7 +6,7 @@ import type { EditEventState } from "@/components/EditEventForm";
 import { getDb } from "@/db/client";
 import { requireHost } from "@/server/auth";
 import { NotFoundError, ValidationError } from "@/services/errors";
-import { deleteEvent, updateEvent } from "@/services/events";
+import { cancelEvent, deleteEvent, uncancelEvent, updateEvent } from "@/services/events";
 
 // The host comes from the session. The event id arrives through `bind`, but in Next 16
 // bound arguments are sent to the browser and can be altered, so they are NOT protected:
@@ -15,6 +15,10 @@ import { deleteEvent, updateEvent } from "@/services/events";
 function text(formData: FormData, key: string): string {
   const v = formData.get(key);
   return typeof v === "string" ? v : "";
+}
+
+function editPath(eventId: string): string {
+  return `/host/events/${encodeURIComponent(eventId)}/edit`;
 }
 
 /** Saves the edited details, then returns to the Guests tab. */
@@ -42,16 +46,47 @@ export async function updateEventAction(
   redirect(`/host/events/${encodeURIComponent(eventId)}`);
 }
 
-/** Deletes the event (and everything on it), then returns to the dashboard to confirm. */
+/**
+ * Moves the event to the bin (a soft delete) and returns to the dashboard, which
+ * offers Undo for 30 days. Nothing is destroyed yet: purgeDeletedEvents cleans up.
+ */
 export async function deleteEventAction(eventId: string): Promise<void> {
   const host = await requireHost();
-  let title: string;
   try {
-    ({ title } = await deleteEvent(await getDb(), host.id, eventId));
+    await deleteEvent(await getDb(), host.id, eventId);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
   revalidatePath("/host");
-  redirect(`/host?deleted=${encodeURIComponent(title)}`);
+  revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
+  redirect(`/host?deleted=${encodeURIComponent(eventId)}`);
+}
+
+/** Calls the event off (guests keep the link, RSVPs close) and returns to the edit page. */
+export async function cancelEventAction(eventId: string): Promise<void> {
+  const host = await requireHost();
+  try {
+    await cancelEvent(await getDb(), host.id, eventId);
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+  revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
+  revalidatePath("/host");
+  redirect(editPath(eventId));
+}
+
+/** Reopens RSVPs on a cancelled event and returns to the edit page. */
+export async function uncancelEventAction(eventId: string): Promise<void> {
+  const host = await requireHost();
+  try {
+    await uncancelEvent(await getDb(), host.id, eventId);
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+  revalidatePath(`/host/events/${encodeURIComponent(eventId)}`, "layout");
+  revalidatePath("/host");
+  redirect(editPath(eventId));
 }
