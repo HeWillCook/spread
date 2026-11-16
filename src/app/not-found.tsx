@@ -1,20 +1,44 @@
 import Link from "next/link";
+import { Bunting } from "@/components/scrapbook/Bunting";
+import { Sticker } from "@/components/scrapbook/Sticker";
+import { WashiTape } from "@/components/scrapbook/WashiTape";
 import { Wordmark } from "@/components/ui/Wordmark";
 
 export default function NotFound() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-      <Wordmark />
-      <h1 className="text-2xl font-bold leading-tight text-ink">We can&apos;t find that page.</h1>
-      <p className="text-base text-ink/80">
-        If you were sent an RSVP link, ask your host for a fresh one.
-      </p>
-      <Link
-        href="/"
-        className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-ink bg-mustard px-5 py-3 text-base font-bold text-ink transition-transform active:translate-y-px"
-      >
-        Back to Spread
-      </Link>
+    <main className="picnic-404">
+      <Bunting count={24} className="picnic-404-bunting" />
+
+      <div className="picnic-404-inner">
+        <div className="paper-label picnic-404-card">
+          <WashiTape
+            pattern="dots"
+            tone="ketchup"
+            tilt={-2}
+            className="picnic-404-tape"
+          />
+          <Link href="/" aria-label="Spread home" className="wordmark-link inline-flex">
+            <Wordmark />
+          </Link>
+          <h1 className="picnic-404-title">The ants ran off with this page.</h1>
+          <p className="picnic-404-line">
+            Nothing here but crumbs. Let&apos;s get you back to the table.
+          </p>
+          <Link href="/" className="cta-primary mt-5">
+            Back to Spread
+          </Link>
+        </div>
+      </div>
+
+      <div className="picnic-404-ants" aria-hidden="true">
+        <div className="ant-parade">
+          <Sticker name="ant" size="sm" tilt={-4} />
+          <Sticker name="ant" size="sm" tilt={3} />
+          <Sticker name="ticket" size="sm" tilt={-2} />
+          <Sticker name="ant" size="sm" tilt={5} />
+          <Sticker name="ant" size="sm" tilt={-3} />
+        </div>
+      </div>
     </main>
   );
 }

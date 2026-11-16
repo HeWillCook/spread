@@ -40,8 +40,8 @@ describe("coverFor", () => {
   });
 
   it("exposes every preset once for the picker and server validation", () => {
-    expect(COVER_EMOJI).toHaveLength(8);
-    expect(new Set(COVER_EMOJI).size).toBe(8);
+    expect(COVER_EMOJI).toHaveLength(11);
+    expect(new Set(COVER_EMOJI).size).toBe(11);
     expect(COVERS.map((cover) => cover.emoji)).toEqual(COVER_EMOJI);
     expect(COVER_COLOR_KEYS).toHaveLength(6);
     expect(new Set(COVER_COLOR_KEYS).size).toBe(6);

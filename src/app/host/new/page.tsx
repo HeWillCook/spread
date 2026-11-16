@@ -1,11 +1,11 @@
-import { NewEventForm } from "@/components/NewEventForm";
+import { NewEventPage } from "@/components/NewEventPage";
 import { requireHost } from "@/server/auth";
 import { createEventAction } from "./actions";
 
 // Reads the session from request headers, so it must never be prerendered.
 export const dynamic = "force-dynamic";
 
-export default async function NewEventPage() {
+export default async function NewEventPageRoute() {
   await requireHost();
-  return <NewEventForm action={createEventAction} />;
+  return <NewEventPage action={createEventAction} />;
 }

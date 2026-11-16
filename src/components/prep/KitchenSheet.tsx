@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 import { emptyShoppingLabel, planningLabel, prepSheetText, type PrepSheet } from "@/lib/prep-sheet";
 import { KitchenActions } from "./KitchenActions";
 
@@ -67,18 +68,25 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
           </h2>
 
           {!sheet.hasMenu ? (
-            <div className="kitchen-empty mt-3">
-              <h3 className="text-lg font-bold">No dishes saved yet</h3>
-              <p className="mt-1 text-sm leading-relaxed text-ink/80">
-                Add dishes and portions on Menu, then come back for a kitchen-ready sheet.
+            <EmptyState
+              inset
+              art="menu"
+              title="No dishes saved yet"
+              className="kitchen-empty mt-3"
+              action={
+                <Link
+                  href={menuHref}
+                  className="kitchen-empty-link inline-flex min-h-11 items-center font-bold text-ketchup underline underline-offset-4 print:hidden"
+                >
+                  Go to Menu
+                </Link>
+              }
+            >
+              <p>
+                Add dishes and portions on Menu, then come back for a kitchen-ready
+                sheet.
               </p>
-              <Link
-                href={menuHref}
-                className="kitchen-empty-link mt-3 inline-flex min-h-11 items-center font-bold text-ketchup underline underline-offset-4 print:hidden"
-              >
-                Go to Menu
-              </Link>
-            </div>
+            </EmptyState>
           ) : (
             <div className="mt-3 flex flex-col gap-5">
               {sheet.dishes.map((dish) => (

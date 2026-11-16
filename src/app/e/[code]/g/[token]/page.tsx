@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
+import { CoverChip } from "@/components/CoverChip";
 import { EventUnavailable } from "@/components/EventUnavailable";
+import { ScrapbookPage } from "@/components/ScrapbookPage";
 import { RsvpForm } from "@/components/RsvpForm";
 import { UpdatedDetailsNotice } from "@/components/UpdatedDetailsNotice";
+import { OccasionBurst } from "@/components/occasion/OccasionBurst";
+import { Sticker } from "@/components/scrapbook/Sticker";
 import { getDb } from "@/db/client";
 import type { RsvpStatus } from "@/domain/headcount";
 import { coverFor } from "@/lib/cover";
 import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
+import { occasionFor, occasionHero, occasionSticker } from "@/lib/occasion";
 import { relativeDateLabel } from "@/lib/relative-date";
 import { NotFoundError } from "@/services/errors";
 import { getGuestByToken, getPublicEvent } from "@/services/rsvp";
@@ -63,6 +68,8 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
         }
       : null;
 
+  const theme = occasionFor(event.coverEmoji);
+
   const personalNote = (
     <p className="px-2 text-xs text-ink-muted">
       This is your personal link — don&apos;t share it.{" "}
@@ -78,7 +85,18 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
   );
 
   return (
-    <main>
+    <ScrapbookPage
+      variant="occasion"
+      theme={theme}
+      cover={<CoverChip cover={coverFor(event)} size="lg" />}
+      headline={event.title}
+      detail={
+        <>
+          <p>{formatWhen(event.startsAt, event.location, event.timezone)}</p>
+          <p>Hosted by {event.hostName}</p>
+        </>
+      }
+    >
       <RsvpForm
         event={{
           title: event.title,
@@ -90,6 +108,7 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
         initial={guest}
         action={updateGuestRsvp.bind(null, code, token)}
         readOnly={cancelled}
+        hideTitle
         notice={
           <div className="flex flex-col gap-2">
             {cancelled ? (
@@ -97,12 +116,25 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
             ) : (
               <div
                 role="status"
-                className="rounded-2xl bg-mustard px-5 py-4 text-lg font-bold text-ink"
+                className="success-banner rounded-2xl bg-mustard px-5 py-4 text-lg font-bold text-ink"
               >
-                {CONFIRMATION[guest.status]}
-                <span className="block text-sm font-normal">
-                  Need to change something? Update your answer below.
-                </span>
+                <OccasionBurst theme={theme} />
+                <Sticker
+                  name={occasionHero(theme)}
+                  size="lg"
+                  peel
+                  delay={0.15}
+                  className="success-hero"
+                />
+                <div className="success-banner-copy">
+                  <span className="flex items-center gap-2">
+                    <Sticker name={occasionSticker(theme)} size="sm" />
+                    {CONFIRMATION[guest.status]}
+                  </span>
+                  <span className="mt-0.5 block text-sm font-normal">
+                    Need to change something? Update your answer below.
+                  </span>
+                </div>
               </div>
             )}
             {updated ? <UpdatedDetailsNotice {...updated} /> : null}
@@ -110,6 +142,6 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
           </div>
         }
       />
-    </main>
+    </ScrapbookPage>
   );
 }

@@ -14,7 +14,7 @@ export function activeTabHref(tabs: Tab[], pathname: string): string {
 }
 
 /** The event page tab bar, highlighting the tab for the current route. */
-export function EventTabs({ eventId }: { eventId: string }) {
+export function EventTabs({ eventId, accent }: { eventId: string; accent?: string }) {
   const pathname = usePathname();
   const base = `/host/events/${encodeURIComponent(eventId)}`;
   const tabs: Tab[] = [
@@ -25,5 +25,5 @@ export function EventTabs({ eventId }: { eventId: string }) {
     { label: "Today", href: `${base}/today` },
   ];
   const tabPath = pathname.replace(/\/+$/, "") === `${base}/prep` ? `${base}/menu` : pathname;
-  return <TabBar tabs={tabs} activeHref={activeTabHref(tabs, tabPath)} />;
+  return <TabBar tabs={tabs} activeHref={activeTabHref(tabs, tabPath)} accent={accent} />;
 }

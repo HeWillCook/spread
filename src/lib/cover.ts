@@ -18,6 +18,9 @@ export const COVERS: readonly CoverChoice[] = [
   { emoji: "🥂", label: "Clinking glasses" },
   { emoji: "🎃", label: "Pumpkin" },
   { emoji: "🎄", label: "Christmas tree" },
+  { emoji: "🧺", label: "Picnic basket" },
+  { emoji: "☕", label: "Coffee" },
+  { emoji: "🎲", label: "Game die" },
 ];
 
 /** The emoji as a non-empty tuple, ready for `z.enum`. */

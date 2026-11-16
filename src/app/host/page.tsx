@@ -2,12 +2,20 @@ import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { SignOutButton } from "@/components/SignOutButton";
-import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/EmptyState";
+import { Bunting } from "@/components/scrapbook/Bunting";
+import { Sticker } from "@/components/scrapbook/Sticker";
+import {
+  WashiTape,
+  type WashiPattern,
+  type WashiTone,
+} from "@/components/scrapbook/WashiTape";
 import { Pill } from "@/components/ui/Pill";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { getDb } from "@/db/client";
 import { coverFor } from "@/lib/cover";
+import { occasionFor, occasionSticker, type OccasionTheme } from "@/lib/occasion";
 import { splitEventsByTime } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
 import { countdownLabel } from "@/lib/relative-date";
@@ -31,14 +39,40 @@ function GlanceLine({ countdown, glance }: { countdown: string | null; glance: E
   const noReply =
     glance.noReply === 1 ? "1 hasn't replied" : `${glance.noReply} haven't replied`;
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-      {countdown ? <Pill tone="cream">{countdown}</Pill> : null}
-      <Pill tone="pickle">{glance.yes} yes</Pill>
-      <Pill tone="mustard">{glance.maybe} maybe</Pill>
-      <Pill tone="quiet">{glance.no} no</Pill>
-      {glance.noReply > 0 ? <Pill tone="quiet">{noReply}</Pill> : null}
+    <div className="dash-glance mt-2 flex items-center gap-1.5">
+      {countdown ? <Pill tone="cream" compact>{countdown}</Pill> : null}
+      <Pill tone="pickle" compact>{glance.yes} yes</Pill>
+      <Pill tone="mustard" compact>{glance.maybe} maybe</Pill>
+      <Pill tone="quiet" compact>{glance.no} no</Pill>
+      {glance.noReply > 0 ? <Pill tone="quiet" compact>{noReply}</Pill> : null}
     </div>
   );
+}
+
+const WASHI_BY_THEME: Record<
+  OccasionTheme,
+  { pattern: WashiPattern; tone: WashiTone }
+> = {
+  party: { pattern: "stripe", tone: "mustard" },
+  cookout: { pattern: "gingham", tone: "ketchup" },
+  birthday: { pattern: "dots", tone: "ketchup" },
+  pizzeria: { pattern: "gingham", tone: "ketchup" },
+  fiesta: { pattern: "stripe", tone: "mustard" },
+  toast: { pattern: "dots", tone: "mustard" },
+  harvest: { pattern: "stripe", tone: "pickle" },
+  holiday: { pattern: "gingham", tone: "pickle" },
+  picnic: { pattern: "gingham", tone: "pickle" },
+  brunch: { pattern: "dots", tone: "mustard" },
+  gamenight: { pattern: "stripe", tone: "ketchup" },
+};
+
+const TAPE_POSITIONS = ["left", "center", "right"] as const;
+
+/** Deterministic tape placement, so a row of tickets never lines up. */
+function tapePosition(id: string): (typeof TAPE_POSITIONS)[number] {
+  let hash = 0;
+  for (const character of id) hash = (hash * 31 + character.charCodeAt(0)) % 997;
+  return TAPE_POSITIONS[hash % TAPE_POSITIONS.length];
 }
 
 function EventTicket({
@@ -55,8 +89,22 @@ function EventTicket({
   /** Upcoming and live only: past and cancelled cards stay quiet. */
   showGlance: boolean;
 }) {
+  const theme = occasionFor(event.coverEmoji);
+  const tape = WASHI_BY_THEME[theme];
+  const position = tapePosition(event.id);
   return (
     <li className="ticket dash-ticket">
+      <WashiTape
+        pattern={tape.pattern}
+        tone={tape.tone}
+        tilt={position === "center" ? 1 : position === "left" ? -4 : 4}
+        className={`dash-tape dash-tape-${position}`}
+      />
+      <Sticker
+        name={occasionSticker(theme)}
+        size="md"
+        className="dash-theme-sticker"
+      />
       <div className="dash-ticket-head">
         <div className="flex min-w-0 items-start gap-3">
           <CoverChip cover={coverFor(event)} size="md" />
@@ -86,9 +134,25 @@ function EventTicket({
         </p>
       </div>
       <div className="dash-ticket-stub">
-        <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
+        <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} compact />
       </div>
     </li>
+  );
+}
+
+function MoreTicket() {
+  return (
+    <Link href="/host/new" className="dash-ticket-more">
+      <span className="plan-stickers" aria-hidden="true">
+        <Sticker name="watermelon" size="sm" className="plan-sticker plan-sticker-a" />
+        <Sticker name="balloon" size="sm" className="plan-sticker plan-sticker-b" />
+        <Sticker name="heart" size="sm" className="plan-sticker plan-sticker-c" />
+      </span>
+      <span className="dash-ticket-more-title">Plan another</span>
+      <span className="dash-ticket-more-note">
+        A fresh ticket for the next crowd.
+      </span>
+    </Link>
   );
 }
 
@@ -120,17 +184,25 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
         <SignOutButton />
       </header>
 
-      <div className="dashboard-head">
-        <div>
-          <h1 className="dashboard-title">Your events</h1>
-          <p className="dashboard-sub">
-            Hi, {host.name}. Pick an event to keep planning.
-          </p>
+      <section className="dashboard-head-band">
+        <Bunting count={18} className="dashboard-bunting" />
+        <div className="dashboard-head-paper">
+          <Sticker name="sun" size="sm" className="dashboard-head-sticker" />
+          <div className="dashboard-head">
+            <div>
+              <h1 className="dashboard-title">Your events</h1>
+              <p className="dashboard-sub">
+                Hi, {host.name}. Pick an event to keep planning.
+              </p>
+            </div>
+            {events.length > 0 ? (
+              <Link href="/host/new" className="cta-primary">
+                Create event
+              </Link>
+            ) : null}
+          </div>
         </div>
-        <Link href="/host/new" className="cta-primary">
-          Create event
-        </Link>
-      </div>
+      </section>
 
       {deletedEvent ? (
         <div
@@ -158,15 +230,21 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
       ) : null}
 
       {events.length === 0 ? (
-        <div className="mt-8 max-w-2xl">
-          <Card className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold">No events yet</h2>
-            <p className="text-sm leading-relaxed text-ink-muted">
-              Create one, then share the link with your guests. Replies start
-              filling in the food plan.
-            </p>
-          </Card>
-        </div>
+        <EmptyState
+          art="dashboard"
+          title="No events yet"
+          className="mt-8"
+          action={
+            <Link href="/host/new" className="cta-primary">
+              Create event
+            </Link>
+          }
+        >
+          <p>
+            Create one, then share the link with your guests. Replies start
+            filling in the food plan.
+          </p>
+        </EmptyState>
       ) : (
         <>
           {upcoming.length > 0 ? (
@@ -185,6 +263,9 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
                     showGlance={event.cancelledAt === null}
                   />
                 ))}
+                <li className="event-list-more">
+                  <MoreTicket />
+                </li>
               </ul>
             </section>
           ) : null}
@@ -207,6 +288,12 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
                 ))}
               </ul>
             </details>
+          ) : null}
+
+          {upcoming.length === 0 ? (
+            <div className="event-list mt-8">
+              <MoreTicket />
+            </div>
           ) : null}
         </>
       )}

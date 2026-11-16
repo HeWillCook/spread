@@ -40,7 +40,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
       <BrandMark />
       <span>
         <span>Spread</span>
-        <span className="text-mustard">.</span>
+        <span className="wordmark-dot">.</span>
       </span>
     </span>
   );

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { duplicateGuestIds } from "@/lib/guest-names";
 import type { GuestsOverview, GuestRow } from "@/services/guestsOverview";
 import { CopyReminderButton } from "./CopyReminderButton";
+import { EmptyState } from "./EmptyState";
 import { FoodNotesSummary } from "./FoodNotesSummary";
 import { Button } from "./ui/Button";
 import { Card, CardRow } from "./ui/Card";
@@ -214,23 +215,36 @@ export function GuestsPanel({
 
       <FoodNotesSummary guests={guests} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex min-w-0 flex-col gap-6">
-      <Card>
-        <h2 className="mb-3 text-xl">Guests</h2>
-        {guests.length === 0 ? (
-          <p className="text-sm leading-relaxed text-ink-muted">No answers yet. Share your link above to get started, then add your dishes on the Menu tab.</p>
-        ) : (
-          guests.map((g) => (
+      {guests.length === 0 ? (
+        <EmptyState
+          art="guests"
+          title="No answers yet"
+          steps={[
+            "Copy your invite link",
+            "Send it to the group chat",
+            "Watch answers roll in",
+          ]}
+        >
+          <p>
+            Share your link above to get started, then add your dishes on the
+            Menu tab.
+          </p>
+        </EmptyState>
+      ) : (
+        <Card>
+          <h2 className="mb-3 text-xl">Guests</h2>
+          {guests.map((g) => (
             <GuestItem
               key={g.id}
               guest={g}
               duplicate={duplicates.has(g.id)}
               removeAction={removeGuestAction}
             />
-          ))
-        )}
-      </Card>
+          ))}
+        </Card>
+      )}
 
       {noReply && noReply.length > 0 ? (
         <Card>
@@ -247,7 +261,7 @@ export function GuestsPanel({
       ) : null}
       </div>
 
-      <aside className="flex min-w-0 flex-col gap-6">
+      <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-[4.25rem] lg:self-start">
       <Card>
         <h2 className="mb-2 text-xl">Plan for the maybes</h2>
         <p className="mb-4 text-sm leading-relaxed text-ink-muted">You know your crowd. Choose how many tentative guests to include when calculating food.</p>

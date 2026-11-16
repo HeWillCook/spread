@@ -2,6 +2,7 @@ import { formatCents } from "@/domain/money";
 import { biggestLine, headcountLine } from "@/lib/shopping-text";
 import type { ShoppingPlan } from "@/services/shopping";
 import { Card } from "../ui/Card";
+import { EmptyState } from "../EmptyState";
 import { ExtrasCard, type ExtraWithAction } from "./ExtrasCard";
 import { ShoppingLineRow, type ShoppingLineActions } from "./ShoppingLineRow";
 import type { ShoppingFormAction } from "./shoppingForm";
@@ -44,9 +45,9 @@ export function ShoppingPanel({
             ) : null}
           </div>
           {lines.length === 0 ? (
-            <p className="text-sm text-ink/80">
-              Nothing to buy yet. Add a dish on the Menu tab and the list shows up here.
-            </p>
+            <EmptyState inset art="shopping" title="Nothing to buy yet">
+              <p>Add a dish on the Menu tab and the list shows up here.</p>
+            </EmptyState>
           ) : (
             lines.map((line) => (
               <ShoppingLineRow
@@ -62,7 +63,7 @@ export function ShoppingPanel({
         <ExtrasCard extras={extras} addAction={addExtraAction} />
       </div>
 
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
+      <aside className="flex flex-col gap-4 lg:sticky lg:top-[4.25rem] lg:self-start">
         <div className="ticket receipt rounded-t-md p-5 pb-6 text-ink">
           <p className="text-sm font-semibold">
             {totalIsProvisional ? "Total (provisional)" : "Total"}

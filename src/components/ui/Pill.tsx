@@ -10,13 +10,18 @@ const tones = {
 export function Pill({
   children,
   tone = "mustard",
+  compact = false,
 }: {
   children: ReactNode;
   tone?: keyof typeof tones;
+  /** Tighter pill for the dashboard glance row. */
+  compact?: boolean;
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-tight ${tones[tone]}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full font-semibold leading-tight ${
+        compact ? "px-2 py-0.5 text-[0.6875rem]" : "px-2.5 py-1 text-xs"
+      } ${tones[tone]}`}
     >
       {children}
     </span>

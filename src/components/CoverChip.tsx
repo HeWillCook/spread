@@ -20,7 +20,8 @@ export function CoverChip({
     <span
       role="img"
       aria-label={`Cover: ${cover.emojiLabel}`}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ring-1 ring-inset ring-ink/10 ${sizes[size]} ${cover.className} ${className}`}
+      data-cover={cover.color}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-inset ring-ink/10 ${sizes[size]} ${cover.className} ${className}`}
     >
       <span aria-hidden>{cover.emoji}</span>
     </span>

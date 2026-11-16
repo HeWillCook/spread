@@ -11,9 +11,12 @@ import { COVER_COLORS, COVERS, coverFor } from "@/lib/cover";
 export function CoverPicker({
   initialEmoji,
   initialColor,
+  onEmojiChange,
 }: {
   initialEmoji?: string | null;
   initialColor?: string | null;
+  /** Optional live preview hook for the new-event page. */
+  onEmojiChange?: (emoji: string) => void;
 }) {
   const initial = coverFor({ coverEmoji: initialEmoji, coverColor: initialColor });
   const [emoji, setEmoji] = useState(initial.emoji);
@@ -34,7 +37,10 @@ export function CoverPicker({
               name="coverEmoji"
               value={cover.emoji}
               checked={emoji === cover.emoji}
-              onChange={() => setEmoji(cover.emoji)}
+              onChange={() => {
+                setEmoji(cover.emoji);
+                onEmojiChange?.(cover.emoji);
+              }}
               aria-label={cover.label}
               className="peer sr-only"
             />

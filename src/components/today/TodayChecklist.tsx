@@ -3,6 +3,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/EmptyState";
 import type { TodayChecklistItem, TodayPlan } from "@/lib/today-plan";
 
 // Day-of ticks are a local convenience, not event data: no schema, no server round trip.
@@ -169,57 +170,57 @@ export function TodayChecklist({ plan }: { plan: TodayPlan }) {
         </p>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-        <Card>
-          <h2 className="text-lg font-bold">Timeline</h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-            Times use the event&apos;s own time zone.
-          </p>
-          <div className="mt-2">
-            {plan.milestones.map((milestone) => (
-              <ChecklistRow
-                key={milestone.id}
-                item={{
-                  id: `milestone:${milestone.id}`,
-                  label: milestone.label,
-                  detail: milestone.timeLabel,
-                }}
-                checked={Boolean(done[`milestone:${milestone.id}`])}
-                onToggle={() => toggle(`milestone:${milestone.id}`)}
-              />
-            ))}
-          </div>
-        </Card>
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <h2 className="text-lg font-bold">Timeline</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+              Times use the event&apos;s own time zone.
+            </p>
+            <div className="mt-2">
+              {plan.milestones.map((milestone) => (
+                <ChecklistRow
+                  key={milestone.id}
+                  item={{
+                    id: `milestone:${milestone.id}`,
+                    label: milestone.label,
+                    detail: milestone.timeLabel,
+                  }}
+                  checked={Boolean(done[`milestone:${milestone.id}`])}
+                  onToggle={() => toggle(`milestone:${milestone.id}`)}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="text-lg font-bold">Make</h2>
+            {plan.prep.length === 0 ? (
+              <EmptyState inset art="today" title="No dishes saved yet">
+                <p>Add them on the Menu tab.</p>
+              </EmptyState>
+            ) : (
+              <div className="mt-2">
+                {plan.prep.map((item) => (
+                  <ChecklistRow
+                    key={item.id}
+                    item={item}
+                    checked={Boolean(done[item.id])}
+                    onToggle={() => toggle(item.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
 
         <Card>
           <h2 className="text-lg font-bold">Still to buy</h2>
           {plan.shopping.length === 0 ? (
-            <p className="mt-2 text-sm leading-relaxed text-ink/80">
-              Every shopping item is ticked. Nice.
-            </p>
+            <EmptyState inset art="today" title="Every shopping item is ticked. Nice." />
           ) : (
             <div className="mt-2">
               {plan.shopping.map((item) => (
-                <ChecklistRow
-                  key={item.id}
-                  item={item}
-                  checked={Boolean(done[item.id])}
-                  onToggle={() => toggle(item.id)}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="text-lg font-bold">Make</h2>
-          {plan.prep.length === 0 ? (
-            <p className="mt-2 text-sm leading-relaxed text-ink/80">
-              No dishes saved yet. Add them on the Menu tab.
-            </p>
-          ) : (
-            <div className="mt-2">
-              {plan.prep.map((item) => (
                 <ChecklistRow
                   key={item.id}
                   item={item}

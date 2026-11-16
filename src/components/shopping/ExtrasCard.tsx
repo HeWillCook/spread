@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { formatCents } from "@/domain/money";
 import type { ShoppingPlan } from "@/services/shopping";
+import { EmptyState } from "../EmptyState";
 import { FormError } from "../menu/menuForm";
 import { Button } from "../ui/Button";
 import { Card, CardRow } from "../ui/Card";
@@ -98,7 +99,9 @@ export function ExtrasCard({
     <Card className="flex flex-col gap-4">
       <h2 className="text-lg font-bold">Extras</h2>
       {extras.length === 0 ? (
-        <p className="text-sm text-ink/80">Nothing extra yet. Drinks, ice and charcoal go here.</p>
+        <EmptyState inset size="sm" art="shopping" title="Nothing extra yet">
+          <p>Drinks, ice and charcoal go here.</p>
+        </EmptyState>
       ) : (
         <div>
           {extras.map(({ extra, removeAction }) => (
