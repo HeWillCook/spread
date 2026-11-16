@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useSyncExternalStore } from "react";
+import { CoverPicker } from "./CoverPicker";
 import { Button } from "./ui/Button";
 import { Field } from "./ui/Field";
 import { Wordmark } from "./ui/Wordmark";
@@ -58,6 +59,7 @@ export function NewEventForm({ action }: { action: NewEventAction }) {
             required
             placeholder="Will's backyard"
           />
+          <CoverPicker />
 
           {state.error ? (
             <p

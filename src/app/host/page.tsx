@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { CoverChip } from "@/components/CoverChip";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { getDb } from "@/db/client";
+import { coverFor } from "@/lib/cover";
 import { splitEventsByTime } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
+import { countdownLabel } from "@/lib/relative-date";
 import { requireHost } from "@/server/auth";
 import { getBaseUrl, shareUrl } from "@/server/base-url";
 import {
   findDeletedHostEvent,
+  glanceForEvents,
   listHostEvents,
   purgeDeletedEvents,
+  type EventGlance,
   type EventSummary,
 } from "@/services/events";
 import { restoreEventAction } from "./actions";
@@ -21,21 +26,60 @@ import { restoreEventAction } from "./actions";
 // Reads the session and the database, so it must never be prerendered.
 export const dynamic = "force-dynamic";
 
-function EventTicket({ event, baseUrl }: { event: EventSummary; baseUrl: string }) {
+/** Answer counts and the nudge, shown only on live upcoming cards. */
+function GlanceLine({ countdown, glance }: { countdown: string | null; glance: EventGlance }) {
+  const noReply =
+    glance.noReply === 1 ? "1 hasn't replied" : `${glance.noReply} haven't replied`;
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {countdown ? <Pill tone="cream">{countdown}</Pill> : null}
+      <Pill tone="pickle">{glance.yes} yes</Pill>
+      <Pill tone="mustard">{glance.maybe} maybe</Pill>
+      <Pill tone="quiet">{glance.no} no</Pill>
+      {glance.noReply > 0 ? <Pill tone="quiet">{noReply}</Pill> : null}
+    </div>
+  );
+}
+
+function EventTicket({
+  event,
+  baseUrl,
+  glance,
+  now,
+  showGlance,
+}: {
+  event: EventSummary;
+  baseUrl: string;
+  glance?: EventGlance;
+  now: Date;
+  /** Upcoming and live only: past and cancelled cards stay quiet. */
+  showGlance: boolean;
+}) {
   return (
     <li className="ticket dash-ticket">
       <div className="dash-ticket-head">
-        <Link href={`/host/events/${encodeURIComponent(event.id)}`} className="min-w-0">
-          <span className="event-card-title">{event.title}</span>
-          {event.cancelledAt ? (
-            <span className="mt-2 inline-flex">
-              <Pill tone="quiet">Cancelled</Pill>
-            </span>
-          ) : null}
-          <span className="event-card-meta">
-            {formatWhen(event.startsAt, event.location, event.timezone)}
-          </span>
-        </Link>
+        <div className="flex min-w-0 items-start gap-3">
+          <CoverChip cover={coverFor(event)} size="md" />
+          <div className="min-w-0">
+            <Link href={`/host/events/${encodeURIComponent(event.id)}`} className="block min-w-0">
+              <span className="event-card-title">{event.title}</span>
+              {event.cancelledAt ? (
+                <span className="mt-2 inline-flex">
+                  <Pill tone="quiet">Cancelled</Pill>
+                </span>
+              ) : null}
+              <span className="event-card-meta">
+                {formatWhen(event.startsAt, event.location, event.timezone)}
+              </span>
+            </Link>
+            {showGlance ? (
+              <GlanceLine
+                countdown={countdownLabel(event.startsAt, event.timezone, now)}
+                glance={glance ?? { yes: 0, maybe: 0, no: 0, noReply: 0 }}
+              />
+            ) : null}
+          </div>
+        </div>
         <p className="dash-ticket-count">
           <span className="ticket-count-label">Plan for </span>
           <span className="ticket-count-number">~{event.planFor}</span>
@@ -54,6 +98,12 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
   // Lazy, host-scoped purge: anything deleted more than 30 days ago goes for good.
   await purgeDeletedEvents(db, host.id);
   const [events, baseUrl] = await Promise.all([listHostEvents(db, host.id), getBaseUrl()]);
+  // One batched read for every card's answer counts; no per-event queries.
+  const glance = await glanceForEvents(
+    db,
+    events.map((event) => event.id),
+  );
+  const now = new Date();
 
   // Set by deleteEventAction (the id, never the title): the notice stays until the
   // host follows the Dismiss link or Undo restores the event.
@@ -126,7 +176,14 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
               </h2>
               <ul className="event-list">
                 {upcoming.map((event) => (
-                  <EventTicket key={event.id} event={event} baseUrl={baseUrl} />
+                  <EventTicket
+                    key={event.id}
+                    event={event}
+                    baseUrl={baseUrl}
+                    glance={glance.get(event.id)}
+                    now={now}
+                    showGlance={event.cancelledAt === null}
+                  />
                 ))}
               </ul>
             </section>
@@ -139,7 +196,14 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
               </summary>
               <ul className="event-list">
                 {past.map((event) => (
-                  <EventTicket key={event.id} event={event} baseUrl={baseUrl} />
+                  <EventTicket
+                    key={event.id}
+                    event={event}
+                    baseUrl={baseUrl}
+                    glance={glance.get(event.id)}
+                    now={now}
+                    showGlance={false}
+                  />
                 ))}
               </ul>
             </details>

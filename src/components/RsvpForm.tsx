@@ -2,7 +2,9 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 import type { RsvpStatus } from "@/domain/headcount";
+import type { Cover } from "@/lib/cover";
 import type { GuestView } from "@/services/rsvp";
+import { CoverChip } from "./CoverChip";
 import { Button } from "./ui/Button";
 import { Field } from "./ui/Field";
 import { Wordmark } from "./ui/Wordmark";
@@ -15,6 +17,8 @@ export interface RsvpFormEvent {
   when: string;
   hostName: string;
   goingCount: number;
+  /** The event's preset cover, resolved on the server; omitted means none. */
+  cover?: Cover;
 }
 
 export interface RsvpFormState {
@@ -44,7 +48,10 @@ function SlipHead({ event, readOnly }: { event: RsvpFormEvent; readOnly: boolean
       <p className="text-sm font-semibold text-ink-muted">
         <b className="font-semibold text-ink">{event.hostName}</b> is hosting
       </p>
-      <h1 className="slip-title">{event.title}</h1>
+      <div className="flex items-center gap-3">
+        {event.cover ? <CoverChip cover={event.cover} size="md" /> : null}
+        <h1 className="slip-title">{event.title}</h1>
+      </div>
       <p className="text-[1.0625rem] font-semibold text-ketchup-deep">{event.when}</p>
       <p className="text-sm text-ink-muted">
         {readOnly

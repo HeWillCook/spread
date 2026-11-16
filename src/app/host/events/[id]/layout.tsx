@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
 import { CopyCancellationButton } from "@/components/CopyCancellationButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { CoverChip } from "@/components/CoverChip";
 import { EventTabs } from "@/components/EventTabs";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { coverFor } from "@/lib/cover";
 import { formatWhen } from "@/lib/format";
 import { getBaseUrl, shareUrl } from "@/server/base-url";
 import { loadHostEvent } from "@/server/host-event";
@@ -57,23 +59,26 @@ export default async function EventLayout({
 
         <div className="ticket event-ticket">
           <div className="event-heading">
-            <div className="min-w-0">
-              <h1 className="event-title">{event.title}</h1>
-              <p className="event-meta">
-                {formatWhen(event.startsAt, event.location, event.timezone)}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-5">
-                <Link
-                  href={`/host/events/${encodeURIComponent(event.id)}/edit`}
-                  className="quiet-link"
-                >
-                  Edit details
-                </Link>
-                <form action={duplicateEventAction.bind(null, event.id)}>
-                  <button type="submit" className="quiet-link">
-                    Plan this again
-                  </button>
-                </form>
+            <div className="flex min-w-0 items-start gap-3">
+              <CoverChip cover={coverFor(event)} size="lg" className="mt-1" />
+              <div className="min-w-0">
+                <h1 className="event-title">{event.title}</h1>
+                <p className="event-meta">
+                  {formatWhen(event.startsAt, event.location, event.timezone)}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-5">
+                  <Link
+                    href={`/host/events/${encodeURIComponent(event.id)}/edit`}
+                    className="quiet-link"
+                  >
+                    Edit details
+                  </Link>
+                  <form action={duplicateEventAction.bind(null, event.id)}>
+                    <button type="submit" className="quiet-link">
+                      Plan this again
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
             <div className="ticket-count">

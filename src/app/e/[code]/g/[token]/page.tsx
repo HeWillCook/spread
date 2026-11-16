@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
 import { EventUnavailable } from "@/components/EventUnavailable";
 import { RsvpForm } from "@/components/RsvpForm";
+import { UpdatedDetailsNotice } from "@/components/UpdatedDetailsNotice";
 import { getDb } from "@/db/client";
 import type { RsvpStatus } from "@/domain/headcount";
+import { coverFor } from "@/lib/cover";
 import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
+import { relativeDateLabel } from "@/lib/relative-date";
 import { NotFoundError } from "@/services/errors";
 import { getGuestByToken, getPublicEvent } from "@/services/rsvp";
 import { updateGuestRsvp } from "../../actions";
@@ -47,6 +50,19 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
   if (state === "deleted") return <EventUnavailable hostName={event.hostName} />;
   const cancelled = state === "cancelled";
 
+  // A returning guest only needs the notice if the move happened after they
+  // answered; cancellation has its own banner.
+  const now = new Date();
+  const changedAt = cancelled ? null : event.detailsChangedAt;
+  const updated =
+    changedAt && changedAt.getTime() > guest.createdAt.getTime()
+      ? {
+          relative: relativeDateLabel(changedAt, now, event.timezone),
+          when: formatWhen(event.startsAt, "", event.timezone),
+          location: event.location,
+        }
+      : null;
+
   const personalNote = (
     <p className="px-2 text-xs text-ink-muted">
       This is your personal link — don&apos;t share it.{" "}
@@ -69,6 +85,7 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
           when: formatWhen(event.startsAt, event.location, event.timezone),
           hostName: event.hostName,
           goingCount: event.goingCount,
+          cover: coverFor(event),
         }}
         initial={guest}
         action={updateGuestRsvp.bind(null, code, token)}
@@ -88,6 +105,7 @@ export default async function GuestEditPage({ params }: PageProps<"/e/[code]/g/[
                 </span>
               </div>
             )}
+            {updated ? <UpdatedDetailsNotice {...updated} /> : null}
             {personalNote}
           </div>
         }
