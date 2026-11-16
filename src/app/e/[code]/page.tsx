@@ -6,6 +6,8 @@ import { getDb } from "@/db/client";
 import { formatWhen } from "@/lib/format";
 import { guestCookieName } from "@/lib/guest-cookie";
 import { eventPreview, wantsBlankForm } from "@/lib/guest-page";
+import { calendarDetails, googleCalendarUrl } from "@/lib/ics";
+import { getBaseUrl, shareUrl } from "@/server/base-url";
 import { NotFoundError } from "@/services/errors";
 import { getGuestByToken, getPublicEvent } from "@/services/rsvp";
 import { submitGuestRsvp } from "./actions";
@@ -51,6 +53,14 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
     if (known) redirect(`/e/${encodeURIComponent(code)}/g/${encodeURIComponent(token)}`);
   }
 
+  const guestUrl = shareUrl(await getBaseUrl(), code);
+  const googleUrl = googleCalendarUrl({
+    title: event.title,
+    startsAt: event.startsAt,
+    location: event.location,
+    details: calendarDetails(event.hostName, guestUrl),
+  });
+
   return (
     <main>
       <RsvpForm
@@ -62,6 +72,28 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
         }}
         action={submitGuestRsvp.bind(null, code)}
       />
+
+      <aside className="mx-auto -mt-6 w-full max-w-lg px-3 pb-14 sm:px-5">
+        <div className="ticket-surface rounded-2xl border border-divider bg-paper p-4">
+          <h2 className="text-base font-bold text-ink">Add to calendar</h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink/80">
+            Save the time now. Come back to this link if plans change.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <a href={`/e/${encodeURIComponent(code)}/calendar.ics`} className="quiet-link">
+              Download .ics
+            </a>
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="quiet-link"
+            >
+              Google Calendar
+            </a>
+          </div>
+        </div>
+      </aside>
     </main>
   );
 }

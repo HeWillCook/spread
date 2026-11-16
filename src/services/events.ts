@@ -49,7 +49,7 @@ const createSchema = z.object({
 });
 
 /** 10 URL-safe characters (~60 bits): unguessable and short enough to paste. */
-function generateShareCode(): string {
+export function generateShareCode(): string {
   return randomBytes(8).toString("base64url").slice(0, 10);
 }
 
