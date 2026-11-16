@@ -4,6 +4,7 @@ import { STARTER_RECIPES } from "@/domain/recipes";
 import { buildShoppingList } from "@/domain/shopping";
 import {
   biggestLine,
+  formatBuyLabel,
   formatBuyQty,
   formatNeed,
   formatQty,
@@ -17,7 +18,7 @@ const guests = (yes: number, maybe: number) => [
   ...Array.from({ length: maybe }, () => ({ status: "maybe" as const, plusOnes: 0 })),
 ];
 
-describe("formatBuyQty", () => {
+describe("formatBuyQty / formatBuyLabel", () => {
   it("pluralises sensibly", () => {
     expect(formatBuyQty(8, "lb")).toBe("8 lb");
     expect(formatBuyQty(1, "pack")).toBe("1 pack");
@@ -28,6 +29,23 @@ describe("formatBuyQty", () => {
     expect(formatBuyQty(2, "jar")).toBe("2 jars");
     expect(formatBuyQty(2, "pastry")).toBe("2 pastries");
     expect(formatBuyQty(2, "bags")).toBe("2 bags");
+  });
+
+  it("never pluralises abbreviated units", () => {
+    expect(formatBuyQty(10.5, "tbsp")).toBe("10 1/2 tbsp");
+    expect(formatBuyQty(3.5, "tsp")).toBe("3 1/2 tsp");
+    expect(formatBuyQty(2, "oz")).toBe("2 oz");
+    expect(formatBuyQty(2, "qt")).toBe("2 qt");
+    expect(formatBuyQty(2, "gal")).toBe("2 gal");
+    expect(formatBuyQty(2, "ml")).toBe("2 ml");
+    expect(formatBuyQty(2, "kg")).toBe("2 kg");
+  });
+
+  it("reads a count instead of 'each' where the row names the item", () => {
+    expect(formatBuyLabel(7, "each")).toBe("7");
+    expect(formatBuyLabel(1, "each")).toBe("1");
+    expect(formatBuyLabel(3, "pack")).toBe("3 packs");
+    expect(formatBuyLabel(1.5, "lb")).toBe("1 1/2 lb");
   });
 });
 
@@ -56,7 +74,9 @@ describe("formatQty / formatNeed", () => {
     expect(formatNeed(18, "bun", "pack", 8)).toBe("18 buns (packs of 8)");
     expect(formatNeed(1.5, "lb", "lb", 1)).toBe("1 1/2 lb");
     expect(formatNeed(1, "onion", "each", 1)).toBe("1 onion");
-    expect(formatNeed(0.17, "onion", "each", 1)).toBe("0.17 onions");
+    expect(formatNeed(0.17, "onion", "each", 1)).toBe("0.17 onion");
+    expect(formatNeed(0.5, "lemon", "each", 1)).toBe("1/2 lemon");
+    expect(formatNeed(10.5, "tbsp", "each", 1)).toBe("10 1/2 tbsp");
   });
 });
 

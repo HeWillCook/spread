@@ -1,6 +1,6 @@
 import type { Headcount } from "@/domain/headcount";
 import { formatWhen } from "@/lib/format";
-import { servingWord, timeRow } from "@/lib/menu-text";
+import { formatIngredientAmount, servingWord, timeRow } from "@/lib/menu-text";
 import { buildDishNeeds, buildShoppingList } from "@/domain/shopping";
 import { formatBuyQty, headcountLine } from "@/lib/shopping-text";
 import type { GuestRow } from "@/services/guestsOverview";
@@ -103,8 +103,9 @@ export function emptyShoppingLabel(sheet: Pick<PrepSheet, "hasMenu" | "headcount
 }
 
 function neededLabel(needed: number, unit: string): string {
-  // Two decimals matches the menu's prep display and hides float noise like 1.5000000000002.
-  return formatBuyQty(Number(needed.toFixed(2)), unit);
+  // Fractions a cook reads at a glance ("1 3/4 eggs", "10 1/2 tbsp") and the right
+  // singular/plural, with float noise like 1.5000000000002 rounded away.
+  return formatIngredientAmount(Number(needed.toFixed(2)), unit);
 }
 
 /**

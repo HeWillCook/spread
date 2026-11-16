@@ -73,7 +73,7 @@ describe("KitchenSheet", () => {
     expect(screen.getByText(/Planning for ~1 person/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: /Burgers/ })).toBeInTheDocument();
     expect(screen.getByText("1 burger")).toBeInTheDocument();
-    expect(screen.getByText("0.5 lb")).toBeInTheDocument();
+    expect(screen.getByText("1/2 lb")).toBeInTheDocument();
     expect(screen.getByText("1 pack")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Food notes/ })).toBeInTheDocument();
     expect(screen.getByText("No dairy")).toBeInTheDocument();
