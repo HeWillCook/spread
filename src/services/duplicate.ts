@@ -100,7 +100,7 @@ export async function duplicateEvent(
         .values({
           hostId,
           hostName: source.hostName,
-          title: `${source.title} (again)`,
+          title: `${source.title.replace(/ \(again\)$/, "")} (again)`,
           startsAt,
           location: source.location,
           timezone: source.timezone,

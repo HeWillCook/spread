@@ -78,6 +78,14 @@ describe("duplicateEvent", () => {
     expect(copy.shareCode).not.toBe(shareCode);
   });
 
+  it("does not stack ' (again)' when duplicating a copy", async () => {
+    const { id } = await makeSource();
+    const copy = await duplicateEvent(db, "host-1", id);
+    const copyOfCopy = await duplicateEvent(db, "host-1", copy.id);
+    const event = await getHostEvent(db, "host-1", copyOfCopy.id);
+    expect(event.title).toBe("Fourth of July (again)");
+  });
+
   it("gives the copy a fresh share code with the same shape as createEvent's", async () => {
     const { id } = await makeSource();
     const copy = await duplicateEvent(db, "host-1", id);
