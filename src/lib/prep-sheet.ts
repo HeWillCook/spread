@@ -1,7 +1,7 @@
 import type { Headcount } from "@/domain/headcount";
 import { formatWhen } from "@/lib/format";
 import { servingWord, timeRow } from "@/lib/menu-text";
-import { buildShoppingList, type ShoppingLine } from "@/domain/shopping";
+import { buildDishNeeds, buildShoppingList } from "@/domain/shopping";
 import { formatBuyQty, headcountLine } from "@/lib/shopping-text";
 import type { GuestRow } from "@/services/guestsOverview";
 import type { MenuDish } from "@/services/menu";
@@ -118,24 +118,26 @@ export function buildPrepSheet({
   headcount,
   guests,
 }: BuildPrepSheetInput): PrepSheet {
-  const built = buildShoppingList(
-    dishes.map((dish) => ({
-      recipe: dish.recipe,
-      servingsPerPerson: dish.servingsPerPerson,
-    })),
-    headcount.planFor,
-  );
-  const linesByRecipe = new Map<string, ShoppingLine[]>();
-  for (const line of built) {
-    const list = linesByRecipe.get(line.recipeId) ?? [];
-    list.push(line);
-    linesByRecipe.set(line.recipeId, list);
+  const plans = dishes.map((dish) => ({
+    recipe: dish.recipe,
+    servingsPerPerson: dish.servingsPerPerson,
+  }));
+  // Per-dish ingredient lists use the unmerged needs, so a shared ingredient
+  // (onion in burgers and hot dogs) shows each dish's own amount. The sheet's
+  // Shopping section stays on the merged list, which is what you actually buy.
+  const dishNeeds = buildDishNeeds(plans, headcount.planFor);
+  const built = buildShoppingList(plans, headcount.planFor);
+  const needsByRecipe = new Map<string, typeof dishNeeds>();
+  for (const need of dishNeeds) {
+    const list = needsByRecipe.get(need.recipeId) ?? [];
+    list.push(need);
+    needsByRecipe.set(need.recipeId, list);
   }
 
   const prepDishes: PrepDish[] = dishes.map((dish) => {
-    const lines = linesByRecipe.get(dish.recipe.id) ?? [];
-    // buildShoppingList rounds servings up to whole servings; every line carries the same value.
-    const servings = lines[0]?.servings ?? 0;
+    const needs = needsByRecipe.get(dish.recipe.id) ?? [];
+    // Servings are rounded up to whole servings exactly as the shopping list does.
+    const servings = needs[0]?.servings ?? 0;
     return {
       dishId: dish.dishId,
       name: dish.recipe.name,
@@ -145,13 +147,13 @@ export function buildPrepSheet({
       servingsLabel: formatBuyQty(servings, servingWord(dish.recipe.name)),
       timeLabel: timeRow(dish.recipe),
       steps: dish.recipe.steps ?? [],
-      ingredients: lines.map((line) => ({
-        itemId: line.itemId,
-        name: line.name,
-        emoji: line.emoji,
-        needed: line.needed,
-        unit: line.neededUnit,
-        neededLabel: neededLabel(line.needed, line.neededUnit),
+      ingredients: needs.map((need) => ({
+        itemId: need.itemId,
+        name: need.name,
+        emoji: need.emoji,
+        needed: need.needed,
+        unit: need.neededUnit,
+        neededLabel: neededLabel(need.needed, need.neededUnit),
       })),
     };
   });

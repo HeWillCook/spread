@@ -307,6 +307,11 @@ export function WhatIfPlanner({
                       >
                         <th scope="row" className="py-2 pr-3 text-left font-normal">
                           <span aria-hidden="true">{line.emoji}</span> {line.name}
+                          {line.dishNames.length > 1 ? (
+                            <span className="whatif-line-dishes block text-xs text-ink-muted">
+                              for {line.dishNames.join(", ")}
+                            </span>
+                          ) : null}
                         </th>
                         <td className="py-2 pr-3">
                           <span className="whatif-qty block tabular-nums">

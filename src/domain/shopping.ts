@@ -38,6 +38,28 @@ export interface ShoppingLine {
   sources: ShoppingSource[];
 }
 
+/** One recipe item on one dish, unmerged: what that dish needs on its own. */
+export interface DishNeed {
+  itemId: string;
+  recipeId: string;
+  recipeName: string;
+  name: string;
+  emoji: string;
+  /** Whole servings this dish makes at this headcount. */
+  servings: number;
+  /** Recipe units this dish needs by itself. */
+  needed: number;
+  neededUnit: string;
+  /** Whole buy units if you bought for this dish alone. */
+  buyQty: number;
+  buyUnit: string;
+  unitsPerBuy: number;
+  /** Price of one buy unit, in integer cents. */
+  priceCents: number;
+  /** What this dish's own (separately rounded) buy would cost. */
+  estCostCents: number;
+}
+
 // Subtracted before ceil so float noise (e.g. 0.1 * 3 / 0.3 = 1.0000000000000002) doesn't buy an extra unit.
 const EPSILON = 1e-9;
 
@@ -73,6 +95,42 @@ interface Accumulator {
 }
 
 /**
+ * One line per recipe item, per dish: the amounts each dish needs by itself.
+ * Shopping merges these (see buildShoppingList), but per-dish views — the
+ * kitchen sheet's ingredient lists, a dish's own "make" amounts — must not show
+ * a shared ingredient's total from every dish on each of them.
+ *
+ * Both functions share this math so servings rounding and the float-noise
+ * epsilon can never drift apart.
+ */
+export function buildDishNeeds(dishes: DishPlan[], headcount: number): DishNeed[] {
+  const needs: DishNeed[] = [];
+  for (const { recipe, servingsPerPerson } of dishes) {
+    const servings = ceilQty(headcount * servingsPerPerson);
+    for (const item of recipe.items) {
+      const needed = servings * item.perServing;
+      const buyQty = item.unitsPerBuy > 0 ? ceilQty(needed / item.unitsPerBuy) : 0;
+      needs.push({
+        itemId: item.id,
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        name: displayName(item.name),
+        emoji: item.emoji,
+        servings,
+        needed,
+        neededUnit: item.unit,
+        buyQty,
+        buyUnit: item.buyUnit,
+        unitsPerBuy: item.unitsPerBuy,
+        priceCents: item.priceCents,
+        estCostCents: buyQty * item.priceCents,
+      });
+    }
+  }
+  return needs;
+}
+
+/**
  * One line per ingredient you'd actually pick off a shelf, not one per recipe
  * item: "Onion" from burgers, hot dogs and brats becomes a single line with the
  * summed need, rounded up to buy units exactly once (so 36 buns is 5 packs, not
@@ -82,44 +140,42 @@ export function buildShoppingList(dishes: DishPlan[], headcount: number): Shoppi
   const byKey = new Map<string, Accumulator>();
   const order: Accumulator[] = [];
 
-  for (const { recipe, servingsPerPerson } of dishes) {
-    const servings = ceilQty(headcount * servingsPerPerson);
-    for (const item of recipe.items) {
-      const contribution = servings * item.perServing;
-      const key = mergeKey(item.name, item.unit, item.buyUnit, item.unitsPerBuy);
-      const existing = byKey.get(key);
-      if (existing) {
-        existing.line.needed += contribution;
-        existing.line.servings = Math.max(existing.line.servings, servings);
-        existing.line.sources.push({
-          itemId: item.id,
-          recipeId: recipe.id,
-          recipeName: recipe.name,
-        });
-        existing.line.itemIds.push(item.id);
-        continue;
-      }
-      const accumulated: Accumulator = {
-        priceCents: item.priceCents,
-        line: {
-          itemId: item.id,
-          recipeId: recipe.id,
-          name: displayName(item.name),
-          emoji: item.emoji,
-          servings,
-          needed: contribution,
-          neededUnit: item.unit,
-          buyQty: 0,
-          buyUnit: item.buyUnit,
-          unitsPerBuy: item.unitsPerBuy,
-          estCostCents: 0,
-          itemIds: [item.id],
-          sources: [{ itemId: item.id, recipeId: recipe.id, recipeName: recipe.name }],
-        },
-      };
-      byKey.set(key, accumulated);
-      order.push(accumulated);
+  for (const need of buildDishNeeds(dishes, headcount)) {
+    const key = mergeKey(need.name, need.neededUnit, need.buyUnit, need.unitsPerBuy);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.line.needed += need.needed;
+      existing.line.servings = Math.max(existing.line.servings, need.servings);
+      existing.line.sources.push({
+        itemId: need.itemId,
+        recipeId: need.recipeId,
+        recipeName: need.recipeName,
+      });
+      existing.line.itemIds.push(need.itemId);
+      continue;
     }
+    const accumulated: Accumulator = {
+      priceCents: need.priceCents,
+      line: {
+        itemId: need.itemId,
+        recipeId: need.recipeId,
+        name: need.name,
+        emoji: need.emoji,
+        servings: need.servings,
+        needed: need.needed,
+        neededUnit: need.neededUnit,
+        buyQty: 0,
+        buyUnit: need.buyUnit,
+        unitsPerBuy: need.unitsPerBuy,
+        estCostCents: 0,
+        itemIds: [need.itemId],
+        sources: [
+          { itemId: need.itemId, recipeId: need.recipeId, recipeName: need.recipeName },
+        ],
+      },
+    };
+    byKey.set(key, accumulated);
+    order.push(accumulated);
   }
 
   return order.map(({ line, priceCents }) => {
