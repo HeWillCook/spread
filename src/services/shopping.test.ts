@@ -96,6 +96,30 @@ describe("getShoppingPlan", () => {
     expect(line(plan, BEEF).buyQty).toBe(6);
   });
 
+  it("an ingredient the host set to zero amount is left off the list and the total", async () => {
+    await seedBurgerEvent();
+    const before = await getShoppingPlan(db, "host-1", eventId);
+    const onion = line(before, "starter-burgers-onion");
+    expect(onion.buyQty).toBe(4);
+
+    const [dish] = (await getMenu(db, "host-1", eventId)).dishes;
+    await updateDish(db, "host-1", eventId, dish.dishId, {
+      servingsPerPerson: 1.5,
+      itemAmounts: { "starter-burgers-onion": 0 },
+    });
+
+    const after = await getShoppingPlan(db, "host-1", eventId);
+    expect(after.lines.some((l) => l.name === "Onion")).toBe(false);
+    expect(after.lines.map((l) => l.name)).toEqual([
+      "Ground beef",
+      "Burger buns",
+      "Cheese slices",
+      "Jalapeño",
+    ]);
+    expect(after.totalCents).toBe(before.totalCents - onion.estCostCents);
+    expect(after.totalCents).toBeGreaterThan(0);
+  });
+
   it("an event with no dishes has no lines and totals only its extras", async () => {
     await seedTwelveYesFiveMaybe();
     expect(await getShoppingPlan(db, "host-1", eventId)).toMatchObject({
@@ -430,7 +454,7 @@ describe("setChecked / setActualCost", () => {
     expect(plan.totalIsProvisional).toBe(false);
   });
 
-  it("ticking at zero headcount then adding a guest needs a review from zero", async () => {
+  it("has nothing to buy at zero headcount, then lists the line once people arrive", async () => {
     const empty = await createEvent(db, "host-1", {
       title: "Empty",
       startsAt: new Date("2026-07-05T18:00:00Z"),
@@ -440,9 +464,10 @@ describe("setChecked / setActualCost", () => {
     await addDishToEvent(db, "host-1", empty.id, "starter-burgers");
     const before = await getShoppingPlan(db, "host-1", empty.id);
     expect(before.headcount.planFor).toBe(0);
-    expect(line(before, BEEF).buyQty).toBe(0);
+    // Zero-quantity rows are left out, so the tab never shows "0 packs".
+    expect(before.lines).toEqual([]);
+    expect(before.totalCents).toBe(0);
 
-    await setChecked(db, "host-1", empty.id, BEEF, true);
     await submitRsvp(db, {
       shareCode: empty.shareCode,
       name: "First Guest",
@@ -452,12 +477,8 @@ describe("setChecked / setActualCost", () => {
 
     const after = await getShoppingPlan(db, "host-1", empty.id);
     expect(line(after, BEEF).buyQty).toBeGreaterThan(0);
-    expect(line(after, BEEF)).toMatchObject({
-      checked: false,
-      checkedQty: 0,
-      needsReview: true,
-    });
-    expect(after.totalIsProvisional).toBe(true);
+    expect(line(after, BEEF)).toMatchObject({ checked: false, needsReview: false });
+    expect(after.totalIsProvisional).toBe(false);
   });
 
   it("shows a legacy tick with no captured quantity as unchecked for a conservative recheck", async () => {

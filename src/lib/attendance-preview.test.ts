@@ -17,6 +17,13 @@ const burgers: MenuDish = {
   isStarter: true,
 };
 
+const hotDogs: MenuDish = {
+  dishId: "dish-hot-dogs",
+  servingsPerPerson: 1.5,
+  recipe: STARTER_RECIPES.find((recipe) => recipe.id === "starter-hot-dogs")!,
+  isStarter: true,
+};
+
 const plan: Headcount = {
   confirmed: 2,
   maybeHeads: 2,
@@ -186,6 +193,22 @@ describe("buildAttendancePreview", () => {
     expect(preview.lines.every((line) => line.buyQty === 0 && line.estCostCents === 0)).toBe(true);
     expect(preview.dishes[0].servings).toBe(0);
     expect(preview.lines.some((line) => Number.isNaN(line.buyQty))).toBe(false);
+  });
+
+  it("shows one merged row naming both dishes when they share an ingredient", () => {
+    const preview = buildAttendancePreview([burgers, hotDogs], plan, 4);
+    const onions = preview.lines.filter((line) => line.name === "Onion");
+    expect(onions).toHaveLength(1);
+    const onion = onions[0];
+    expect(onion.dishNames).toEqual(["Burgers", "Hot dogs"]);
+    // 6 servings x 1/6 + 6 servings x 1/8 = 1.75 onions, bought together.
+    expect(onion.buyQty).toBe(2);
+    expect(onion.baselineBuyQty).toBe(2);
+    expect(onion.buyQtyDelta).toBe(0);
+
+    // Every other line still pairs with the saved plan, so nothing gains a phantom change.
+    const unchanged = buildAttendancePreview([burgers, hotDogs], plan, 3);
+    expect(unchanged.lines.every((line) => line.buyQtyDelta === 0)).toBe(true);
   });
 
   it("handles an empty menu", () => {

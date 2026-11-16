@@ -48,6 +48,61 @@ const burgers: MenuDish = {
   },
 };
 
+const hotDogs: MenuDish = {
+  dishId: "dish-hot-dogs",
+  servingsPerPerson: 2,
+  isStarter: false,
+  recipe: {
+    id: "recipe-hot-dogs",
+    name: "Hot dogs",
+    emoji: "🌭",
+    defaultServingsPerPerson: 2,
+    items: [
+      item({
+        id: "sausages",
+        name: "Sausages",
+        perServing: 1,
+        unit: "sausage",
+        buyUnit: "pack",
+        unitsPerBuy: 8,
+        priceCents: 420,
+      }),
+      item({
+        id: "hot-dog-onion",
+        name: "Onion",
+        perServing: 0.125,
+        unit: "onion",
+        buyUnit: "each",
+        unitsPerBuy: 1,
+        priceCents: 100,
+      }),
+    ],
+  },
+};
+
+const onionBurgers: MenuDish = {
+  dishId: "dish-onion-burgers",
+  servingsPerPerson: 1,
+  isStarter: false,
+  recipe: {
+    id: "recipe-onion-burgers",
+    name: "Burgers",
+    emoji: "🍔",
+    defaultServingsPerPerson: 1,
+    items: [
+      item({
+        id: "burger-onion",
+        name: "Onion",
+        perServing: 0.5,
+        unit: "onion",
+        buyUnit: "each",
+        unitsPerBuy: 1,
+        priceCents: 100,
+      }),
+    ],
+  },
+};
+
 const event = {
   id: "ev1",
   title: "Burger Night",
@@ -80,6 +135,54 @@ describe("buildPrepSheet", () => {
       expect.objectContaining({ name: "Ground beef", buyQty: 2, buyLabel: "2 packs" }),
       expect.objectContaining({ name: "Buns", buyQty: 1, buyLabel: "1 pack" }),
     ]);
+  });
+
+  it("keeps each dish's own amount for a shared ingredient", () => {
+    const headcount = computeHeadcount(yesGuests(4), 0.5);
+    const onlyBurgers = buildPrepSheet({
+      event,
+      dishes: [onionBurgers],
+      headcount,
+      guests: [],
+    });
+    const onlyHotDogs = buildPrepSheet({
+      event,
+      dishes: [hotDogs],
+      headcount,
+      guests: [],
+    });
+    const sheet = buildPrepSheet({
+      event,
+      dishes: [onionBurgers, hotDogs],
+      headcount,
+      guests: [],
+    });
+
+    // 4 servings of burgers need 2 onions; 8 of hot dogs need 1.
+    expect(onlyBurgers.dishes[0].servings).toBe(4);
+    expect(onlyHotDogs.dishes[0].servings).toBe(8);
+    expect(onlyBurgers.dishes[0].ingredients).toEqual([
+      expect.objectContaining({ name: "Onion", needed: 2, neededLabel: "2 onions" }),
+    ]);
+    expect(onlyHotDogs.dishes[0].ingredients).toEqual([
+      expect.objectContaining({ name: "Sausages", needed: 8 }),
+      expect.objectContaining({ name: "Onion", needed: 1, neededLabel: "1 onion" }),
+    ]);
+
+    const burgerDish = sheet.dishes.find((dish) => dish.name === "Burgers")!;
+    const hotDogDish = sheet.dishes.find((dish) => dish.name === "Hot dogs")!;
+    expect(burgerDish.servings).toBe(4);
+    expect(burgerDish.ingredients).toEqual(onlyBurgers.dishes[0].ingredients);
+    expect(hotDogDish.servings).toBe(8);
+    expect(hotDogDish.ingredients).toEqual(onlyHotDogs.dishes[0].ingredients);
+
+    // The sheet's Shopping section is the merged list: one onion line, summed and rounded once.
+    const onions = sheet.shopping.filter((item) => item.name === "Onion");
+    expect(onions).toHaveLength(1);
+    expect(onions[0]).toMatchObject({ needed: 3, neededLabel: "3 onions", buyQty: 3 });
+    expect(prepSheetText(sheet)).toContain("Burgers — 4 burgers\n- Onion: 2 onions");
+    expect(prepSheetText(sheet)).toContain("Hot dogs — 8 hot dogs\n- Sausages: 8 sausages\n- Onion: 1 onion");
+    expect(prepSheetText(sheet)).toContain("Shopping\n[ ] Onion: 3 each\n[ ] Sausages: 1 pack");
   });
 
   it("carries the recipe's times and steps into the sheet and its text", () => {

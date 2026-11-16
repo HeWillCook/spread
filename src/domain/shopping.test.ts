@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STARTER_RECIPES, type Recipe, type RecipeItem } from './recipes';
-import { buildShoppingList, totalCents, type DishPlan } from './shopping';
+import { buildDishNeeds, buildShoppingList, totalCents, type DishPlan } from './shopping';
 
 const burgers = STARTER_RECIPES.find((r) => r.id === 'starter-burgers') as Recipe;
 const hotDogs = STARTER_RECIPES.find((r) => r.id === 'starter-hot-dogs') as Recipe;
@@ -83,6 +83,69 @@ describe('buildShoppingList', () => {
     const lines = buildShoppingList(dishes, 1);
     expect(lines[0].servings).toBe(3);
     expect(lines[0].buyQty).toBe(1);
+  });
+});
+
+describe('buildDishNeeds', () => {
+  it('keeps per-dish amounts for a shared ingredient', () => {
+    const needs = buildDishNeeds(
+      [
+        { recipe: burgers, servingsPerPerson: 1 },
+        { recipe: hotDogs, servingsPerPerson: 2 },
+      ],
+      4,
+    );
+    // 4 servings of burgers, 8 of hot dogs; the hot dogs must not inflate burgers.
+    const burgerOnion = needs.find((n) => n.itemId === 'starter-burgers-onion')!;
+    const hotDogOnion = needs.find((n) => n.itemId === 'starter-hot-dogs-onion')!;
+    expect(burgerOnion).toMatchObject({ recipeId: 'starter-burgers', name: 'Onion', servings: 4 });
+    expect(burgerOnion.needed).toBeCloseTo(4 / 6, 10);
+    expect(hotDogOnion).toMatchObject({
+      recipeId: 'starter-hot-dogs',
+      name: 'Onion',
+      servings: 8,
+    });
+    expect(hotDogOnion.needed).toBeCloseTo(8 / 8, 10);
+  });
+
+  it('returns one line per recipe item, in menu order, with no merging', () => {
+    const dishes: DishPlan[] = [
+      { recipe: burgers, servingsPerPerson: 1.5 },
+      { recipe: hotDogs, servingsPerPerson: 1.5 },
+    ];
+    const needs = buildDishNeeds(dishes, 12);
+    expect(needs).toHaveLength(burgers.items.length + hotDogs.items.length);
+    expect(needs.filter((n) => n.name === 'Onion')).toHaveLength(2);
+    expect(needs.every((n) => n.servings === 18)).toBe(true);
+  });
+
+  it('is the same math the merged list uses, summed per ingredient', () => {
+    const dishes: DishPlan[] = [
+      { recipe: burgers, servingsPerPerson: 1.5 },
+      { recipe: hotDogs, servingsPerPerson: 1.5 },
+      { recipe: bratwurst, servingsPerPerson: 1.5 },
+    ];
+    const needs = buildDishNeeds(dishes, 12);
+    const merged = lineNamed(buildShoppingList(dishes, 12), 'Onion');
+    const onions = needs.filter((n) => n.name === 'Onion');
+    expect(onions).toHaveLength(3);
+    expect(merged.needed).toBeCloseTo(
+      onions.reduce((sum, n) => sum + n.needed, 0),
+      10,
+    );
+    expect(merged.buyQty).toBe(9);
+  });
+
+  it('gives a zero-amount ingredient a zero need and nothing to buy', () => {
+    const zeroed: Recipe = {
+      ...burgers,
+      items: burgers.items.map((i) =>
+        i.id === 'starter-burgers-onion' ? { ...i, perServing: 0 } : i,
+      ),
+    };
+    const needs = buildDishNeeds([{ recipe: zeroed, servingsPerPerson: 1.5 }], 12);
+    const onion = needs.find((n) => n.itemId === 'starter-burgers-onion')!;
+    expect(onion).toMatchObject({ needed: 0, buyQty: 0, estCostCents: 0 });
   });
 });
 

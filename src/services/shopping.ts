@@ -45,11 +45,34 @@ function validCents(cents: number, what: string): void {
  * ids; any of them resolves to the same line so the client can never tick a
  * stranger's row.
  */
-function lineForItem(
-  plan: ShoppingPlan,
+function lineForItem<T extends { itemIds: string[] }>(
+  lines: T[],
   recipeItemId: string,
-): ShoppingPlan["lines"][number] | undefined {
-  return plan.lines.find((line) => line.itemIds.includes(recipeItemId));
+): T | undefined {
+  return lines.find((line) => line.itemIds.includes(recipeItemId));
+}
+
+/**
+ * Every merged line for an event, including the zero-quantity ones the Shopping
+ * tab hides. Writes stay reachable by ingredient id, so clearing a tick or a price
+ * left over from before an ingredient was zeroed out still works.
+ *
+ * Throws NotFoundError for another host's event.
+ */
+async function allShoppingLines(
+  db: Db,
+  hostId: string,
+  eventId: string,
+): Promise<ShoppingLine[]> {
+  await getHostEvent(db, hostId, eventId);
+  const [{ headcount }, { dishes }] = await Promise.all([
+    getGuestsOverview(db, hostId, eventId),
+    getMenu(db, hostId, eventId),
+  ]);
+  return buildShoppingList(
+    dishes.map((d) => ({ recipe: d.recipe, servingsPerPerson: d.servingsPerPerson })),
+    headcount.planFor,
+  );
 }
 
 /** Everything the Shopping tab shows. Throws NotFoundError for another host's event. */
@@ -75,34 +98,39 @@ export async function getShoppingPlan(
     headcount.planFor,
   );
   const stateByItem = new Map(stateRows.map((s) => [s.recipeItemId, s]));
-  const lines = built.map((line) => {
-    const states = line.itemIds.map((id) => stateByItem.get(id));
-    // A merged line is only "got" when every ingredient that feeds it was ticked.
-    const allTicked = states.every((state) => state?.checked === true);
-    const checkedQtys = states.map((state) => state?.checkedQty ?? null);
-    const checkedQty = checkedQtys.some((qty) => qty === null)
-      ? null
-      : Math.max(...(checkedQtys as number[]));
-    // Ticks made before quantities were captured, and ticks that no longer cover
-    // the current need, are conservatively treated as needing a recheck.
-    const needsReview = allTicked && (checkedQty === null || line.buyQty > checkedQty);
+  // An ingredient the host zeroed out (or a plan with no people yet) needs no
+  // buying; a "0 packs" row, a tick and a price would all be noise. The kitchen
+  // sheet and today's list already skip these, so the Shopping tab matches them.
+  const lines = built
+    .filter((line) => line.buyQty > 0)
+    .map((line) => {
+      const states = line.itemIds.map((id) => stateByItem.get(id));
+      // A merged line is only "got" when every ingredient that feeds it was ticked.
+      const allTicked = states.every((state) => state?.checked === true);
+      const checkedQtys = states.map((state) => state?.checkedQty ?? null);
+      const checkedQty = checkedQtys.some((qty) => qty === null)
+        ? null
+        : Math.max(...(checkedQtys as number[]));
+      // Ticks made before quantities were captured, and ticks that no longer cover
+      // the current need, are conservatively treated as needing a recheck.
+      const needsReview = allTicked && (checkedQty === null || line.buyQty > checkedQty);
 
-    // The actual price lives on the line's primary (sorted-first) item id only; the
-    // other merged ids are ignored even if an older row still carries a value.
-    const actualCents = stateByItem.get(line.itemId)?.actualCents ?? null;
-    const dishNames: string[] = [];
-    for (const source of line.sources) {
-      if (!dishNames.includes(source.recipeName)) dishNames.push(source.recipeName);
-    }
-    return {
-      ...line,
-      checked: allTicked && !needsReview,
-      checkedQty,
-      needsReview,
-      actualCents,
-      dishNames,
-    };
-  });
+      // The actual price lives on the line's primary (sorted-first) item id only; the
+      // other merged ids are ignored even if an older row still carries a value.
+      const actualCents = stateByItem.get(line.itemId)?.actualCents ?? null;
+      const dishNames: string[] = [];
+      for (const source of line.sources) {
+        if (!dishNames.includes(source.recipeName)) dishNames.push(source.recipeName);
+      }
+      return {
+        ...line,
+        checked: allTicked && !needsReview,
+        checkedQty,
+        needsReview,
+        actualCents,
+        dishNames,
+      };
+    });
 
   const actualByItemId: Record<string, number> = {};
   for (const line of lines) {
@@ -136,9 +164,7 @@ export async function setChecked(
   recipeItemId: string,
   checked: boolean,
 ): Promise<void> {
-  await getHostEvent(db, hostId, eventId);
-  const plan = await getShoppingPlan(db, hostId, eventId);
-  const line = lineForItem(plan, recipeItemId);
+  const line = lineForItem(await allShoppingLines(db, hostId, eventId), recipeItemId);
   if (!line) throw new NotFoundError("Ingredient not found");
   const checkedQty = checked ? line.buyQty : null;
   // Every id stores the same basis: the line's buy quantity. A contribution that
@@ -171,11 +197,9 @@ export async function setActualCost(
   recipeItemId: string,
   cents: number | null,
 ): Promise<void> {
-  await getHostEvent(db, hostId, eventId);
-  if (cents !== null) validCents(cents, "Price");
-  const plan = await getShoppingPlan(db, hostId, eventId);
-  const line = lineForItem(plan, recipeItemId);
+  const line = lineForItem(await allShoppingLines(db, hostId, eventId), recipeItemId);
   if (!line) throw new NotFoundError("Ingredient not found");
+  if (cents !== null) validCents(cents, "Price");
   const primaryId = line.itemId;
   const others = line.itemIds.filter((id) => id !== primaryId);
   await db.transaction(async (tx) => {
