@@ -196,7 +196,7 @@ export function TodayChecklist({ plan }: { plan: TodayPlan }) {
           <Card>
             <h2 className="text-lg font-bold">Make</h2>
             {plan.prep.length === 0 ? (
-              <EmptyState inset art="calendar" title="No dishes saved yet">
+              <EmptyState inset art="today" title="No dishes saved yet">
                 <p>Add them on the Menu tab.</p>
               </EmptyState>
             ) : (
@@ -217,7 +217,7 @@ export function TodayChecklist({ plan }: { plan: TodayPlan }) {
         <Card>
           <h2 className="text-lg font-bold">Still to buy</h2>
           {plan.shopping.length === 0 ? (
-            <EmptyState inset art="cart" title="Every shopping item is ticked. Nice." />
+            <EmptyState inset art="today" title="Every shopping item is ticked. Nice." />
           ) : (
             <div className="mt-2">
               {plan.shopping.map((item) => (

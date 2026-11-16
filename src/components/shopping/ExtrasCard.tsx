@@ -99,7 +99,7 @@ export function ExtrasCard({
     <Card className="flex flex-col gap-4">
       <h2 className="text-lg font-bold">Extras</h2>
       {extras.length === 0 ? (
-        <EmptyState inset size="sm" art="cart" title="Nothing extra yet">
+        <EmptyState inset size="sm" art="shopping" title="Nothing extra yet">
           <p>Drinks, ice and charcoal go here.</p>
         </EmptyState>
       ) : (

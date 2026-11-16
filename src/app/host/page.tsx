@@ -2,15 +2,16 @@ import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { SignOutButton } from "@/components/SignOutButton";
-import { FlameIcon } from "@/components/fire/FlameIcon";
-import { GrillBand } from "@/components/fire/GrillBand";
-import { GrillMarks } from "@/components/fire/GrillMarks";
 import { EmptyState } from "@/components/EmptyState";
+import { Bunting } from "@/components/scrapbook/Bunting";
+import { Sticker } from "@/components/scrapbook/Sticker";
+import { WashiTape } from "@/components/scrapbook/WashiTape";
 import { Pill } from "@/components/ui/Pill";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { getDb } from "@/db/client";
 import { coverFor } from "@/lib/cover";
+import { occasionFor, occasionSticker } from "@/lib/occasion";
 import { splitEventsByTime } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
 import { countdownLabel } from "@/lib/relative-date";
@@ -58,8 +59,11 @@ function EventTicket({
   /** Upcoming and live only: past and cancelled cards stay quiet. */
   showGlance: boolean;
 }) {
+  const theme = occasionFor(event.coverEmoji);
   return (
     <li className="ticket dash-ticket">
+      <WashiTape pattern="stripe" tone="mustard" tilt={-4} className="dash-tape" />
+      <Sticker name={occasionSticker(theme)} size="md" className="dash-theme-sticker" />
       <div className="dash-ticket-head">
         <div className="flex min-w-0 items-start gap-3">
           <CoverChip cover={coverFor(event)} size="md" />
@@ -98,11 +102,12 @@ function EventTicket({
 function MoreTicket() {
   return (
     <Link href="/host/new" className="dash-ticket-more">
-      <GrillMarks />
-      <span className="dash-ticket-more-mark" aria-hidden="true">
-        <FlameIcon size="md" />
+      <span className="plan-stickers" aria-hidden="true">
+        <Sticker name="watermelon" size="sm" className="plan-sticker plan-sticker-a" />
+        <Sticker name="balloon" size="sm" className="plan-sticker plan-sticker-b" />
+        <Sticker name="heart" size="sm" className="plan-sticker plan-sticker-c" />
       </span>
-      <span className="dash-ticket-more-title">Fire up another</span>
+      <span className="dash-ticket-more-title">Plan another</span>
       <span className="dash-ticket-more-note">
         A fresh ticket for the next crowd.
       </span>
@@ -138,27 +143,25 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
         <SignOutButton />
       </header>
 
-      <GrillBand
-        edge="bottom"
-        flameSize="md"
-        emberCount={22}
-        emberRise={210}
-        className="dashboard-band"
-      >
-        <div className="dashboard-head">
-          <div>
-            <h1 className="dashboard-title">Your events</h1>
-            <p className="dashboard-sub">
-              Hi, {host.name}. Pick an event to keep planning.
-            </p>
+      <section className="dashboard-head-band">
+        <Bunting count={18} className="dashboard-bunting" />
+        <div className="dashboard-head-paper">
+          <Sticker name="sun" size="sm" className="dashboard-head-sticker" />
+          <div className="dashboard-head">
+            <div>
+              <h1 className="dashboard-title">Your events</h1>
+              <p className="dashboard-sub">
+                Hi, {host.name}. Pick an event to keep planning.
+              </p>
+            </div>
+            {events.length > 0 ? (
+              <Link href="/host/new" className="cta-primary">
+                Create event
+              </Link>
+            ) : null}
           </div>
-          {events.length > 0 ? (
-            <Link href="/host/new" className="cta-primary">
-              Create event
-            </Link>
-          ) : null}
         </div>
-      </GrillBand>
+      </section>
 
       {deletedEvent ? (
         <div
@@ -187,7 +190,7 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
 
       {events.length === 0 ? (
         <EmptyState
-          art="grill"
+          art="dashboard"
           title="No events yet"
           className="mt-8"
           action={

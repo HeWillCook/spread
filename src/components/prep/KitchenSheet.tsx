@@ -70,7 +70,7 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
           {!sheet.hasMenu ? (
             <EmptyState
               inset
-              art="grill"
+              art="menu"
               title="No dishes saved yet"
               className="kitchen-empty mt-3"
               action={

@@ -1,5 +1,3 @@
-import { FlameIcon } from "../fire/FlameIcon";
-
 const SLICE =
   "M-11 2 L-11 -19 C-16 -20 -16.5 -30 -8 -31 C-3.5 -33 3.5 -33 8 -31 C16.5 -30 16 -20 11 -19 L11 2 Z";
 
@@ -34,25 +32,15 @@ export function BrandMark({ className = "" }: { className?: string }) {
   );
 }
 
-export function Wordmark({
-  className = "",
-  flame = false,
-}: {
-  className?: string;
-  /** Land the flame on the toast: the landing header only. */
-  flame?: boolean;
-}) {
+export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span
       className={`wordmark inline-flex items-end gap-[0.15em] font-display text-[1.75rem] leading-none text-ketchup ${className}`}
     >
-      <span className="relative inline-flex items-end">
-        <BrandMark />
-        {flame ? <FlameIcon className="wordmark-flame" /> : null}
-      </span>
+      <BrandMark />
       <span>
         <span>Spread</span>
-        <span className="wordmark-ember">.</span>
+        <span className="wordmark-dot">.</span>
       </span>
     </span>
   );

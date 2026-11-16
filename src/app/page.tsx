@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Flames } from "@/components/fire/Flames";
-import { GrillBand } from "@/components/fire/GrillBand";
-import { GrillMarks } from "@/components/fire/GrillMarks";
+import { OccasionScene } from "@/components/occasion/OccasionScene";
+import { Bunting } from "@/components/scrapbook/Bunting";
+import { Sticker } from "@/components/scrapbook/Sticker";
+import { WashiTape } from "@/components/scrapbook/WashiTape";
 import { Pill } from "@/components/ui/Pill";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { occasionSticker, type OccasionTheme } from "@/lib/occasion";
 import { getHostOrNull } from "@/server/auth";
 
 // Reads the session from request headers, so it must never be prerendered.
@@ -30,6 +32,15 @@ const stamps = [
   { value: "every bun counted", caption: "from their answers" },
 ];
 
+const miniOccasions: { theme: OccasionTheme; name: string; note: string }[] = [
+  { theme: "picnic", name: "Picnic", note: "A blanket and a list." },
+  { theme: "birthday", name: "Birthday", note: "Candles and portions." },
+  { theme: "holiday", name: "Holiday", note: "A table for twelve." },
+  { theme: "gamenight", name: "Game night", note: "Snacks and a score." },
+  { theme: "toast", name: "Toast", note: "Bubbles and bites." },
+  { theme: "cookout", name: "Cookout", note: "Burgers and buns." },
+];
+
 export default async function Home() {
   const host = await getHostOrNull();
 
@@ -37,7 +48,7 @@ export default async function Home() {
     <main className="flex flex-1 flex-col">
       <div className="page-shell">
         <header className="site-top">
-          <Wordmark flame />
+          <Wordmark />
           <nav aria-label="Account">
             {host ? (
               <Link href="/host" className="quiet-link">
@@ -52,6 +63,8 @@ export default async function Home() {
         </header>
 
         <section className="landing-hero" aria-labelledby="landing-title">
+          <Bunting count={18} className="landing-bunting" />
+
           <div>
             <h1 id="landing-title" className="display-hero">
               <span className="block">Enough food.</span>
@@ -74,7 +87,7 @@ export default async function Home() {
             <ul className="hero-stamps" aria-label="How Spread works">
               {stamps.map((stamp) => (
                 <li key={stamp.value} className="hero-stamp">
-                  <GrillMarks />
+                  <WashiTape pattern="stripe" tone="mustard" tilt={-3} />
                   <span className="hero-stamp-value">{stamp.value}</span>
                   <span className="hero-stamp-caption">{stamp.caption}</span>
                 </li>
@@ -83,9 +96,13 @@ export default async function Home() {
           </div>
 
           <div className="ticket-slot">
-            <div className="ticket-slot-fire">
-              <Flames edge="bottom" size="md" />
-            </div>
+            <span className="ticket-tape ticket-tape-left">
+              <WashiTape pattern="gingham" tone="mustard" tilt={-4} />
+            </span>
+            <span className="ticket-tape ticket-tape-right">
+              <WashiTape pattern="stripe" tone="ketchup" tilt={3} />
+            </span>
+
             <div className="ticket-slot-mouth">
               <figure className="ticket plan-preview" aria-labelledby="example-title">
                 <div className="preview-head">
@@ -147,6 +164,44 @@ export default async function Home() {
                 </figcaption>
               </figure>
             </div>
+
+            <span className="ticket-stickers" aria-hidden="true">
+              <Sticker
+                name="sun"
+                size="sm"
+                peel
+                delay={0.15}
+                className="ticket-sticker ticket-sticker-sun"
+              />
+              <Sticker
+                name="balloon"
+                size="sm"
+                peel
+                delay={0.3}
+                className="ticket-sticker ticket-sticker-balloon"
+              />
+              <Sticker
+                name="watermelon"
+                size="md"
+                peel
+                delay={0.45}
+                className="ticket-sticker ticket-sticker-watermelon"
+              />
+              <Sticker
+                name="cake"
+                size="md"
+                peel
+                delay={0.6}
+                className="ticket-sticker ticket-sticker-cake"
+              />
+              <Sticker
+                name="lantern"
+                size="sm"
+                peel
+                delay={0.75}
+                className="ticket-sticker ticket-sticker-lantern"
+              />
+            </span>
           </div>
         </section>
 
@@ -163,34 +218,47 @@ export default async function Home() {
         </section>
       </div>
 
-      <GrillBand
-        inset={false}
-        edge="bottom"
-        flameSize="lg"
-        emberCount={28}
-        emberRise={300}
-        className="landing-fire"
-      >
-        <div className="page-shell landing-fire-inner">
-          <div>
-            <h2 className="landing-fire-title">
-              Fire up the grill. We&apos;ll count the buns.
+      <section className="occasion-band" aria-labelledby="occasions-title">
+        <div className="page-shell">
+          <div className="occasion-band-paper">
+            <h2 id="occasions-title" className="occasion-band-title">
+              For every kind of get-together.
             </h2>
-            <p className="landing-fire-note">
-              One link for the guest list, the food and the split. Guests never
-              need an account, and the plan keeps up with every reply.
+            <p className="occasion-band-lede">
+              Birthdays, holidays, game nights, a quiet brunch. The plan follows
+              the occasion, and every guest gets the same simple link.
             </p>
-          </div>
-          <div className="landing-fire-actions">
-            <Link href={host ? "/host" : "/signup"} className="cta-primary">
-              {host ? "Back to your events" : "Start your plan"}
-            </Link>
-            <span className="landing-fire-wink">
-              Takes a minute. Costs nothing.
-            </span>
+
+            <ul className="occasion-mini-row">
+              {miniOccasions.map(({ theme, name, note }) => (
+                <li key={theme} className="occasion-mini">
+                  <div className="occasion-mini-scene">
+                    <OccasionScene theme={theme} size="strip" />
+                  </div>
+                  <div className="occasion-mini-body">
+                    <span className="occasion-mini-name">{name}</span>
+                    <span className="occasion-mini-note">{note}</span>
+                  </div>
+                  <Sticker
+                    name={occasionSticker(theme)}
+                    size="sm"
+                    className="occasion-mini-sticker"
+                  />
+                </li>
+              ))}
+            </ul>
+
+            <div className="occasion-band-actions">
+              <Link href={host ? "/host" : "/signup"} className="cta-primary">
+                {host ? "Back to your events" : "Start your plan"}
+              </Link>
+              <span className="occasion-band-note">
+                Takes a minute. Costs nothing.
+              </span>
+            </div>
           </div>
         </div>
-      </GrillBand>
+      </section>
 
       <div className="page-shell">
         <footer className="landing-footer">

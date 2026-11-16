@@ -5,9 +5,12 @@ import { CopyCancellationButton } from "@/components/CopyCancellationButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { EventTabs } from "@/components/EventTabs";
-import { Flames } from "@/components/fire/Flames";
+import { OccasionScene } from "@/components/occasion/OccasionScene";
+import { Sticker } from "@/components/scrapbook/Sticker";
+import { WashiTape } from "@/components/scrapbook/WashiTape";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { coverFor } from "@/lib/cover";
+import { occasionAccent, occasionFor, occasionSticker } from "@/lib/occasion";
 import { formatWhen } from "@/lib/format";
 import { getBaseUrl, shareUrl } from "@/server/base-url";
 import { loadHostEvent } from "@/server/host-event";
@@ -28,6 +31,7 @@ export default async function EventLayout({
     loadHostEvent(id),
     getBaseUrl(),
   ]);
+  const theme = occasionFor(event.coverEmoji);
 
   return (
     <div className="event-shell">
@@ -59,12 +63,17 @@ export default async function EventLayout({
         ) : null}
 
         <div className="ticket event-ticket">
-          <div className="ticket-fire-strip" aria-hidden="true">
-            <Flames edge="bottom" size="sm" />
+          <div className="event-scene" aria-hidden="true">
+            <OccasionScene theme={theme} size="strip" />
+            <Sticker
+              name={occasionSticker(theme)}
+              size="sm"
+              className="event-scene-sticker"
+            />
           </div>
           <div className="event-heading">
             <div className="flex min-w-0 items-start gap-3">
-              <CoverChip cover={coverFor(event)} size="lg" marks className="mt-1" />
+              <CoverChip cover={coverFor(event)} size="lg" className="mt-1" />
               <div className="min-w-0">
                 <h1 className="event-title">{event.title}</h1>
                 <p className="event-meta">
@@ -97,6 +106,12 @@ export default async function EventLayout({
           {/* A cancelled event takes no RSVPs, so don't invite anyone to it. */}
           {event.cancelledAt ? null : (
             <section className="event-invite" aria-labelledby="invite-title">
+              <span className="event-invite-tape event-invite-tape-left" aria-hidden="true">
+                <WashiTape pattern="gingham" tone="mustard" tilt={-4} />
+              </span>
+              <span className="event-invite-tape event-invite-tape-right" aria-hidden="true">
+                <WashiTape pattern="stripe" tone="pickle" tilt={3} />
+              </span>
               <div>
                 <h2 id="invite-title">Invite your guests</h2>
                 <p>Guests RSVP from this link. No account needed.</p>
@@ -109,7 +124,7 @@ export default async function EventLayout({
 
       <main className="event-main">
         <div className="event-tabs">
-          <EventTabs eventId={event.id} />
+          <EventTabs eventId={event.id} accent={occasionAccent(theme)} />
         </div>
         {children}
       </main>

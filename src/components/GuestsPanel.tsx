@@ -218,7 +218,7 @@ export function GuestsPanel({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex min-w-0 flex-col gap-6">
       {guests.length === 0 ? (
-        <EmptyState art="ticket" title="No answers yet" className="lg:flex-1">
+        <EmptyState art="guests" title="No answers yet" className="lg:flex-1">
           <p>
             Share your link above to get started, then add your dishes on the
             Menu tab.

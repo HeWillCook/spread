@@ -4,13 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
 import { CoverChip } from "@/components/CoverChip";
 import { EventUnavailable } from "@/components/EventUnavailable";
-import { FirePage } from "@/components/FirePage";
+import { ScrapbookPage } from "@/components/ScrapbookPage";
 import { RsvpForm } from "@/components/RsvpForm";
 import { UpdatedDetailsNotice } from "@/components/UpdatedDetailsNotice";
 import { getDb } from "@/db/client";
 import { coverFor } from "@/lib/cover";
 import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
+import { occasionFor } from "@/lib/occasion";
 import { guestCookieName } from "@/lib/guest-cookie";
 import { eventPreview, wantsBlankForm } from "@/lib/guest-page";
 import { calendarDetails, googleCalendarUrl } from "@/lib/ics";
@@ -78,6 +79,7 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
     if (known) redirect(`/e/${encodeURIComponent(code)}/g/${encodeURIComponent(token)}`);
   }
 
+  const theme = occasionFor(event.coverEmoji);
   const guestUrl = shareUrl(await getBaseUrl(), code);
   const googleUrl = googleCalendarUrl({
     title: event.title,
@@ -87,7 +89,9 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
   });
 
   return (
-    <FirePage
+    <ScrapbookPage
+      variant="occasion"
+      theme={theme}
       cover={<CoverChip cover={coverFor(event)} size="lg" />}
       headline={event.title}
       detail={
@@ -138,6 +142,6 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
           </div>
         </aside>
       )}
-    </FirePage>
+    </ScrapbookPage>
   );
 }

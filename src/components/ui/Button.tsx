@@ -1,7 +1,7 @@
 import type { ComponentPropsWithRef } from "react";
 
 const variants = {
-  red: "fire-button bg-ketchup text-paper hover:bg-ketchup-deep",
+  red: "press-button bg-ketchup text-paper shadow-[inset_0_-3px_0_rgb(0_0_0/0.18)] hover:bg-ketchup-deep",
   mustard: "bg-mustard text-ink shadow-[inset_0_-3px_0_rgb(0_0_0/0.12)] hover:bg-mustard-deep",
   outline:
     "border-[1.5px] border-ink/70 bg-paper text-ink hover:border-ink hover:bg-cream/40",

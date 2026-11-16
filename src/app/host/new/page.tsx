@@ -1,5 +1,5 @@
 import { NewEventForm } from "@/components/NewEventForm";
-import { FirePage } from "@/components/FirePage";
+import { ScrapbookPage } from "@/components/ScrapbookPage";
 import { requireHost } from "@/server/auth";
 import { createEventAction } from "./actions";
 
@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic";
 export default async function NewEventPage() {
   await requireHost();
   return (
-    <FirePage
-      headline="Light a new one."
+    <ScrapbookPage
+      headline="What are we celebrating?"
       detail="Name the night, set the time, and Spread turns the replies into portions, a shopping list and a split."
     >
       <NewEventForm action={createEventAction} />
-    </FirePage>
+    </ScrapbookPage>
   );
 }

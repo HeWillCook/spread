@@ -45,7 +45,7 @@ export function ShoppingPanel({
             ) : null}
           </div>
           {lines.length === 0 ? (
-            <EmptyState inset art="cart" title="Nothing to buy yet">
+            <EmptyState inset art="shopping" title="Nothing to buy yet">
               <p>Add a dish on the Menu tab and the list shows up here.</p>
             </EmptyState>
           ) : (
