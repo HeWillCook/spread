@@ -2,25 +2,66 @@ import Link from "next/link";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Card } from "@/components/ui/Card";
+import { Pill } from "@/components/ui/Pill";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { getDb } from "@/db/client";
+import { splitEventsByTime } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
 import { requireHost } from "@/server/auth";
 import { getBaseUrl, shareUrl } from "@/server/base-url";
-import { listHostEvents } from "@/services/events";
+import {
+  findDeletedHostEvent,
+  listHostEvents,
+  purgeDeletedEvents,
+  type EventSummary,
+} from "@/services/events";
+import { restoreEventAction } from "./actions";
 
 // Reads the session and the database, so it must never be prerendered.
 export const dynamic = "force-dynamic";
 
+function EventTicket({ event, baseUrl }: { event: EventSummary; baseUrl: string }) {
+  return (
+    <li className="ticket dash-ticket">
+      <div className="dash-ticket-head">
+        <Link href={`/host/events/${encodeURIComponent(event.id)}`} className="min-w-0">
+          <span className="event-card-title">{event.title}</span>
+          {event.cancelledAt ? (
+            <span className="mt-2 inline-flex">
+              <Pill tone="quiet">Cancelled</Pill>
+            </span>
+          ) : null}
+          <span className="event-card-meta">
+            {formatWhen(event.startsAt, event.location, event.timezone)}
+          </span>
+        </Link>
+        <p className="dash-ticket-count">
+          <span className="ticket-count-label">Plan for </span>
+          <span className="ticket-count-number">~{event.planFor}</span>
+        </p>
+      </div>
+      <div className="dash-ticket-stub">
+        <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
+      </div>
+    </li>
+  );
+}
+
 export default async function HostDashboardPage({ searchParams }: PageProps<"/host">) {
   const host = await requireHost();
-  const [events, baseUrl] = await Promise.all([
-    getDb().then((db) => listHostEvents(db, host.id)),
-    getBaseUrl(),
-  ]);
-  // Set by deleteEventAction; the notice stays until the host follows the Dismiss link.
+  const db = await getDb();
+  // Lazy, host-scoped purge: anything deleted more than 30 days ago goes for good.
+  await purgeDeletedEvents(db, host.id);
+  const [events, baseUrl] = await Promise.all([listHostEvents(db, host.id), getBaseUrl()]);
+
+  // Set by deleteEventAction (the id, never the title): the notice stays until the
+  // host follows the Dismiss link or Undo restores the event.
   const deleted = (await searchParams).deleted;
-  const deletedTitle = typeof deleted === "string" && deleted.trim() ? deleted : null;
+  const deletedId = typeof deleted === "string" && deleted.trim() ? deleted : null;
+  const deletedEvent = deletedId ? await findDeletedHostEvent(db, host.id, deletedId) : null;
+
+  const { upcoming, past } = splitEventsByTime(events);
 
   return (
     <main className="page-shell flex-1">
@@ -41,17 +82,28 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
         </Link>
       </div>
 
-      {deletedTitle ? (
+      {deletedEvent ? (
         <div
           role="status"
-          className="ticket-surface mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl bg-paper px-4 py-2"
+          className="ticket-surface mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl bg-paper px-4 py-3"
         >
           <p className="text-sm font-semibold">
-            Deleted <strong className="font-bold">“{deletedTitle}”</strong>.
+            Deleted <strong className="font-bold">“{deletedEvent.title}”</strong>.
           </p>
-          <Link href="/host" className="quiet-link">
-            Dismiss
-          </Link>
+          <div className="flex items-center gap-4">
+            <form action={restoreEventAction.bind(null, deletedEvent.id)}>
+              <SubmitButton
+                variant="outline"
+                pendingLabel="Restoring..."
+                className="min-h-11 px-3 py-2 text-sm"
+              >
+                Undo
+              </SubmitButton>
+            </form>
+            <Link href="/host" className="quiet-link">
+              Dismiss
+            </Link>
+          </div>
         </div>
       ) : null}
 
@@ -66,30 +118,33 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
           </Card>
         </div>
       ) : (
-        <ul className="event-list">
-          {events.map((event) => (
-            <li key={event.id} className="ticket dash-ticket">
-              <div className="dash-ticket-head">
-                <Link
-                  href={`/host/events/${encodeURIComponent(event.id)}`}
-                  className="min-w-0"
-                >
-                  <span className="event-card-title">{event.title}</span>
-                  <span className="event-card-meta">
-                    {formatWhen(event.startsAt, event.location, event.timezone)}
-                  </span>
-                </Link>
-                <p className="dash-ticket-count">
-                  <span className="ticket-count-label">Plan for </span>
-                  <span className="ticket-count-number">~{event.planFor}</span>
-                </p>
-              </div>
-              <div className="dash-ticket-stub">
-                <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          {upcoming.length > 0 ? (
+            <section aria-labelledby="upcoming-events">
+              <h2 id="upcoming-events" className="mt-8 text-xl font-bold">
+                Upcoming
+              </h2>
+              <ul className="event-list">
+                {upcoming.map((event) => (
+                  <EventTicket key={event.id} event={event} baseUrl={baseUrl} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {past.length > 0 ? (
+            <details className="mt-8">
+              <summary className="cursor-pointer font-display text-xl text-ink">
+                Past events ({past.length})
+              </summary>
+              <ul className="event-list">
+                {past.map((event) => (
+                  <EventTicket key={event.id} event={event} baseUrl={baseUrl} />
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </>
       )}
     </main>
   );

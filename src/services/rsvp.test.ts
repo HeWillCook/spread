@@ -208,6 +208,8 @@ describe("getPublicEvent", () => {
       timezone: "UTC",
       hostName: "Will",
       goingCount: 4,
+      cancelledAt: null,
+      deletedAt: null,
     });
     const json = JSON.stringify(result);
     for (const secret of ["Alex", "Sam", "Jo", "Bea", "secret allergy", "Cy", "Dee"]) {
@@ -221,5 +223,74 @@ describe("getPublicEvent", () => {
 
   it("throws NotFoundError for an unknown share code", async () => {
     await expect(getPublicEvent(db, "nope")).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("still names the host for a deleted event, so the page can say it's gone", async () => {
+    await db
+      .update(events)
+      .set({ deletedAt: new Date() })
+      .where(eq(events.id, "event-abc123"));
+    const result = await getPublicEvent(db, "abc123");
+    expect(result).toMatchObject({ hostName: "Will", goingCount: 0 });
+    expect(result.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("marks a cancelled event so the page can render it read-only", async () => {
+    await db
+      .update(events)
+      .set({ cancelledAt: new Date() })
+      .where(eq(events.id, "event-abc123"));
+    const result = await getPublicEvent(db, "abc123");
+    expect(result.cancelledAt).toBeInstanceOf(Date);
+    expect(result.deletedAt).toBeNull();
+  });
+});
+
+describe("RSVPs to a deleted or cancelled event", () => {
+  const close = async (column: "deletedAt" | "cancelledAt") => {
+    await db
+      .update(events)
+      .set(column === "deletedAt" ? { deletedAt: new Date() } : { cancelledAt: new Date() })
+      .where(eq(events.id, "event-abc123"));
+  };
+
+  it("rejects a first RSVP when the event was deleted", async () => {
+    await close("deletedAt");
+    const before = await db.select().from(guests);
+    await expect(submitRsvp(db, base)).rejects.toBeInstanceOf(ValidationError);
+    await expect(submitRsvp(db, base)).rejects.toThrow("no longer available");
+    expect(await db.select().from(guests)).toHaveLength(before.length);
+  });
+
+  it("rejects a first RSVP when the event was cancelled", async () => {
+    await close("cancelledAt");
+    await expect(submitRsvp(db, base)).rejects.toBeInstanceOf(ValidationError);
+    await expect(submitRsvp(db, base)).rejects.toThrow("cancelled");
+    expect(await db.select().from(guests)).toHaveLength(0);
+  });
+
+  it("rejects an updated RSVP for a deleted event and keeps the old answer", async () => {
+    const { guestId, editToken } = await submitRsvp(db, { ...base, status: "maybe" });
+    await close("deletedAt");
+    await expect(
+      updateRsvp(db, { ...base, editToken, status: "yes", name: "Changed" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const [guest] = await db.select().from(guests).where(eq(guests.id, guestId));
+    expect(guest.status).toBe("maybe");
+    expect(guest.name).toBe("Alex");
+  });
+
+  it("rejects an updated RSVP for a cancelled event", async () => {
+    const { editToken } = await submitRsvp(db, { ...base, status: "maybe" });
+    await close("cancelledAt");
+    await expect(updateRsvp(db, { ...base, editToken, status: "no" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
+  it("lets the guest read their answer even when RSVPs are closed", async () => {
+    const { editToken } = await submitRsvp(db, { ...base, status: "maybe" });
+    await close("cancelledAt");
+    expect((await getGuestByToken(db, "abc123", editToken)).status).toBe("maybe");
   });
 });

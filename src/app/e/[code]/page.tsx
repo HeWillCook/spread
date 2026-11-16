@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { CancelledEventNotice } from "@/components/CancelledEventNotice";
+import { EventUnavailable } from "@/components/EventUnavailable";
 import { RsvpForm } from "@/components/RsvpForm";
 import { getDb } from "@/db/client";
+import { eventState } from "@/lib/event-state";
 import { formatWhen } from "@/lib/format";
 import { guestCookieName } from "@/lib/guest-cookie";
 import { eventPreview, wantsBlankForm } from "@/lib/guest-page";
@@ -22,7 +25,8 @@ export async function generateMetadata({ params }: PageProps<"/e/[code]">): Prom
     if (error instanceof NotFoundError) return null;
     throw error;
   });
-  const { title, description } = eventPreview(event);
+  // A deleted event must not keep advertising its title in link previews.
+  const { title, description } = eventPreview(event && !event.deletedAt ? event : null);
   return { title, description, openGraph: { title, description } };
 }
 
@@ -38,6 +42,10 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
+
+  const state = eventState(event);
+  if (state === "deleted") return <EventUnavailable hostName={event.hostName} />;
+  const cancelled = state === "cancelled";
 
   // A returning guest goes straight to their edit page. A missing, invalid or
   // stale cookie is ignored. `?new=1` ("Not you?") skips this and shows a blank form.
@@ -71,29 +79,33 @@ export default async function GuestPage({ params, searchParams }: PageProps<"/e/
           goingCount: event.goingCount,
         }}
         action={submitGuestRsvp.bind(null, code)}
+        readOnly={cancelled}
+        notice={cancelled ? <CancelledEventNotice hostName={event.hostName} /> : undefined}
       />
 
-      <aside className="mx-auto -mt-6 w-full max-w-lg px-3 pb-14 sm:px-5">
-        <div className="ticket-surface rounded-2xl border border-divider bg-paper p-4">
-          <h2 className="text-base font-bold text-ink">Add to calendar</h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink/80">
-            Save the time now. Come back to this link if plans change.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <a href={`/e/${encodeURIComponent(code)}/calendar.ics`} className="quiet-link">
-              Download .ics
-            </a>
-            <a
-              href={googleUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="quiet-link"
-            >
-              Google Calendar
-            </a>
+      {cancelled ? null : (
+        <aside className="mx-auto -mt-6 w-full max-w-lg px-3 pb-14 sm:px-5">
+          <div className="ticket-surface rounded-2xl border border-divider bg-paper p-4">
+            <h2 className="text-base font-bold text-ink">Add to calendar</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink/80">
+              Save the time now. Come back to this link if plans change.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              <a href={`/e/${encodeURIComponent(code)}/calendar.ics`} className="quiet-link">
+                Download .ics
+              </a>
+              <a
+                href={googleUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="quiet-link"
+              >
+                Google Calendar
+              </a>
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
     </main>
   );
 }

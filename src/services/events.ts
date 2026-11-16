@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { events, guests, invitees, plusOnes } from "@/db/schema";
@@ -28,6 +28,8 @@ export interface EventSummary {
   shareCode: string;
   /** Heads to plan for: confirmed yeses plus the expected share of maybes. */
   planFor: number;
+  /** Set while the event is cancelled; the dashboard shows a badge (deleted events never list). */
+  cancelledAt: Date | null;
 }
 
 const MAX_TITLE = 100;
@@ -35,6 +37,8 @@ const MAX_LOCATION = 200;
 const MAX_NAME = 80;
 const MAX_INVITEES_PER_CALL = 200;
 const SHARE_CODE_ATTEMPTS = 5;
+/** Deleted events stay restorable (and visible to nobody but the Undo link) for 30 days. */
+export const PURGE_AFTER_DAYS = 30;
 
 const detailsShape = {
   title: z.string().trim().min(1, "Give your event a name").max(MAX_TITLE),
@@ -112,9 +116,10 @@ export async function updateEvent(
 }
 
 /**
- * Deletes the host's event and returns its title (for a confirmation message).
- * Every table that hangs off an event — guests and their plus-ones, dishes,
- * invitees, shopping ticks, extra costs — cascades in the database.
+ * Moves the host's event to the bin and returns its title (for the dashboard's
+ * "Deleted …" notice). Nothing is destroyed: guests, plus-ones, dishes, invitees,
+ * shopping ticks and extra costs all stay attached, and `restoreEvent` brings the
+ * event back for 30 days. After that `purgeDeletedEvents` removes it for good.
  */
 export async function deleteEvent(
   db: Db,
@@ -122,19 +127,96 @@ export async function deleteEvent(
   eventId: string,
 ): Promise<{ title: string }> {
   const [deleted] = await db
-    .delete(events)
-    .where(and(eq(events.id, eventId), eq(events.hostId, hostId)))
+    .update(events)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(eq(events.id, eventId), eq(events.hostId, hostId), isNull(events.deletedAt)),
+    )
     .returning({ title: events.title });
   if (!deleted) throw new NotFoundError("Event not found");
   return deleted;
 }
 
-/** The host's events, soonest first, each with its planning headcount. */
+/** Brings a deleted event back, with everything that hung off it. */
+export async function restoreEvent(db: Db, hostId: string, eventId: string): Promise<void> {
+  const restored = await db
+    .update(events)
+    .set({ deletedAt: null })
+    .where(
+      and(eq(events.id, eventId), eq(events.hostId, hostId), isNotNull(events.deletedAt)),
+    )
+    .returning({ id: events.id });
+  if (restored.length === 0) throw new NotFoundError("Event not found");
+}
+
+/** The host's own deleted event, or null: used to resolve the dashboard's Undo notice. */
+export async function findDeletedHostEvent(
+  db: Db,
+  hostId: string,
+  eventId: string,
+): Promise<EventRow | null> {
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(
+      and(eq(events.id, eventId), eq(events.hostId, hostId), isNotNull(events.deletedAt)),
+    );
+  return event ?? null;
+}
+
+/**
+ * Hard-deletes this host's events that were deleted more than 30 days ago.
+ * Their children cascade in the database. Runs lazily from the dashboard, so no
+ * scheduler is needed; other hosts' bins are untouched.
+ */
+export async function purgeDeletedEvents(
+  db: Db,
+  hostId: string,
+  now: Date = new Date(),
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - PURGE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+  const purged = await db
+    .delete(events)
+    .where(
+      and(
+        eq(events.hostId, hostId),
+        isNotNull(events.deletedAt),
+        lt(events.deletedAt, cutoff),
+      ),
+    )
+    .returning({ id: events.id });
+  return purged.length;
+}
+
+/** Cancels the event without deleting it: guests keep the link, with RSVPs closed. */
+export async function cancelEvent(db: Db, hostId: string, eventId: string): Promise<void> {
+  const cancelled = await db
+    .update(events)
+    .set({ cancelledAt: new Date() })
+    .where(and(eq(events.id, eventId), eq(events.hostId, hostId), isNull(events.deletedAt)))
+    .returning({ id: events.id });
+  if (cancelled.length === 0) throw new NotFoundError("Event not found");
+}
+
+/** Reinstates a cancelled event and reopens RSVPs. */
+export async function uncancelEvent(db: Db, hostId: string, eventId: string): Promise<void> {
+  const reinstated = await db
+    .update(events)
+    .set({ cancelledAt: null })
+    .where(and(eq(events.id, eventId), eq(events.hostId, hostId), isNull(events.deletedAt)))
+    .returning({ id: events.id });
+  if (reinstated.length === 0) throw new NotFoundError("Event not found");
+}
+
+/**
+ * The host's live events, soonest first, each with its planning headcount.
+ * Deleted events never list, so the dashboard never shows one.
+ */
 export async function listHostEvents(db: Db, hostId: string): Promise<EventSummary[]> {
   const rows = await db
     .select()
     .from(events)
-    .where(eq(events.hostId, hostId))
+    .where(and(eq(events.hostId, hostId), isNull(events.deletedAt)))
     .orderBy(asc(events.startsAt), asc(events.title));
   const headcounts = await headcountForEvents(
     db,
@@ -148,20 +230,23 @@ export async function listHostEvents(db: Db, hostId: string): Promise<EventSumma
     timezone: r.timezone,
     shareCode: r.shareCode,
     planFor: headcounts.get(r.id)?.planFor ?? 0,
+    cancelledAt: r.cancelledAt,
   }));
 }
 
-/** The event if it belongs to this host; otherwise NotFoundError (never leaks existence). */
+/** The live event if it belongs to this host, else NotFoundError (never leaks existence). */
 export async function getHostEvent(db: Db, hostId: string, eventId: string): Promise<EventRow> {
   const [event] = await db
     .select()
     .from(events)
-    .where(and(eq(events.id, eventId), eq(events.hostId, hostId)));
+    .where(
+      and(eq(events.id, eventId), eq(events.hostId, hostId), isNull(events.deletedAt)),
+    );
   if (!event) throw new NotFoundError("Event not found");
   return event;
 }
 
-/** Headcount per event id, using each event's own maybe percentage. */
+/** Headcount per live event id, using each event's own maybe percentage. */
 export async function headcountForEvents(
   db: Db,
   eventIds: string[],
@@ -172,7 +257,7 @@ export async function headcountForEvents(
   const eventRows = await db
     .select({ id: events.id, maybePercent: events.maybePercent })
     .from(events)
-    .where(inArray(events.id, eventIds));
+    .where(and(inArray(events.id, eventIds), isNull(events.deletedAt)));
   const guestRows = await db
     .select({ id: guests.id, eventId: guests.eventId, status: guests.status })
     .from(guests)

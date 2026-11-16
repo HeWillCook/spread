@@ -58,24 +58,59 @@ export function newEditToken(): string {
   return randomBytes(24).toString("base64url");
 }
 
-async function findEventId(db: Db, shareCode: string): Promise<string> {
+/** What a public guest page may show. Never guest names or food notes. */
+export interface PublicEvent {
+  title: string;
+  startsAt: Date;
+  location: string;
+  /** IANA zone the event time should be shown in. */
+  timezone: string;
+  hostName: string;
+  goingCount: number;
+  /** Set while the host has called the event off: the page renders read-only. */
+  cancelledAt: Date | null;
+  /** Set while the event is in the bin: the page shows "no longer available". */
+  deletedAt: Date | null;
+}
+
+const RSVP_CLOSED_DELETED = "This event is no longer available.";
+const RSVP_CLOSED_CANCELLED = "This event was cancelled, so RSVPs are closed.";
+
+/** Deleted and cancelled events take no RSVPs, even from a stale tab or a crafted POST. */
+function assertRsvpOpen(event: { cancelledAt: Date | null; deletedAt: Date | null }): void {
+  if (event.deletedAt) throw new ValidationError(RSVP_CLOSED_DELETED);
+  if (event.cancelledAt) throw new ValidationError(RSVP_CLOSED_CANCELLED);
+}
+
+async function findEventId(
+  db: Db,
+  shareCode: string,
+): Promise<{ id: string; cancelledAt: Date | null; deletedAt: Date | null }> {
   const [event] = await db
-    .select({ id: events.id })
+    .select({ id: events.id, cancelledAt: events.cancelledAt, deletedAt: events.deletedAt })
     .from(events)
     .where(eq(events.shareCode, shareCode));
   if (!event) throw new NotFoundError("Event not found");
-  return event.id;
+  return event;
 }
 
 /** A guest only matches when the token AND the event's share code both match. */
-async function findGuestId(db: Db, shareCode: string, editToken: string): Promise<string> {
+async function findGuestId(
+  db: Db,
+  shareCode: string,
+  editToken: string,
+): Promise<{ id: string; cancelledAt: Date | null; deletedAt: Date | null }> {
   const [row] = await db
-    .select({ id: guests.id })
+    .select({
+      id: guests.id,
+      cancelledAt: events.cancelledAt,
+      deletedAt: events.deletedAt,
+    })
     .from(guests)
     .innerJoin(events, eq(guests.eventId, events.id))
     .where(and(eq(events.shareCode, shareCode), eq(guests.editToken, editToken)));
   if (!row) throw new NotFoundError("RSVP not found");
-  return row.id;
+  return row;
 }
 
 export async function submitRsvp(
@@ -83,7 +118,9 @@ export async function submitRsvp(
   input: RsvpInput,
 ): Promise<{ guestId: string; editToken: string }> {
   const data = parseInput(input);
-  const eventId = await findEventId(db, data.shareCode);
+  const event = await findEventId(db, data.shareCode);
+  assertRsvpOpen(event);
+  const eventId = event.id;
   const editToken = newEditToken();
 
   const guestId = await db.transaction(async (tx) => {
@@ -110,7 +147,9 @@ export async function submitRsvp(
 
 export async function updateRsvp(db: Db, input: RsvpInput & { editToken: string }): Promise<void> {
   const data = parseInput(input);
-  const guestId = await findGuestId(db, data.shareCode, input.editToken);
+  const guest = await findGuestId(db, data.shareCode, input.editToken);
+  assertRsvpOpen(guest);
+  const guestId = guest.id;
 
   await db.transaction(async (tx) => {
     await tx
@@ -129,7 +168,7 @@ export async function getGuestByToken(
   shareCode: string,
   editToken: string,
 ): Promise<GuestView> {
-  const guestId = await findGuestId(db, shareCode, editToken);
+  const guestId = (await findGuestId(db, shareCode, editToken)).id;
   const [guest] = await db.select().from(guests).where(eq(guests.id, guestId));
   const pos = await db.select({ name: plusOnes.name }).from(plusOnes).where(eq(plusOnes.guestId, guestId));
   return {
@@ -141,21 +180,27 @@ export async function getGuestByToken(
   };
 }
 
-/** Public-safe event details: no guest names, no food notes. */
-export async function getPublicEvent(
-  db: Db,
-  shareCode: string,
-): Promise<{
-  title: string;
-  startsAt: Date;
-  location: string;
-  /** IANA zone the event time should be shown in. */
-  timezone: string;
-  hostName: string;
-  goingCount: number;
-}> {
+/**
+ * Public-safe event details: no guest names, no food notes. A deleted event is
+ * still found so the guest page can say "no longer available" (with the host's
+ * name) instead of a bare 404.
+ */
+export async function getPublicEvent(db: Db, shareCode: string): Promise<PublicEvent> {
   const [event] = await db.select().from(events).where(eq(events.shareCode, shareCode));
   if (!event) throw new NotFoundError("Event not found");
+
+  if (event.deletedAt) {
+    return {
+      title: event.title,
+      startsAt: event.startsAt,
+      location: event.location,
+      timezone: event.timezone,
+      hostName: event.hostName,
+      goingCount: 0,
+      cancelledAt: event.cancelledAt,
+      deletedAt: event.deletedAt,
+    };
+  }
 
   const [{ yesGuests }] = await db
     .select({ yesGuests: count() })
@@ -174,5 +219,7 @@ export async function getPublicEvent(
     timezone: event.timezone,
     hostName: event.hostName,
     goingCount: yesGuests + yesPlusOnes,
+    cancelledAt: event.cancelledAt,
+    deletedAt: event.deletedAt,
   };
 }
