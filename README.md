@@ -89,7 +89,7 @@ The first time, install the browser with `npm run e2e:install`. `npm run e2e` bu
 4. In Project Settings, Environment Variables, add `DATABASE_URL`, `BETTER_AUTH_SECRET` (a long random string), and `BETTER_AUTH_URL` (your production origin, e.g. `https://cookout.example.com`, with no trailing slash).
 5. Deploy. The first request seeds the starter recipes. Re-run `npm run db:migrate` against the database whenever a deploy adds a migration.
 
-The live deployment is Vercel project `cookout` (https://cookout-lac.vercel.app), connected to this repo: every push to `main` deploys to production. Its production env vars are `DATABASE_URL` (Neon production, pooled), `DATABASE_POOL_MAX=1`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=https://cookout-lac.vercel.app`. Preview deployments have no database configured yet.
+The live deployment is Vercel project `cookout` (https://spreadparty.vercel.app; the old https://cookout-lac.vercel.app 308-redirects there), connected to this repo: every push to `main` deploys to production. Its production env vars are `DATABASE_URL` (Neon production, pooled), `DATABASE_POOL_MAX=1`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=https://spreadparty.vercel.app`. Preview deployments have no database configured yet.
 
 ## Venmo links
 
