@@ -2,12 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CancelledEventNotice } from "@/components/CancelledEventNotice";
 import { CopyCancellationButton } from "@/components/CopyCancellationButton";
-import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { CoverChip } from "@/components/CoverChip";
 import { EventTabs } from "@/components/EventTabs";
+import { EventTopBar } from "@/components/event/EventTopBar";
 import { OccasionScene } from "@/components/occasion/OccasionScene";
 import { Sticker } from "@/components/scrapbook/Sticker";
-import { WashiTape } from "@/components/scrapbook/WashiTape";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { coverFor } from "@/lib/cover";
 import { occasionAccent, occasionFor, occasionSticker } from "@/lib/occasion";
@@ -32,9 +31,23 @@ export default async function EventLayout({
     getBaseUrl(),
   ]);
   const theme = occasionFor(event.coverEmoji);
+  const inviteUrl = shareUrl(baseUrl, event.shareCode);
 
   return (
     <div className="event-shell">
+      <EventTopBar
+        eventId={event.id}
+        title={event.title}
+        cover={coverFor(event)}
+        planFor={planFor}
+        confirmed={confirmed}
+        shareUrl={inviteUrl}
+        cancelled={event.cancelledAt !== null}
+        accent={occasionAccent(theme)}
+        duplicateAction={duplicateEventAction.bind(null, event.id)}
+      />
+
+      {/* Desktop keeps the full order ticket; phones use the compact bar above. */}
       <header className="event-masthead">
         <div className="event-top">
           <Link href="/host" aria-label="All my events" className="wordmark-link">
@@ -44,23 +57,6 @@ export default async function EventLayout({
             All events
           </Link>
         </div>
-
-        {event.cancelledAt ? (
-          <div className="mb-4">
-            <CancelledEventNotice>
-              <p className="text-sm leading-relaxed text-ink-muted">
-                Guests see this event as cancelled and can&apos;t RSVP. Everything is still here,
-                so you can reinstate it from Edit details.
-              </p>
-              <div className="mt-1">
-                <CopyCancellationButton
-                  title={event.title}
-                  when={formatWhen(event.startsAt, "", event.timezone)}
-                />
-              </div>
-            </CancelledEventNotice>
-          </div>
-        ) : null}
 
         <div className="ticket event-ticket">
           <div className="event-scene" aria-hidden="true">
@@ -104,30 +100,28 @@ export default async function EventLayout({
               <p className="ticket-count-sub">with {confirmed} confirmed</p>
             </div>
           </div>
-
-          {/* A cancelled event takes no RSVPs, so don't invite anyone to it. */}
-          {event.cancelledAt ? null : (
-            <section className="event-invite" aria-labelledby="invite-title">
-              <span className="event-invite-tape event-invite-tape-left" aria-hidden="true">
-                <WashiTape pattern="gingham" tone="mustard" tilt={-4} />
-              </span>
-              <span className="event-invite-tape event-invite-tape-right" aria-hidden="true">
-                <WashiTape pattern="stripe" tone="pickle" tilt={3} />
-              </span>
-              <div>
-                <h2 id="invite-title">Invite your guests</h2>
-                <p>Guests RSVP from this link. No account needed.</p>
-              </div>
-              <CopyLinkButton url={shareUrl(baseUrl, event.shareCode)} />
-            </section>
-          )}
         </div>
       </header>
 
-      <main className="event-main">
-        <div className="event-tabs">
-          <EventTabs eventId={event.id} accent={occasionAccent(theme)} />
+      {event.cancelledAt ? (
+        <div className="event-cancelled">
+          <CancelledEventNotice>
+            <p className="text-sm leading-relaxed text-ink-muted">
+              Guests see this event as cancelled and can&apos;t RSVP. Everything is still here,
+              so you can reinstate it from Edit details.
+            </p>
+            <div className="mt-1">
+              <CopyCancellationButton
+                title={event.title}
+                when={formatWhen(event.startsAt, "", event.timezone)}
+              />
+            </div>
+          </CancelledEventNotice>
         </div>
+      ) : null}
+
+      <main className="event-main">
+        <EventTabs eventId={event.id} accent={occasionAccent(theme)} />
         {children}
       </main>
     </div>

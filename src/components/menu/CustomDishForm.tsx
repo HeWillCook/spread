@@ -42,6 +42,10 @@ function Fields({ pending, error }: { pending: boolean; error: string | null }) 
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState(DEFAULT_EMOJI);
   const [servings, setServings] = useState("1");
+  const [prep, setPrep] = useState("");
+  const [cook, setCook] = useState("");
+  const [steps, setSteps] = useState("");
+  const [tips, setTips] = useState("");
   const [items, setItems] = useState<ItemDraft[]>(() => [blankItem(0)]);
 
   const setItem = (key: number, field: TextKey, value: string) =>
@@ -81,6 +85,62 @@ function Fields({ pending, error }: { pending: boolean; error: string | null }) 
         onChange={(e) => setServings(e.target.value)}
         required
       />
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field
+          label="Prep minutes"
+          hint="Optional"
+          name={F.prepMinutes}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          value={prep}
+          onChange={(e) => setPrep(e.target.value)}
+        />
+        <Field
+          label="Cook minutes"
+          hint="Optional"
+          name={F.cookMinutes}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          value={cook}
+          onChange={(e) => setCook(e.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="new-dish-steps" className="text-sm font-bold text-ink">
+          Steps (one per line)
+        </label>
+        <textarea
+          id="new-dish-steps"
+          name={F.steps}
+          value={steps}
+          onChange={(e) => setSteps(e.target.value)}
+          rows={4}
+          placeholder={"Shred the cabbage.\nToss with dressing."}
+          className="min-h-24 rounded-xl border-[1.5px] border-ink/35 bg-white px-3.5 py-2.5 text-base text-ink transition-colors placeholder:text-ink-muted hover:border-ink/60 focus:border-ink"
+        />
+        <p className="text-xs leading-relaxed text-ink-muted">Optional.</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="new-dish-tips" className="text-sm font-bold text-ink">
+          Tips (one per line)
+        </label>
+        <textarea
+          id="new-dish-tips"
+          name={F.tips}
+          value={tips}
+          onChange={(e) => setTips(e.target.value)}
+          rows={3}
+          placeholder="Make it a day ahead."
+          className="min-h-20 rounded-xl border-[1.5px] border-ink/35 bg-white px-3.5 py-2.5 text-base text-ink transition-colors placeholder:text-ink-muted hover:border-ink/60 focus:border-ink"
+        />
+      </div>
 
       {items.map((item, index) => (
         <fieldset

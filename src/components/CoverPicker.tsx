@@ -25,9 +25,6 @@ export function CoverPicker({
   return (
     <fieldset className="flex flex-col gap-3">
       <legend className="text-sm font-bold text-ink">Cover</legend>
-      <p className="text-xs leading-relaxed text-ink-muted">
-        A small badge for this event on your list and your guests&apos; page.
-      </p>
 
       <div className="flex flex-wrap gap-1.5">
         {COVERS.map((cover) => (
@@ -68,7 +65,7 @@ export function CoverPicker({
             />
             <span
               aria-hidden
-              className={`block h-9 w-9 rounded-full ring-1 ring-inset ring-ink/15 peer-checked:ring-2 peer-checked:ring-ink peer-checked:ring-offset-2 peer-checked:ring-offset-paper peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink ${choice.className}`}
+              className={`block h-11 w-11 rounded-full ring-1 ring-inset ring-ink/15 peer-checked:ring-2 peer-checked:ring-ink peer-checked:ring-offset-2 peer-checked:ring-offset-paper peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink ${choice.className}`}
             />
           </label>
         ))}

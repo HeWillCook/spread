@@ -159,12 +159,7 @@ export function TodayChecklist({ plan }: { plan: TodayPlan }) {
   return (
     <div className="flex flex-col gap-4">
       <Card className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div>
-          <p className="text-lg font-bold">{plan.headcountLine}</p>
-          <p className="text-sm text-ink/80">
-            Planning for ~{plan.planFor} {plan.planFor === 1 ? "person" : "people"} · {plan.when}
-          </p>
-        </div>
+        <p className="text-base font-bold">{plan.headcountLine}</p>
         <p className="text-sm font-bold text-ink-muted">
           {doneCount} of {items.length} done
         </p>
@@ -174,9 +169,6 @@ export function TodayChecklist({ plan }: { plan: TodayPlan }) {
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <h2 className="text-lg font-bold">Timeline</h2>
-            <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-              Times use the event&apos;s own time zone.
-            </p>
             <div className="mt-2">
               {plan.milestones.map((milestone) => (
                 <ChecklistRow

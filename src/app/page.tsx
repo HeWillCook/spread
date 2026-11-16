@@ -31,7 +31,6 @@ const explainers = [
 
 const stamps = [
   { value: "1 link", caption: "to invite everyone" },
-  { value: "0 accounts", caption: "for guests to reply" },
   { value: "every bun counted", caption: "from their answers" },
 ];
 
@@ -83,9 +82,6 @@ export default async function Home() {
                 {host ? "Go to your events" : "Host a get-together"}
               </Link>
             </div>
-            <p className="hero-note">
-              Guests reply in their browser. No app to install.
-            </p>
 
             <ul className="hero-stamps" aria-label="How Spread works">
               {stamps.map((stamp) => (

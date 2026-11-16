@@ -35,7 +35,6 @@ export default async function ShoppingTab({ params }: PageProps<"/host/events/[i
 
   return (
     <div className="flex flex-col gap-6">
-      <FoodNotesSummary guests={overview.guests} />
       <ShoppingPanel
         plan={plan}
         rangeNote={note}
@@ -54,6 +53,7 @@ export default async function ShoppingTab({ params }: PageProps<"/host/events/[i
         }))}
         addExtraAction={addExtraCostAction.bind(null, event.id)}
       />
+      <FoodNotesSummary guests={overview.guests} />
     </div>
   );
 }

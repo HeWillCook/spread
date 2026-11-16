@@ -9,8 +9,8 @@ function PeopleFor({ headcount }: { headcount: number }) {
 }
 
 /**
- * A saved, host-only sheet for the counter. It shows saved RSVP/portion data only;
- * it never recalculates attendance live or invents cooking directions.
+ * A saved, host-only sheet for the counter. It shows saved RSVP/portion data and the
+ * recipe's own saved steps; it never recalculates attendance live or invents directions.
  *
  * Scoped hooks for the parent's globals/print CSS: kitchen-sheet, kitchen-sheet-head,
  * kitchen-event-name, kitchen-title, kitchen-meta, kitchen-summary, kitchen-plan,
@@ -44,10 +44,6 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
           {planningLabel(sheet.headcount)}
         </h2>
         <p className="kitchen-headcount mt-1 text-sm font-bold text-ink/80">{sheet.headcountLine}</p>
-        <p className="kitchen-snapshot-note mt-2 text-xs leading-relaxed text-ink/80">
-          Saved planning snapshot. Counts and quantities use the RSVPs and portions saved in
-          Spread; attendance can still change.
-        </p>
       </section>
 
       <div className="kitchen-actions flex flex-wrap items-start justify-between gap-4 print:hidden">
@@ -113,6 +109,18 @@ export function KitchenSheet({ sheet }: { sheet: PrepSheet }) {
                       </div>
                     ))}
                   </dl>
+                  {dish.timeLabel ? (
+                    <p className="kitchen-dish-time mt-2 text-xs font-bold text-ink/80">
+                      {dish.timeLabel}
+                    </p>
+                  ) : null}
+                  {dish.steps.length > 0 ? (
+                    <ol className="kitchen-steps mt-2 flex list-decimal flex-col gap-1 pl-5 text-sm leading-relaxed">
+                      {dish.steps.map((step, index) => (
+                        <li key={`${index}-${step.slice(0, 24)}`}>{step}</li>
+                      ))}
+                    </ol>
+                  ) : null}
                 </article>
               ))}
             </div>

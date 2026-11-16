@@ -31,18 +31,19 @@ function refresh(eventId: string) {
 async function run(
   eventId: string,
   prev: MenuFormState,
-  work: (hostId: string) => Promise<void>,
+  work: (hostId: string) => Promise<Partial<MenuFormState> | void>,
 ): Promise<MenuFormState> {
   const host = await requireHost();
+  let extra: Partial<MenuFormState> = {};
   try {
-    await work(host.id);
+    extra = (await work(host.id)) ?? {};
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message, saves: prev.saves };
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
   refresh(eventId);
-  return { error: null, saves: prev.saves + 1 };
+  return { error: null, saves: prev.saves + 1, ...extra };
 }
 
 export async function addDishAction(
@@ -53,7 +54,8 @@ export async function addDishAction(
   const recipeId = formData.get("recipeId");
   return run(eventId, prev, async (hostId) => {
     if (typeof recipeId !== "string" || !recipeId) throw new ValidationError("Pick a dish to add");
-    await addDishToEvent(await getDb(), hostId, eventId, recipeId);
+    const { dishId, name } = await addDishToEvent(await getDb(), hostId, eventId, recipeId);
+    return { added: { dishId, name } };
   });
 }
 
@@ -72,7 +74,7 @@ export async function updateDishAction(
     for (const item of dish.recipe.items) {
       const raw = formData.get(`${AMOUNT_PREFIX}${item.id}`);
       if (raw === null) continue;
-      // Boxes show amounts rounded to 4 places (1/3 lb is "0.3333"); an untouched box keeps the exact value.
+      // Boxes show amounts rounded to 3 places (1/3 lb is "0.333"); an untouched box keeps the exact value.
       itemAmounts[item.id] =
         typeof raw === "string" && raw.trim() === formatAmount(item.perServing)
           ? item.perServing
@@ -97,6 +99,20 @@ export async function removeDishAction(
 
 function texts(formData: FormData, name: string): string[] {
   return formData.getAll(name).map((v) => (typeof v === "string" ? v : ""));
+}
+
+/** One-per-line textarea: split, trim, drop blanks. */
+function lines(formData: FormData, name: string): string[] {
+  return String(formData.get(name) ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+/** Optional minutes: a blank box means "no estimate", anything else must parse. */
+function optionalNumber(raw: FormDataEntryValue | null): number | undefined {
+  if (typeof raw !== "string" || raw.trim() === "") return undefined;
+  return parseNumber(raw);
 }
 
 export async function createDishAction(
@@ -140,6 +156,10 @@ export async function createDishAction(
       name: String(formData.get(F.name) ?? ""),
       emoji: String(formData.get(F.emoji) ?? ""),
       defaultServingsPerPerson: parseNumber(formData.get(F.servings)),
+      prepMinutes: optionalNumber(formData.get(F.prepMinutes)),
+      cookMinutes: optionalNumber(formData.get(F.cookMinutes)),
+      steps: lines(formData, F.steps),
+      tips: lines(formData, F.tips),
       items,
     });
     await addDishToEvent(db, hostId, eventId, recipeId);

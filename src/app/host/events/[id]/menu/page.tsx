@@ -28,7 +28,6 @@ export default async function MenuTab({ params }: PageProps<"/host/events/[id]/m
 
   return (
     <div className="flex flex-col gap-6">
-      <FoodNotesSummary guests={overview.guests} />
       <MenuPanel
         sheetHref={`/host/events/${encodeURIComponent(event.id)}/prep`}
         planningTools={
@@ -49,6 +48,7 @@ export default async function MenuTab({ params }: PageProps<"/host/events/[id]/m
         addDishAction={addDishAction.bind(null, event.id)}
         createDishAction={createDishAction.bind(null, event.id)}
       />
+      <FoodNotesSummary guests={overview.guests} />
     </div>
   );
 }

@@ -25,7 +25,6 @@ describe("TodayChecklist", () => {
   it("shows the headcount, milestone times and both checklists", () => {
     render(<TodayChecklist plan={plan} />);
     expect(screen.getByText("6 confirmed + ~2 from maybes · range 6–10")).toBeInTheDocument();
-    expect(screen.getByText(/Planning for ~8 people/)).toBeInTheDocument();
     expect(screen.getByText("4:00 PM")).toBeInTheDocument();
     expect(screen.getByText("4 lb to buy")).toBeInTheDocument();
     expect(screen.getByText("make 12 burgers")).toBeInTheDocument();

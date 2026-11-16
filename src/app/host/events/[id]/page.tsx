@@ -52,7 +52,11 @@ export default async function GuestsTab({ params, searchParams }: PageProps<"/ho
       ) : null}
       <GuestsPanel
         overview={overview}
-        invitation={{ title: event.title, url: shareUrl(baseUrl, event.shareCode) }}
+        invitation={
+          event.cancelledAt
+            ? undefined
+            : { title: event.title, url: shareUrl(baseUrl, event.shareCode) }
+        }
         maybePercent={event.maybePercent}
         setMaybePercentAction={setMaybePercentAction.bind(null, event.id)}
         addInviteesAction={addInviteesAction.bind(null, event.id)}

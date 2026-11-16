@@ -21,6 +21,8 @@ const prepSheet = {
       servings: 12,
       servingsPerPerson: 1.5,
       servingsLabel: "12 burgers",
+      timeLabel: null,
+      steps: [],
       ingredients: [],
     },
     {
@@ -30,6 +32,8 @@ const prepSheet = {
       servings: 6,
       servingsPerPerson: 0.75,
       servingsLabel: "6 bowls",
+      timeLabel: null,
+      steps: [],
       ingredients: [],
     },
   ],

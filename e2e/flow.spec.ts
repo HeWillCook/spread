@@ -37,7 +37,8 @@ async function createEvent(page: Page, title: string): Promise<{ eventUrl: strin
   const submit = page.getByRole("button", { name: "Create event" });
   await expect(submit).toBeEnabled();
   await submit.click();
-  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.locator(".event-bar-title")).toHaveText(title);
+  await expect(page.getByRole("navigation", { name: "Event sections" })).toBeVisible();
   const eventUrl = page.url();
 
   // The dashboard shows the guest link under the event.
@@ -84,7 +85,7 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 1. The host signs up, creates the event and reads the share link.
   await signUp(page, "Hannah Host");
   const { eventUrl, shareLink } = await createEvent(page, "Burger Night");
-  await expect(page.getByText("Plan for ~0", { exact: true })).toBeVisible();
+  await expect(page.getByText(/~0 guests/)).toBeVisible();
   // Hosts can invite immediately without leaving the event.
   await expect(page.getByRole("button", { name: "Copy link", exact: true })).toBeVisible();
   await page.getByLabel(/Who did you invite/).fill("Pat Guest\nMorgan Unanswered");
@@ -121,7 +122,7 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 4. The host's Guests tab counts both heads.
   await page.goto(eventUrl);
   await expect(page.getByText(/^2 confirmed/)).toBeVisible();
-  await expect(page.getByText("Plan for ~2", { exact: true })).toBeVisible();
+  await expect(page.getByText(/~2 guests/)).toBeVisible();
   await expect(page.getByText("Pat Guest")).toBeVisible();
 
   // 5. Add the starter Burgers dish on the Menu tab.
@@ -135,18 +136,18 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   await preview.getByLabel("Try a headcount").fill("8");
   await expect(preview.getByRole("status")).toContainText("Previewing 8 people");
   await expect(preview.locator(".whatif-yield-value")).toContainText("12 burgers");
-  await expect(page.getByText("Plan for ~2", { exact: true })).toBeVisible();
+  await expect(page.getByText(/~2 guests/)).toBeVisible();
 
   // A kitchen sheet uses saved quantities and remains readable in print media.
   await page.getByRole("link", { name: /Kitchen sheet/ }).click();
   await expect(page.getByRole("heading", { name: "Kitchen sheet", exact: true })).toBeVisible();
   await expect(page.locator(".kitchen-dish-servings")).toContainText("3 burgers");
   await expect(page.locator(".kitchen-headcount")).toContainText("2 confirmed");
-  await expect(page.getByRole("link", { name: "Menu", exact: true })).toHaveAttribute("aria-current", "page");
+  // The Kitchen sheet is its own screen, so no section claims to be current.
+  await expect(page.locator(".event-tab-bar a[aria-current='page']")).toHaveCount(0);
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".kitchen-sheet")).toBeVisible();
-  await expect(page.locator(".event-invite")).toBeHidden();
-  await expect(page.locator(".event-tabs")).toBeHidden();
+  await expect(page.locator(".event-tab-bar")).toBeHidden();
   await expect(page.getByRole("button", { name: "Print kitchen sheet" })).toBeHidden();
   await page.emulateMedia({ media: "screen" });
   await page.getByRole("link", { name: "Back to Menu" }).click();
@@ -177,15 +178,13 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
 
   // 7. Split: tick the guest as attended and see what they owe.
   await page.getByRole("link", { name: "Split" }).click();
-  const prompt = page.getByText("Tick who came to see what everyone owes");
-  await expect(prompt).toBeVisible();
   const came = page.getByRole("checkbox", { name: "Pat Guest came" });
+  const guestRow = rowOf(page.getByText("Pat Guest", { exact: true }));
   await expect(async () => {
     await came.check();
-    await expect(prompt).toHaveCount(0, { timeout: 1000 });
+    await expect(came).toBeChecked({ timeout: 1000 });
+    await expect(guestRow).toContainText(/\$\d+\.\d{2}/, { timeout: 1000 });
   }).toPass();
-  const guestRow = rowOf(page.getByText("Pat Guest", { exact: true }));
-  await expect(guestRow).toContainText(/\$\d+\.\d{2}/);
   await expect(guestRow).not.toContainText("$0.00");
 
   // 8. The guest reopens their link (the cookie sends them to their edit page) and backs out.
@@ -198,7 +197,7 @@ test("host plans a burger night from sign-up to a changed RSVP", async ({ page, 
   // 9. The host's count drops to zero.
   await page.goto(eventUrl);
   await expect(page.getByText(/^0 confirmed/)).toBeVisible();
-  await expect(page.getByText("Plan for ~0", { exact: true })).toBeVisible();
+  await expect(page.getByText(/~0 guests/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy reminder for Pat Guest" })).toHaveCount(0);
   // The same event is usable on desktop and fits the phone without sideways scroll.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

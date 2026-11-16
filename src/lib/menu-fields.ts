@@ -9,6 +9,10 @@ export const NEW_DISH_FIELDS = {
   name: "name",
   emoji: "emoji",
   servings: "servings",
+  prepMinutes: "prepMinutes",
+  cookMinutes: "cookMinutes",
+  steps: "steps",
+  tips: "tips",
   itemName: "itemName",
   itemEmoji: "itemEmoji",
   itemPerServing: "itemPerServing",
@@ -17,3 +21,6 @@ export const NEW_DISH_FIELDS = {
   itemUnitsPerBuy: "itemUnitsPerBuy",
   itemPrice: "itemPrice",
 } as const;
+
+/** Anchor id for a dish card, so adding a dish can scroll to it. */
+export const dishAnchorId = (dishId: string) => `dish-${dishId}`;

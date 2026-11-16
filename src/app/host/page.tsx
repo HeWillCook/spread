@@ -140,22 +140,6 @@ function EventTicket({
   );
 }
 
-function MoreTicket() {
-  return (
-    <Link href="/host/new" className="dash-ticket-more">
-      <span className="plan-stickers" aria-hidden="true">
-        <Sticker name="watermelon" size="sm" className="plan-sticker plan-sticker-a" />
-        <Sticker name="balloon" size="sm" className="plan-sticker plan-sticker-b" />
-        <Sticker name="heart" size="sm" className="plan-sticker plan-sticker-c" />
-      </span>
-      <span className="dash-ticket-more-title">Plan another</span>
-      <span className="dash-ticket-more-note">
-        A fresh ticket for the next crowd.
-      </span>
-    </Link>
-  );
-}
-
 export default async function HostDashboardPage({ searchParams }: PageProps<"/host">) {
   const host = await requireHost();
   const db = await getDb();
@@ -191,15 +175,8 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
           <div className="dashboard-head">
             <div>
               <h1 className="dashboard-title">Your events</h1>
-              <p className="dashboard-sub">
-                Hi, {host.name}. Pick an event to keep planning.
-              </p>
+              <p className="dashboard-sub">Hi, {host.name}.</p>
             </div>
-            {events.length > 0 ? (
-              <Link href="/host/new" className="cta-primary">
-                Create event
-              </Link>
-            ) : null}
           </div>
         </div>
       </section>
@@ -240,10 +217,7 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
             </Link>
           }
         >
-          <p>
-            Create one, then share the link with your guests. Replies start
-            filling in the food plan.
-          </p>
+          <p>Create an event, then share the link.</p>
         </EmptyState>
       ) : (
         <>
@@ -263,9 +237,6 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
                     showGlance={event.cancelledAt === null}
                   />
                 ))}
-                <li className="event-list-more">
-                  <MoreTicket />
-                </li>
               </ul>
             </section>
           ) : null}
@@ -290,11 +261,11 @@ export default async function HostDashboardPage({ searchParams }: PageProps<"/ho
             </details>
           ) : null}
 
-          {upcoming.length === 0 ? (
-            <div className="event-list mt-8">
-              <MoreTicket />
-            </div>
-          ) : null}
+          <div className="mt-6">
+            <Link href="/host/new" className="dashboard-create-link">
+              <span aria-hidden="true">+</span> Create event
+            </Link>
+          </div>
         </>
       )}
     </main>

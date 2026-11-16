@@ -34,6 +34,12 @@ export interface PreviewLine {
   baselineCostCents: number;
   buyQtyDelta: number;
   costDeltaCents: number;
+  /**
+   * Every dish this line buys for, deduped in menu order. The comparison shows
+   * merged buying (quantities and costs must match the Shopping tab), so a shared
+   * ingredient is one row that names all of its dishes.
+   */
+  dishNames: string[];
 }
 
 export interface AttendancePreview {
@@ -129,8 +135,14 @@ export function parseCustomHeadcount(
   return { heads, error: null };
 }
 
-function keyOf(line: { recipeId: string; itemId: string }): string {
-  return `${line.recipeId}::${line.itemId}`;
+/**
+ * Identity of a shopping line across two headcounts. Shopping merges one line
+ * per ingredient, and its primary `itemId` (the sorted-first id) is unique, so it
+ * pairs the baseline with the preview even when the merged line's first dish
+ * differs from the row you'd have seen per dish.
+ */
+function keyOf(line: { itemId: string }): string {
+  return line.itemId;
 }
 
 /**
@@ -157,6 +169,10 @@ export function buildAttendancePreview(
     const baseline = baselineByKey.get(keyOf(line));
     const baselineBuyQty = baseline?.buyQty ?? 0;
     const baselineCostCents = baseline?.estCostCents ?? 0;
+    const dishNames: string[] = [];
+    for (const source of line.sources) {
+      if (!dishNames.includes(source.recipeName)) dishNames.push(source.recipeName);
+    }
     return {
       recipeId: line.recipeId,
       itemId: line.itemId,
@@ -169,6 +185,7 @@ export function buildAttendancePreview(
       baselineCostCents,
       buyQtyDelta: line.buyQty - baselineBuyQty,
       costDeltaCents: line.estCostCents - baselineCostCents,
+      dishNames,
     };
   });
 

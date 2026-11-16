@@ -1,7 +1,7 @@
 import type { Headcount } from "@/domain/headcount";
 import { formatWhen } from "@/lib/format";
-import { servingWord } from "@/lib/menu-text";
-import { buildShoppingList, type ShoppingLine } from "@/domain/shopping";
+import { formatIngredientAmount, servingWord, timeRow } from "@/lib/menu-text";
+import { buildDishNeeds, buildShoppingList } from "@/domain/shopping";
 import { formatBuyQty, headcountLine } from "@/lib/shopping-text";
 import type { GuestRow } from "@/services/guestsOverview";
 import type { MenuDish } from "@/services/menu";
@@ -35,6 +35,10 @@ export interface PrepDish {
   servingsPerPerson: number;
   /** e.g. "12 burgers". */
   servingsLabel: string;
+  /** "Prep 15 min · Cook 20 min · Total 35 min"; null when the recipe has no times. */
+  timeLabel: string | null;
+  /** Ordered how-to steps, so the sheet doubles as a recipe card. */
+  steps: string[];
   ingredients: PrepIngredient[];
 }
 
@@ -99,8 +103,9 @@ export function emptyShoppingLabel(sheet: Pick<PrepSheet, "hasMenu" | "headcount
 }
 
 function neededLabel(needed: number, unit: string): string {
-  // Two decimals matches the menu's prep display and hides float noise like 1.5000000000002.
-  return formatBuyQty(Number(needed.toFixed(2)), unit);
+  // Fractions a cook reads at a glance ("1 3/4 eggs", "10 1/2 tbsp") and the right
+  // singular/plural, with float noise like 1.5000000000002 rounded away.
+  return formatIngredientAmount(Number(needed.toFixed(2)), unit);
 }
 
 /**
@@ -114,24 +119,26 @@ export function buildPrepSheet({
   headcount,
   guests,
 }: BuildPrepSheetInput): PrepSheet {
-  const built = buildShoppingList(
-    dishes.map((dish) => ({
-      recipe: dish.recipe,
-      servingsPerPerson: dish.servingsPerPerson,
-    })),
-    headcount.planFor,
-  );
-  const linesByRecipe = new Map<string, ShoppingLine[]>();
-  for (const line of built) {
-    const list = linesByRecipe.get(line.recipeId) ?? [];
-    list.push(line);
-    linesByRecipe.set(line.recipeId, list);
+  const plans = dishes.map((dish) => ({
+    recipe: dish.recipe,
+    servingsPerPerson: dish.servingsPerPerson,
+  }));
+  // Per-dish ingredient lists use the unmerged needs, so a shared ingredient
+  // (onion in burgers and hot dogs) shows each dish's own amount. The sheet's
+  // Shopping section stays on the merged list, which is what you actually buy.
+  const dishNeeds = buildDishNeeds(plans, headcount.planFor);
+  const built = buildShoppingList(plans, headcount.planFor);
+  const needsByRecipe = new Map<string, typeof dishNeeds>();
+  for (const need of dishNeeds) {
+    const list = needsByRecipe.get(need.recipeId) ?? [];
+    list.push(need);
+    needsByRecipe.set(need.recipeId, list);
   }
 
   const prepDishes: PrepDish[] = dishes.map((dish) => {
-    const lines = linesByRecipe.get(dish.recipe.id) ?? [];
-    // buildShoppingList rounds servings up to whole servings; every line carries the same value.
-    const servings = lines[0]?.servings ?? 0;
+    const needs = needsByRecipe.get(dish.recipe.id) ?? [];
+    // Servings are rounded up to whole servings exactly as the shopping list does.
+    const servings = needs[0]?.servings ?? 0;
     return {
       dishId: dish.dishId,
       name: dish.recipe.name,
@@ -139,13 +146,15 @@ export function buildPrepSheet({
       servings,
       servingsPerPerson: dish.servingsPerPerson,
       servingsLabel: formatBuyQty(servings, servingWord(dish.recipe.name)),
-      ingredients: lines.map((line) => ({
-        itemId: line.itemId,
-        name: line.name,
-        emoji: line.emoji,
-        needed: line.needed,
-        unit: line.neededUnit,
-        neededLabel: neededLabel(line.needed, line.neededUnit),
+      timeLabel: timeRow(dish.recipe),
+      steps: dish.recipe.steps ?? [],
+      ingredients: needs.map((need) => ({
+        itemId: need.itemId,
+        name: need.name,
+        emoji: need.emoji,
+        needed: need.needed,
+        unit: need.neededUnit,
+        neededLabel: neededLabel(need.needed, need.neededUnit),
       })),
     };
   });
@@ -193,7 +202,8 @@ export function buildPrepSheet({
 
 /**
  * Plain text for copy/paste and a plain-language print backup. Saved data only:
- * no links, invitation codes, emails, payment details or cooking instructions.
+ * no links, invitation codes, emails or payment details. Cooking steps come straight
+ * from the saved recipe, never from anything invented here.
  */
 export function prepSheetText(sheet: PrepSheet): string {
   const lines: string[] = [
@@ -214,6 +224,10 @@ export function prepSheetText(sheet: PrepSheet): string {
       lines.push(`${dish.name} — ${dish.servingsLabel}`);
       for (const ingredient of dish.ingredients) {
         lines.push(`- ${ingredient.name}: ${ingredient.neededLabel}`);
+      }
+      if (dish.timeLabel) lines.push(dish.timeLabel);
+      for (const [stepIndex, step] of dish.steps.entries()) {
+        lines.push(`${stepIndex + 1}. ${step}`);
       }
     }
   }
