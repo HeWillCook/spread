@@ -118,6 +118,7 @@ const RULES: AisleRule[] = [
       "ketchup",
       "mustard",
       "mayo",
+      "mayonnaise",
       "relish",
       "salsa",
       "sauce",
